@@ -6,7 +6,7 @@ A complete mobile-first Progressive Web App (PWA) for couples to share daily que
 
 - **PWA Ready**: Installable on iOS and Android via "Add to Home Screen".
 - **Daily Questions**: A new question is generated every day at 06:00 (Oslo Time) for each active room.
-- **OTP Authentication**: Secure sign-up/sign-in using 6-digit one-time passwords (engangskode) via Resend.
+- **OTP Authentication**: Secure sign-up/sign-in using 6-digit one-time passwords via Resend.
 - **Offline Drafting**: Answers are saved temporarily in your local storage until submitted.
 - **Privacy First**: Your partner's answer is hidden until both of you have answered the daily question.
 - **Progress Tracking**: See your streaks, total questions answered, and milestones.
@@ -44,7 +44,7 @@ A complete mobile-first Progressive Web App (PWA) for couples to share daily que
 Run the SQL script located in `supabase/migrations/20260222_complete_schema.sql` in your Supabase SQL Editor. This sets up the entire database schema, triggers, and RLS policies.
 
 ### 2. SMTP & OTP Setup
-To enable the "engangskode" flow via Resend:
+To enable the OTP flow via Resend:
 1. Go to **Supabase Dashboard** -> **Settings** -> **Auth** -> **SMTP Settings**.
 2. Enable "Custom SMTP" and use `smtp.resend.com` (Port 587) with your Resend API key as the password.
 3. In **Auth** -> **Email Templates**, ensure "Confirm signup" uses the `{{ .Token }}` variable to send the 6-digit code.
