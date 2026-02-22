@@ -189,7 +189,7 @@ export default function SignInPage() {
                         </form>
                     </div>
                 ) : (
-                    <form onSubmit={handleVerifyOtp} className="space-y-8 animate-in fade-in duration-500">
+                    <form id="otp-form" onSubmit={handleVerifyOtp} className="space-y-8 animate-in fade-in duration-500">
                         <div className="space-y-6">
                             <div
                                 className="relative flex justify-center gap-2 sm:gap-3 cursor-text"
@@ -219,6 +219,13 @@ export default function SignInPage() {
                                     onChange={(e) => {
                                         const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                                         setOtp(val)
+                                        if (val.length === 8) {
+                                            // Auto-submit when all 8 digits entered
+                                            setTimeout(() => {
+                                                const form = document.getElementById('otp-form') as HTMLFormElement | null
+                                                form?.requestSubmit()
+                                            }, 150)
+                                        }
                                     }}
                                     className="absolute inset-0 w-full h-full opacity-0 text-lg"
                                     autoFocus

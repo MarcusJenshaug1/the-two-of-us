@@ -30,19 +30,27 @@ export default function RoomPage() {
         try {
             const roomCode = generateRoomCode()
 
-            // 1. Create room
-            const { data: roomData, error: roomError } = await supabase
+            // 1. Create room (without .select() to avoid RLS SELECT issue)
+            const { error: roomError } = await supabase
                 .from('rooms')
                 .insert({
                     invite_code: roomCode,
                     created_by: user.id
                 })
-                .select()
-                .single()
 
             if (roomError) throw roomError
 
-            // 2. Add user to room
+            // 2. Find the room we just created
+            const { data: roomData, error: findError } = await supabase
+                .from('rooms')
+                .select('id')
+                .eq('invite_code', roomCode)
+                .eq('created_by', user.id)
+                .single()
+
+            if (findError || !roomData) throw new Error('Room was created but could not be found. Please try again.')
+
+            // 3. Add user to room
             const { error: memberError } = await supabase
                 .from('room_members')
                 .insert({

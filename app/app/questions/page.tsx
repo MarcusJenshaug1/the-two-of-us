@@ -50,17 +50,25 @@ export default function QuestionsPage() {
 
                 const roomId = member.room_id
 
-                // 2. Get today's question
-                const { data: dq } = await supabase
-                    .from('daily_questions')
-                    .select('id, question_id, questions(text), date_key')
-                    .eq('room_id', roomId)
-                    .eq('date_key', dateKey)
-                    .single()
+                // 2. Ensure today's question exists (auto-generates if needed)
+                const { data: dqRows, error: rpcError } = await supabase
+                    .rpc('ensure_daily_question', { room_id_param: roomId })
+
+                if (rpcError) {
+                    console.error('RPC error:', rpcError)
+                }
 
                 if (!mounted) return
+
+                const dq = dqRows?.[0]
                 if (dq) {
-                    setDailyQuestion({ ...dq, text: (dq.questions as any)?.text })
+                    setDailyQuestion({
+                        id: dq.id,
+                        question_id: dq.question_id,
+                        date_key: dq.date_key,
+                        text: dq.question_text,
+                        category: dq.question_category,
+                    })
 
                     // Load draft
                     const savedDraft = localStorage.getItem(`draft_${dq.id}`)
@@ -73,8 +81,8 @@ export default function QuestionsPage() {
                         .eq('daily_question_id', dq.id)
 
                     if (answers) {
-                        const mine = answers.find(a => a.user_id === user.id)
-                        const theirs = answers.find(a => a.user_id !== user.id)
+                        const mine = answers.find((a: any) => a.user_id === user.id)
+                        const theirs = answers.find((a: any) => a.user_id !== user.id)
                         setMyAnswer(mine)
                         setPartnerAnswer(theirs)
                     }
@@ -150,7 +158,14 @@ export default function QuestionsPage() {
     return (
         <div className="p-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 md:pt-12">
             <div className="space-y-2">
-                <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">Today's Question</h1>
+                <div className="flex items-center gap-2">
+                    <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">Today's Question</h1>
+                    {dailyQuestion.category && (
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+                            {dailyQuestion.category}
+                        </span>
+                    )}
+                </div>
                 <p className="text-2xl md:text-3xl font-semibold leading-tight">{dailyQuestion.text}</p>
                 <p className="text-sm text-zinc-500">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</p>
             </div>

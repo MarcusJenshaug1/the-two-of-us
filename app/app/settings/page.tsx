@@ -1,23 +1,52 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { LogOut, User, Users, Heart, Download, Share, PlusSquare, MoreVertical, CheckCircle2 } from 'lucide-react'
+import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera } from 'lucide-react'
+
+// Resize image before upload (max 400x400)
+function resizeImage(file: File, maxSize = 400): Promise<Blob> {
+    return new Promise((resolve) => {
+        const img = new Image()
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')!
+
+        img.onload = () => {
+            let w = img.width
+            let h = img.height
+            if (w > h) {
+                if (w > maxSize) { h = h * maxSize / w; w = maxSize }
+            } else {
+                if (h > maxSize) { w = w * maxSize / h; h = maxSize }
+            }
+            canvas.width = w
+            canvas.height = h
+            ctx.drawImage(img, 0, 0, w, h)
+            canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.85)
+        }
+        img.src = URL.createObjectURL(file)
+    })
+}
 
 // Settings 
 export default function SettingsPage() {
     const [profile, setProfile] = useState<any>(null)
     const [room, setRoom] = useState<any>(null)
+    const [partner, setPartner] = useState<any>(null)
+    const [memberCount, setMemberCount] = useState(0)
     const [name, setName] = useState('')
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
     const [anniversary, setAnniversary] = useState('')
     const [isSaving, setIsSaving] = useState(false)
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
     const [installPrompt, setInstallPrompt] = useState<any>(null)
     const [isIOS, setIsIOS] = useState(false)
     const [isStandalone, setIsStandalone] = useState(false)
+    const avatarInputRef = useRef<HTMLInputElement>(null)
 
     const supabase = createClient()
     const { user, signOut } = useAuth()
@@ -58,6 +87,7 @@ export default function SettingsPage() {
             if (profileData && mounted) {
                 setProfile(profileData)
                 setName(profileData.name || '')
+                setAvatarUrl(profileData.avatar_url || null)
             }
 
             // 2. Get room
@@ -73,6 +103,23 @@ export default function SettingsPage() {
                 if (r.anniversary_date) {
                     setAnniversary(r.anniversary_date)
                 }
+
+                // 3. Get all room members with profiles
+                const { data: members } = await supabase
+                    .from('room_members')
+                    .select('user_id, profiles(id, name, avatar_url)')
+                    .eq('room_id', r.id)
+
+                if (members && mounted) {
+                    setMemberCount(members.length)
+                    const partnerMember = members.find((m: any) => m.user_id !== user.id)
+                    if (partnerMember) {
+                        const p = Array.isArray(partnerMember.profiles)
+                            ? partnerMember.profiles[0]
+                            : partnerMember.profiles
+                        setPartner(p)
+                    }
+                }
             }
         }
 
@@ -85,12 +132,55 @@ export default function SettingsPage() {
         setIsSaving(true)
         try {
             await supabase.from('profiles').update({ name }).eq('id', user.id)
-            alert('Profile updated')
+            setProfile((p: any) => ({ ...p, name }))
         } catch (err) {
             console.error(err)
             alert('Failed to update profile')
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !user) return
+
+        setIsUploadingAvatar(true)
+        try {
+            // Resize image client-side
+            const resized = await resizeImage(file)
+            const filePath = `${user.id}/avatar.jpg`
+
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, resized, {
+                    contentType: 'image/jpeg',
+                    upsert: true,
+                })
+
+            if (uploadError) throw uploadError
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath)
+
+            // Add cache buster
+            const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`
+
+            // Update profile
+            await supabase.from('profiles')
+                .update({ avatar_url: urlWithCacheBust })
+                .eq('id', user.id)
+
+            setAvatarUrl(urlWithCacheBust)
+            setProfile((p: any) => ({ ...p, avatar_url: urlWithCacheBust }))
+        } catch (err: any) {
+            console.error(err)
+            alert(err.message || 'Failed to upload avatar')
+        } finally {
+            setIsUploadingAvatar(false)
         }
     }
 
@@ -147,7 +237,46 @@ export default function SettingsPage() {
                     <User className="w-4 h-4 mr-2" /> Profile
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
-                    <div className="space-y-2">
+                    {/* Avatar */}
+                    <div className="flex items-center space-x-4">
+                        <button
+                            type="button"
+                            className="relative group shrink-0"
+                            onClick={() => avatarInputRef.current?.click()}
+                            disabled={isUploadingAvatar}
+                        >
+                            <div className="h-16 w-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden flex items-center justify-center">
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                                ) : (
+                                    <User className="h-7 w-7 text-zinc-500" />
+                                )}
+                            </div>
+                            <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <Camera className="h-5 w-5 text-white" />
+                            </div>
+                            {isUploadingAvatar && (
+                                <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                </div>
+                            )}
+                        </button>
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarUpload}
+                        />
+                        <div className="space-y-0.5">
+                            <p className="font-medium text-sm">{profile?.name || 'No name set'}</p>
+                            <p className="text-xs text-zinc-500">{user?.email}</p>
+                            <p className="text-[10px] text-zinc-600">Tap photo to change</p>
+                        </div>
+                    </div>
+
+                    {/* Name */}
+                    <div className="space-y-2 pt-2 border-t border-zinc-800">
                         <label className="text-sm font-medium">Display Name</label>
                         <div className="flex space-x-2">
                             <Input
@@ -160,10 +289,6 @@ export default function SettingsPage() {
                             </Button>
                         </div>
                     </div>
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Email</label>
-                        <p className="text-sm text-zinc-400">{user?.email}</p>
-                    </div>
                 </div>
             </section>
 
@@ -173,7 +298,60 @@ export default function SettingsPage() {
                     <Heart className="w-4 h-4 mr-2" /> Relationship
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
-                    <div className="space-y-2">
+                    {/* Partner or Invite */}
+                    {memberCount >= 2 && partner ? (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center">
+                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> Your Partner
+                            </label>
+                            <div className="flex items-center space-x-3 bg-zinc-950 p-3 rounded-xl border border-zinc-800/50">
+                                <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
+                                    {partner.avatar_url ? (
+                                        <img src={partner.avatar_url} alt={partner.name} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <User className="h-5 w-5 text-zinc-500" />
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="font-medium text-sm">{partner.name || 'No name'}</p>
+                                    <p className="text-[10px] text-zinc-500">Connected</p>
+                                </div>
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-auto shrink-0" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center">
+                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> Invite Your Partner
+                            </label>
+                            {room ? (
+                                <div className="flex space-x-2">
+                                    <Input
+                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${room?.invite_code}`}
+                                        readOnly
+                                        className="bg-zinc-950 font-mono text-xs"
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(`${window.location.origin}/invite/${room?.invite_code}`)
+                                            alert('Copied to clipboard!')
+                                        }}
+                                    >
+                                        Copy
+                                    </Button>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-zinc-500">Not in a room yet.</p>
+                            )}
+                            <p className="text-xs text-zinc-500">
+                                Share this link with your partner to connect.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Anniversary */}
+                    <div className="pt-4 border-t border-zinc-800 space-y-2">
                         <label className="text-sm font-medium">Anniversary Date</label>
                         <div className="flex space-x-2">
                             <Input
@@ -186,35 +364,6 @@ export default function SettingsPage() {
                                 Save
                             </Button>
                         </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-zinc-800 space-y-2">
-                        <label className="text-sm font-medium flex items-center">
-                            <Users className="w-4 h-4 mr-2 text-zinc-400" /> Share Invite Link
-                        </label>
-                        {room ? (
-                            <div className="flex space-x-2">
-                                <Input
-                                    value={`${window.location.origin}/invite/${room?.invite_code}`}
-                                    readOnly
-                                    className="bg-zinc-950 font-mono text-xs"
-                                />
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(`${window.location.origin}/invite/${room?.invite_code}`)
-                                        alert('Copied to clipboard!')
-                                    }}
-                                >
-                                    Copy
-                                </Button>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-zinc-500">Not in a room yet.</p>
-                        )}
-                        <p className="text-xs text-zinc-500">
-                            Only share this with your single partner. Rooms are strictly limited to 2 people.
-                        </p>
                     </div>
                 </div>
             </section>

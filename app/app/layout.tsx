@@ -1,30 +1,12 @@
-import { redirect } from "next/navigation"
 import { BottomNav, SideNav } from "@/components/navigation"
-import { createClient } from "@/lib/supabase/server"
 
-export default async function AppLayout({
+export default function AppLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-        redirect('/sign-in')
-    }
-
-    // Check if user belongs to a room
-    const { data: membership } = await supabase
-        .from('room_members')
-        .select('room_id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-    if (!membership) {
-        redirect('/onboarding/room')
-    }
-
+    // Room membership is enforced by middleware.
+    // If user reaches here, they have a room.
     return (
         <div className="flex min-h-screen w-full flex-col md:flex-row bg-zinc-950">
             <SideNav />

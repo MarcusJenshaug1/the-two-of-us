@@ -56,17 +56,36 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Protected routes: /app and /onboarding
-    const isAppRoute = request.nextUrl.pathname.startsWith('/app')
-    const isOnboardingRoute = request.nextUrl.pathname.startsWith('/onboarding')
+    const pathname = request.nextUrl.pathname
+    const isAppRoute = pathname.startsWith('/app')
+    const isOnboardingRoute = pathname.startsWith('/onboarding')
+    const isSignIn = pathname === '/sign-in'
 
-    if ((isAppRoute || isOnboardingRoute) && !user) {
+    // 1. Not logged in -> can only access /sign-in
+    if (!user && (isAppRoute || isOnboardingRoute)) {
         return NextResponse.redirect(new URL('/sign-in', request.url))
     }
 
-    // Redirect logged in users away from sign-in page to questions
-    if (request.nextUrl.pathname === '/sign-in' && user) {
-        return NextResponse.redirect(new URL('/app/questions', request.url))
+    // 2. Logged in -> check room membership for /app routes and /sign-in redirect
+    if (user && (isAppRoute || isSignIn)) {
+        const { data: membership } = await supabase
+            .from('room_members')
+            .select('room_id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        // No room yet -> send to onboarding (not /app)
+        if (!membership && isAppRoute) {
+            return NextResponse.redirect(new URL('/onboarding/room', request.url))
+        }
+
+        // Signed in on /sign-in page -> send to correct place
+        if (isSignIn) {
+            if (!membership) {
+                return NextResponse.redirect(new URL('/onboarding/profile', request.url))
+            }
+            return NextResponse.redirect(new URL('/app/questions', request.url))
+        }
     }
 
     return response
