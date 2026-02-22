@@ -195,11 +195,11 @@ export default function SignInPage() {
                                 className="relative flex justify-center gap-2 sm:gap-3 cursor-text"
                                 onClick={() => document.getElementById('otp-input')?.focus()}
                             >
-                                {([...Array(6)].map((_, i) => (
+                                {([...Array(8)].map((_, i) => (
                                     <div
                                         key={i}
                                         className={clsx(
-                                            "w-10 h-14 sm:w-12 sm:h-16 text-2xl",
+                                            "w-9 h-12 sm:w-10 sm:h-14 text-xl",
                                             "border-2 rounded-xl flex items-center justify-center font-bold transition-all duration-300 shadow-sm",
                                             otp.length === i ? "border-rose-500 ring-4 ring-rose-500/10 bg-rose-500/5 scale-110" :
                                                 otp.length > i ? "border-emerald-500/50 bg-emerald-500/5 text-emerald-400" :
@@ -217,7 +217,7 @@ export default function SignInPage() {
                                     autoComplete="one-time-code"
                                     value={otp}
                                     onChange={(e) => {
-                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 8)
                                         setOtp(val)
                                     }}
                                     className="absolute inset-0 w-full h-full opacity-0 text-lg"
@@ -244,7 +244,7 @@ export default function SignInPage() {
                             <Button
                                 type="submit"
                                 className="w-full h-12 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
-                                disabled={isLoading || otp.length !== 6}
+                                disabled={isLoading || otp.length !== 8}
                             >
                                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Verify Code'}
                             </Button>

@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { LogOut, User, Users, Heart, Download } from 'lucide-react'
+import { LogOut, User, Users, Heart, Download, Share, PlusSquare, MoreVertical, CheckCircle2 } from 'lucide-react'
 
 // Settings 
 export default function SettingsPage() {
@@ -16,13 +16,25 @@ export default function SettingsPage() {
     const [anniversary, setAnniversary] = useState('')
     const [isSaving, setIsSaving] = useState(false)
     const [installPrompt, setInstallPrompt] = useState<any>(null)
+    const [isIOS, setIsIOS] = useState(false)
+    const [isStandalone, setIsStandalone] = useState(false)
 
     const supabase = createClient()
     const { user, signOut } = useAuth()
     const router = useRouter()
 
     useEffect(() => {
-        // PWA Install Prompt listening
+        // Detect iOS
+        const ua = navigator.userAgent
+        const ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        setIsIOS(ios)
+
+        // Detect if already installed (standalone mode)
+        const standalone = window.matchMedia('(display-mode: standalone)').matches
+            || (navigator as any).standalone === true
+        setIsStandalone(standalone)
+
+        // PWA Install Prompt listening (Android/Desktop only)
         const handler = (e: Event) => {
             e.preventDefault()
             setInstallPrompt(e)
@@ -213,15 +225,62 @@ export default function SettingsPage() {
                     <Download className="w-4 h-4 mr-2" /> App
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <p className="font-medium text-sm">Install App</p>
-                            <p className="text-xs text-zinc-400">Add to your home screen</p>
+                    {isStandalone ? (
+                        /* Already installed */
+                        <div className="flex items-center space-x-3 text-emerald-400">
+                            <CheckCircle2 className="w-5 h-5 shrink-0" />
+                            <div>
+                                <p className="font-medium text-sm">App Installed</p>
+                                <p className="text-xs text-zinc-500">You&apos;re using the app from your home screen.</p>
+                            </div>
                         </div>
-                        <Button variant="outline" size="sm" onClick={handleInstallClick}>
-                            Install
-                        </Button>
-                    </div>
+                    ) : isIOS ? (
+                        /* iOS guide */
+                        <div className="space-y-4">
+                            <div className="space-y-1">
+                                <p className="font-medium text-sm">Install on iPhone</p>
+                                <p className="text-xs text-zinc-400">Follow these steps to add the app to your home screen.</p>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-start space-x-3">
+                                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold">1</div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-sm font-medium">Tap the Share button</p>
+                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                            Tap <Share className="inline h-3.5 w-3.5 text-blue-400" /> at the bottom of Safari.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start space-x-3">
+                                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold">2</div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-sm font-medium">Add to Home Screen</p>
+                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                            Scroll down and tap <PlusSquare className="inline h-3.5 w-3.5 text-zinc-300" /> <span className="text-zinc-300 font-medium">Add to Home Screen</span>.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start space-x-3">
+                                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 text-xs font-bold">3</div>
+                                    <div className="space-y-0.5">
+                                        <p className="text-sm font-medium">Tap Add</p>
+                                        <p className="text-xs text-zinc-500">Confirm by tapping <span className="text-zinc-300 font-medium">Add</span> in the top right corner.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        /* Android / Desktop – native install prompt */
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="font-medium text-sm">Install App</p>
+                                <p className="text-xs text-zinc-400">Add to your home screen for quick access.</p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={handleInstallClick}>
+                                Install
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </section>
 
