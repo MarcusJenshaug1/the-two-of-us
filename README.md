@@ -6,7 +6,7 @@ A complete mobile-first Progressive Web App (PWA) for couples to share daily que
 
 - **PWA Ready**: Installable on iOS and Android via "Add to Home Screen".
 - **Daily Questions**: A new question is generated every day at 06:00 (Oslo Time) for each active room.
-- **OTP Authentication**: Secure sign-up/sign-in using 6-digit one-time passwords via Resend.
+- **OTP Authentication**: Secure sign-up/sign-in using one-time passwords (supports 6-8 digits).
 - **Offline Drafting**: Answers are saved temporarily in your local storage until submitted.
 - **Privacy First**: Your partner's answer is hidden until both of you have answered the daily question.
 - **Progress Tracking**: See your streaks, total questions answered, and milestones.
