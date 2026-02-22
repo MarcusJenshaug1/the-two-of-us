@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Two of Us - Couple's PWA
 
-## Getting Started
+A complete mobile-first Progressive Web App (PWA) for couples to share daily questions, reactions, and keep track of their relationship progress. Built with Next.js App Router, Tailwind CSS, Radix UI, and Supabase.
 
-First, run the development server:
+## Features
 
+- **PWA Ready**: Installable on iOS and Android via "Add to Home Screen".
+- **Daily Questions**: A new question is generated every day at 06:00 (Oslo Time) for each active room.
+- **OTP Authentication**: Secure sign-up/sign-in using 6-digit one-time passwords (engangskode) via Resend.
+- **Offline Drafting**: Answers are saved temporarily in your local storage until submitted.
+- **Privacy First**: Your partner's answer is hidden until both of you have answered the daily question.
+- **Progress Tracking**: See your streaks, total questions answered, and milestones.
+
+## Prerequisites
+
+- Node.js 18+
+- A Supabase Project.
+- A Resend API key (for authentication emails).
+
+## Getting Started Locally
+
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Environment Variables**
+   Create a `.env.local` file in the root directory:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   RESEND_API_KEY=your_resend_api_key
+   ```
+
+3. **Run Development Server**
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3001](http://localhost:3001)
+
+## Supabase Configuration
+
+### 1. SQL Migrations
+Run the SQL script located in `supabase/migrations/20260222_complete_schema.sql` in your Supabase SQL Editor. This sets up the entire database schema, triggers, and RLS policies.
+
+### 2. SMTP & OTP Setup
+To enable the "engangskode" flow via Resend:
+1. Go to **Supabase Dashboard** -> **Settings** -> **Auth** -> **SMTP Settings**.
+2. Enable "Custom SMTP" and use `smtp.resend.com` (Port 587) with your Resend API key as the password.
+3. In **Auth** -> **Email Templates**, ensure "Confirm signup" uses the `{{ .Token }}` variable to send the 6-digit code.
+
+### 3. Edge Function (Automation)
+The Edge Function generates daily questions and runs on a cron schedule.
+
+**Deploy the function:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+supabase functions deploy daily-questions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Set up pg_cron (in SQL Editor) to run at 06:00 Oslo Time:**
+*(Note: Supabase pg_cron runs in UTC, Oslo is UTC+1 or UTC+2 depending on DST).*
+```sql
+SELECT cron.schedule(
+  'daily-questions-job',
+  '0 5 * * *',
+  $$
+    SELECT net.http_post(
+      url:='https://your-project-ref.functions.supabase.co/daily-questions',
+      headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
+    )
+  $$
+);
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## PWA Installation
+- **iOS**: Open in Safari -> Share -> "Add to Home Screen".
+- **Android**: Open in Chrome -> Menu -> "Install app".
