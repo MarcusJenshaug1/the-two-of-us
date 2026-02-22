@@ -14,7 +14,6 @@ export default function SignInPage() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [otp, setOtp] = useState('')
-    const [otpLength, setOtpLength] = useState(6) // Default to 6, can expand to 8
     const [view, setView] = useState<AuthView>('signIn')
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -192,12 +191,15 @@ export default function SignInPage() {
                 ) : (
                     <form onSubmit={handleVerifyOtp} className="space-y-8 animate-in fade-in duration-500">
                         <div className="space-y-6">
-                            <div className="flex justify-center gap-2 sm:gap-3">
-                                {([...Array(otpLength)].map((_, i) => (
+                            <div
+                                className="relative flex justify-center gap-2 sm:gap-3 cursor-text"
+                                onClick={() => document.getElementById('otp-input')?.focus()}
+                            >
+                                {([...Array(6)].map((_, i) => (
                                     <div
                                         key={i}
                                         className={clsx(
-                                            otpLength === 8 ? "w-8 h-12 sm:w-9 sm:h-14 text-xl" : "w-10 h-14 sm:w-12 sm:h-16 text-2xl",
+                                            "w-10 h-14 sm:w-12 sm:h-16 text-2xl",
                                             "border-2 rounded-xl flex items-center justify-center font-bold transition-all duration-300 shadow-sm",
                                             otp.length === i ? "border-rose-500 ring-4 ring-rose-500/10 bg-rose-500/5 scale-110" :
                                                 otp.length > i ? "border-emerald-500/50 bg-emerald-500/5 text-emerald-400" :
@@ -207,22 +209,23 @@ export default function SignInPage() {
                                         {otp[i] || ''}
                                     </div>
                                 )))}
+                                <input
+                                    id="otp-input"
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    autoComplete="one-time-code"
+                                    value={otp}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').slice(0, 6)
+                                        setOtp(val)
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 text-lg"
+                                    autoFocus
+                                    required
+                                    disabled={isLoading}
+                                />
                             </div>
-
-                            <input
-                                type="text"
-                                value={otp}
-                                onChange={(e) => {
-                                    const val = e.target.value.replace(/\D/g, '').slice(0, 8)
-                                    setOtp(val)
-                                    if (val.length > 6) setOtpLength(8)
-                                    else if (val.length === 0) setOtpLength(6)
-                                }}
-                                className="sr-only"
-                                autoFocus
-                                required
-                                disabled={isLoading}
-                            />
 
                             {error && (
                                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-center animate-in shake-in">
@@ -241,7 +244,7 @@ export default function SignInPage() {
                             <Button
                                 type="submit"
                                 className="w-full h-12 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
-                                disabled={isLoading || (otp.length !== 6 && otp.length !== 8)}
+                                disabled={isLoading || otp.length !== 6}
                             >
                                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Verify Code'}
                             </Button>
