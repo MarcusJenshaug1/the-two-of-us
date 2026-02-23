@@ -473,7 +473,17 @@ export default function ProgressPage() {
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <h4 className="text-sm font-semibold">{format(calMonth, 'MMMM yyyy')}</h4>
+                        <div className="flex items-center gap-3">
+                            <h4 className="text-sm font-semibold">{format(calMonth, 'MMMM yyyy')}</h4>
+                            {format(calMonth, 'yyyy-MM') !== format(new Date(), 'yyyy-MM') && (
+                                <button
+                                    onClick={() => { setCalMonth(new Date()); setSelectedSpecial(null) }}
+                                    className="text-xs font-medium px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 transition-colors"
+                                >
+                                    Today
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={() => { setCalMonth(prev => addMonths(prev, 1)); setSelectedSpecial(null) }}
                             className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
