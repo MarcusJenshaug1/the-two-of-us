@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
-import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen } from 'lucide-react'
+import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen, MessageCircle } from 'lucide-react'
 
 const PAGE_SIZE = 30
 
@@ -17,6 +17,10 @@ type QuestionItem = {
     category: string | null
     status: 'completed' | 'your_turn' | 'waiting' | 'unanswered'
     hasLog: boolean
+    messageCount: number
+    lastMessage: string | null
+    lastMessageBy: string | null
+    isLastMessageMine: boolean
 }
 
 type JournalItem = {
@@ -125,6 +129,23 @@ export default function InboxPage() {
 
             const logDateSet = new Set((logData || []).map((l: any) => l.date_key))
 
+            // 4. Load latest messages per question
+            const dqIds = dqData.map((d: any) => d.id)
+            const { data: msgData } = await supabase
+                .from('messages')
+                .select('id, daily_question_id, user_id, text, created_at')
+                .in('daily_question_id', dqIds)
+                .order('created_at', { ascending: false })
+
+            // Group messages by daily_question_id
+            const msgMap: Record<string, { count: number; lastText: string; lastUserId: string }> = {}
+            for (const m of (msgData || []) as any[]) {
+                if (!msgMap[m.daily_question_id]) {
+                    msgMap[m.daily_question_id] = { count: 0, lastText: m.text, lastUserId: m.user_id }
+                }
+                msgMap[m.daily_question_id].count++
+            }
+
             // Build question items
             const questionItems: QuestionItem[] = dqData.map((item: any) => {
                 const myAnswer = item.answers?.find((a: any) => a.user_id === user.id)
@@ -136,6 +157,7 @@ export default function InboxPage() {
                 else if (myAnswer && !theirAnswer) status = 'waiting'
                 else status = 'unanswered'
 
+                const msgInfo = msgMap[item.id]
                 return {
                     type: 'question' as const,
                     id: item.id,
@@ -144,6 +166,10 @@ export default function InboxPage() {
                     category: item.questions?.category || null,
                     status,
                     hasLog: logDateSet.has(item.date_key),
+                    messageCount: msgInfo?.count || 0,
+                    lastMessage: msgInfo?.lastText || null,
+                    lastMessageBy: msgInfo ? (profileMap[msgInfo.lastUserId]?.name || null) : null,
+                    isLastMessageMine: msgInfo ? msgInfo.lastUserId === user.id : false,
                 }
             })
 
@@ -314,6 +340,13 @@ export default function InboxPage() {
                                                         <p className="text-sm font-medium leading-snug group-hover:text-rose-400 transition-colors line-clamp-2">
                                                             {q.text}
                                                         </p>
+                                                        {q.lastMessage && (
+                                                            <p className="text-xs text-zinc-500 truncate flex items-center gap-1">
+                                                                <MessageCircle className="w-3 h-3 shrink-0" />
+                                                                <span className="font-medium text-zinc-400">{q.isLastMessageMine ? 'You' : q.lastMessageBy}:</span>
+                                                                {q.lastMessage}
+                                                            </p>
+                                                        )}
                                                         <div className="flex items-center gap-2">
                                                             {q.category && (
                                                                 <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
@@ -322,6 +355,11 @@ export default function InboxPage() {
                                                             )}
                                                             {q.status === 'waiting' && (
                                                                 <span className="text-[10px] text-amber-500">Waiting for partner</span>
+                                                            )}
+                                                            {q.messageCount > 0 && (
+                                                                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                                                                    <MessageCircle className="w-2.5 h-2.5" /> {q.messageCount}
+                                                                </span>
                                                             )}
                                                         </div>
                                                     </div>
