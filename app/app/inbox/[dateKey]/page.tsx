@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
-import { format, parseISO } from 'date-fns'
-import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X } from 'lucide-react'
+import { format, parseISO, isToday, isYesterday } from 'date-fns'
+import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X, MessageCircle, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type Profile = {
@@ -329,6 +329,13 @@ export default function InboxDetailPage() {
         )
     }
 
+    const formatDateHeading = (dk: string) => {
+        const d = parseISO(dk)
+        if (isToday(d)) return 'Today'
+        if (isYesterday(d)) return 'Yesterday'
+        return format(d, 'EEEE, MMMM d')
+    }
+
     if (isLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -348,283 +355,292 @@ export default function InboxDetailPage() {
 
     const bothAnswered = myAnswer && partnerAnswer
     const partnerName = partnerProfile?.name || 'Partner'
+    const hasJournal = myLog || partnerLog
+    const hasChat = bothAnswered
 
     return (
-        <div className="p-4 space-y-6 pt-4 pb-24 md:pt-8 animate-in fade-in">
-            {/* Header */}
-            <div className="flex items-center space-x-4 pb-2">
-                <button
-                    onClick={() => router.push('/app/inbox')}
-                    className="p-2 -ml-2 rounded-full hover:bg-zinc-800 transition-colors"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                </button>
-                <div>
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-500">
-                        {format(parseISO(data.date_key), 'MMM d, yyyy')}
-                    </h2>
+        <div className="min-h-screen pb-28 animate-in fade-in">
+            {/* ─── HEADER ─── */}
+            <div className="sticky top-0 z-20 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/50">
+                <div className="flex items-center gap-3 px-4 py-3">
+                    <button
+                        onClick={() => router.push('/app/inbox')}
+                        className="p-1.5 -ml-1.5 rounded-full hover:bg-zinc-800 transition-colors"
+                    >
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{formatDateHeading(data.date_key)}</p>
+                        <p className="text-[11px] text-zinc-500">{format(parseISO(data.date_key), 'MMMM d, yyyy')}</p>
+                    </div>
+                    {data.category && (
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full shrink-0">
+                            {data.category}
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Question */}
-            <div className="space-y-2 pb-2">
-                <h1 className="text-2xl font-semibold leading-tight">{data.text}</h1>
-                {data.category && (
-                    <span className="inline-block text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
-                        {data.category}
-                    </span>
-                )}
-            </div>
+            <div className="px-4 pt-6 space-y-6">
 
-            {/* Answers */}
-            <div className="space-y-5">
-                {/* YOUR answer or answer form */}
-                {myAnswer ? (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1">
-                            <Avatar profile={myProfile} />
-                            <span className="text-xs font-semibold uppercase tracking-wider text-rose-400">You</span>
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                {/* ─── SECTION 1: DAILY QUESTION ─── */}
+                <section>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                        {/* Question text */}
+                        <div className="p-5 pb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/70 mb-2">Daily Question</p>
+                            <h1 className="text-lg font-semibold leading-snug">{data.text}</h1>
                         </div>
-                        <div className="relative ml-9">
-                            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl rounded-tl-sm text-[15px] leading-relaxed whitespace-pre-wrap">
-                                {myAnswer.answer_text}
-                            </div>
-                            {/* Partner's reaction on your answer */}
-                            {partnerReaction && (
-                                <div className="absolute -bottom-3 left-3 flex items-center gap-1 bg-zinc-800 border border-zinc-700/50 rounded-full px-2 py-0.5 shadow-md animate-in fade-in zoom-in duration-200">
-                                    <span className="text-sm">
-                                        {partnerReaction === 'heart' ? '\u2764\uFE0F' : partnerReaction === 'smile' ? '\uD83D\uDE0A' : '\uD83D\uDD25'}
-                                    </span>
+
+                        <div className="border-t border-zinc-800/50" />
+
+                        {/* Your answer */}
+                        <div className="p-4">
+                            {myAnswer ? (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Avatar profile={myProfile} />
+                                        <span className="text-xs font-semibold text-rose-400">You</span>
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                        {partnerReaction && (
+                                            <span className="ml-auto text-sm">
+                                                {partnerReaction === 'heart' ? '❤️' : partnerReaction === 'smile' ? '😊' : '🔥'}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-[15px] text-zinc-300 leading-relaxed whitespace-pre-wrap pl-9">
+                                        {myAnswer.answer_text}
+                                    </p>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmitAnswer} className="space-y-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Avatar profile={myProfile} />
+                                        <span className="text-xs font-semibold text-rose-400">Your answer</span>
+                                    </div>
+                                    <div className="relative">
+                                        <textarea
+                                            className="w-full min-h-[100px] resize-none rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
+                                            placeholder="Type your answer here..."
+                                            value={draft}
+                                            onChange={handleDraftChange}
+                                            disabled={isSubmitting}
+                                            maxLength={500}
+                                        />
+                                        <span className="absolute bottom-2 right-3 text-[10px] text-zinc-600">{draft.length}/500</span>
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        className="w-full h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                                        disabled={isSubmitting || draft.length < 10}
+                                    >
+                                        {isSubmitting ? 'Sending...' : (
+                                            <span className="flex items-center gap-2"><Send className="w-4 h-4" /> Send answer</span>
+                                        )}
+                                    </Button>
+                                </form>
+                            )}
+                        </div>
+
+                        <div className="border-t border-zinc-800/50" />
+
+                        {/* Partner answer */}
+                        <div className="p-4">
+                            {bothAnswered ? (
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Avatar profile={partnerProfile} />
+                                        <span className="text-xs font-semibold text-zinc-400">{partnerName}</span>
+                                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                        {/* Reaction picker */}
+                                        <div className="ml-auto flex items-center">
+                                            {activeReaction ? (
+                                                <button
+                                                    onClick={() => handleReaction(activeReaction)}
+                                                    disabled={isSubmittingReaction}
+                                                    className="text-sm hover:opacity-70 transition-opacity active:scale-90"
+                                                    title="Remove reaction"
+                                                >
+                                                    {activeReaction === 'heart' ? '❤️' : activeReaction === 'smile' ? '😊' : '🔥'}
+                                                </button>
+                                            ) : (
+                                                <div className="flex gap-1">
+                                                    {[
+                                                        { id: 'heart', emoji: '❤️' },
+                                                        { id: 'smile', emoji: '😊' },
+                                                        { id: 'flame', emoji: '🔥' },
+                                                    ].map(({ id, emoji }) => (
+                                                        <button
+                                                            key={id}
+                                                            onClick={() => handleReaction(id)}
+                                                            disabled={isSubmittingReaction}
+                                                            className="text-sm opacity-40 hover:opacity-100 transition-opacity active:scale-90"
+                                                        >
+                                                            {emoji}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <p className="text-[15px] text-zinc-300 leading-relaxed whitespace-pre-wrap pl-9">
+                                        {partnerAnswer.answer_text}
+                                    </p>
+                                </div>
+                            ) : partnerAnswer && !myAnswer ? (
+                                <div className="flex items-center gap-3 py-2">
+                                    <Avatar profile={partnerProfile} />
+                                    <div>
+                                        <p className="text-sm font-medium text-amber-400">{partnerName} has answered!</p>
+                                        <p className="text-xs text-zinc-500">Answer above to reveal theirs.</p>
+                                    </div>
+                                </div>
+                            ) : myAnswer && !partnerAnswer ? (
+                                <div className="flex items-center gap-3 py-2">
+                                    <Avatar profile={partnerProfile} />
+                                    <div>
+                                        <p className="text-sm text-zinc-400">{partnerName}</p>
+                                        <p className="text-xs text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> Waiting for answer...</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 py-2">
+                                    <Avatar profile={partnerProfile} />
+                                    <div>
+                                        <p className="text-sm text-zinc-400">{partnerName}</p>
+                                        <p className="text-xs text-zinc-600">Hasn&apos;t answered yet</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1">
-                            <Avatar profile={myProfile} />
-                            <span className="text-xs font-semibold uppercase tracking-wider text-rose-400">You</span>
+                </section>
+
+                {/* ─── SECTION 2: JOURNAL ─── */}
+                {hasJournal && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Journal</h3>
                         </div>
-                        <form onSubmit={handleSubmitAnswer} className="space-y-3 ml-9">
-                            <div className="relative">
-                                <textarea
-                                    className="w-full min-h-[120px] resize-none rounded-2xl bg-zinc-900 border border-zinc-800 p-4 text-[15px] focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 placeholder:text-zinc-600 transition-all"
-                                    placeholder="Type your answer here..."
-                                    value={draft}
-                                    onChange={handleDraftChange}
-                                    disabled={isSubmitting}
-                                    maxLength={500}
-                                />
-                                <div className="absolute bottom-3 right-3 text-xs text-zinc-500">
-                                    {draft.length}/500
-                                </div>
-                            </div>
-                            <Button
-                                type="submit"
-                                className="w-full h-11 bg-rose-600 hover:bg-rose-700 text-zinc-50"
-                                disabled={isSubmitting || draft.length < 10}
-                            >
-                                {isSubmitting ? 'Sending...' : (
-                                    <span className="flex items-center">Send answer <Send className="w-4 h-4 ml-2" /></span>
-                                )}
-                            </Button>
-                        </form>
-                    </div>
+
+                        <div className="space-y-3">
+                            {[myLog, partnerLog].filter(Boolean).map((log) => {
+                                const isMe = log!.user_id === user!.id
+                                const profile = isMe ? myProfile : partnerProfile
+                                const name = isMe ? 'You' : partnerName
+                                const hasImages = log!.images && log!.images.length > 0
+                                return (
+                                    <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                                            <Avatar profile={profile} />
+                                            <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
+                                            {hasImages && (
+                                                <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
+                                                    <Camera className="w-3 h-3" /> {log!.images.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="px-4 pb-4 space-y-3">
+                                            {log!.text && (
+                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
+                                            )}
+                                            {hasImages && (
+                                                <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                                    {log!.images.map((url, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setPreviewImage(url)}
+                                                            className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
+                                                        >
+                                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </section>
                 )}
 
-                {/* Divider */}
-                <div className="border-t border-zinc-800/50" />
+                {/* ─── SECTION 3: CHAT ─── */}
+                {hasChat && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <MessageCircle className="w-3.5 h-3.5 text-zinc-500" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Chat</h3>
+                            {messages.length > 0 && (
+                                <span className="text-[10px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded-full">{messages.length}</span>
+                            )}
+                        </div>
 
-                {/* PARTNER answer */}
-                {bothAnswered ? (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1 justify-end">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                            <span className="text-sm font-medium text-zinc-300">{partnerName}</span>
-                            <Avatar profile={partnerProfile} />
-                        </div>
-                        <div className="relative mr-9">
-                            <div className="bg-zinc-800/50 border border-zinc-700/50 p-4 rounded-2xl rounded-tr-sm text-[15px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
-                                {partnerAnswer.answer_text}
-                            </div>
-                            {/* Your reaction on partner's answer */}
-                            <div className="absolute -bottom-3 right-3 flex items-center gap-1">
-                                {activeReaction ? (
-                                    <button
-                                        onClick={() => handleReaction(activeReaction)}
-                                        disabled={isSubmittingReaction}
-                                        className="group bg-zinc-800 border border-zinc-700/50 rounded-full px-2 py-0.5 shadow-md hover:bg-zinc-700 hover:border-zinc-600 transition-all active:scale-90 animate-in fade-in zoom-in duration-200"
-                                    >
-                                        <span className="text-sm group-hover:hidden">
-                                            {activeReaction === 'heart' ? '\u2764\uFE0F' : activeReaction === 'smile' ? '\uD83D\uDE0A' : '\uD83D\uDD25'}
-                                        </span>
-                                        <span className="text-xs text-zinc-400 hidden group-hover:inline">\u2715</span>
-                                    </button>
-                                ) : (
-                                    <div className="flex gap-0.5 bg-zinc-800/90 border border-zinc-700/50 rounded-full px-1.5 py-0.5 shadow-md backdrop-blur-sm">
-                                        {[
-                                            { id: 'heart', emoji: '\u2764\uFE0F' },
-                                            { id: 'smile', emoji: '\uD83D\uDE0A' },
-                                            { id: 'flame', emoji: '\uD83D\uDD25' }
-                                        ].map(({ id, emoji }) => (
-                                            <button
-                                                key={id}
-                                                onClick={() => handleReaction(id)}
-                                                disabled={isSubmittingReaction}
-                                                className="text-sm px-1 py-0.5 rounded-full hover:bg-zinc-700 transition-all active:scale-90"
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                            {/* Messages */}
+                            <div className="p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                {messages.length > 0 ? (
+                                    messages.map((msg) => {
+                                        const isMe = msg.user_id === user!.id
+                                        const profile = isMe ? myProfile : partnerProfile
+                                        return (
+                                            <div
+                                                key={msg.id}
+                                                className={`flex items-end gap-2 animate-in fade-in duration-200 ${isMe ? 'flex-row-reverse' : ''}`}
                                             >
-                                                {emoji}
-                                            </button>
-                                        ))}
-                                    </div>
+                                                <Avatar profile={profile} />
+                                                <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${isMe
+                                                    ? 'bg-rose-600/15 border border-rose-500/15 rounded-br-sm text-zinc-200'
+                                                    : 'bg-zinc-800 border border-zinc-700/50 rounded-bl-sm text-zinc-300'
+                                                }`}>
+                                                    {msg.text}
+                                                </div>
+                                                <span className="text-[10px] text-zinc-600 shrink-0">
+                                                    {format(parseISO(msg.created_at), 'HH:mm')}
+                                                </span>
+                                            </div>
+                                        )
+                                    })
+                                ) : (
+                                    <p className="text-xs text-zinc-600 text-center py-4">
+                                        Start a conversation about this question ✨
+                                    </p>
                                 )}
+                                <div ref={chatEndRef} />
+                            </div>
+
+                            {/* Chat input */}
+                            <div className="flex items-center gap-2 p-3 border-t border-zinc-800/50">
+                                <input
+                                    type="text"
+                                    placeholder={`Message ${partnerName}...`}
+                                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-full py-2 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault()
+                                            sendMessage()
+                                        }
+                                    }}
+                                    maxLength={500}
+                                    disabled={isSendingMsg}
+                                />
+                                <button
+                                    onClick={sendMessage}
+                                    disabled={!chatInput.trim() || isSendingMsg}
+                                    className="p-2 rounded-full bg-rose-600 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white transition-colors shrink-0"
+                                >
+                                    <Send className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
-                    </div>
-                ) : myAnswer && !partnerAnswer ? (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1 justify-end">
-                            <span className="text-sm font-medium text-zinc-500">{partnerName}</span>
-                            <Avatar profile={partnerProfile} />
-                        </div>
-                        <div className="rounded-xl border border-dashed border-zinc-800 p-5 text-center space-y-2 mr-9">
-                            <Clock className="h-5 w-5 text-zinc-500 mx-auto" />
-                            <p className="text-sm text-zinc-500">Waiting for {partnerName} to answer...</p>
-                            <p className="text-xs text-zinc-600">Their answer will appear here once they submit.</p>
-                        </div>
-                    </div>
-                ) : partnerAnswer && !myAnswer ? (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1 justify-end">
-                            <span className="text-sm font-medium text-zinc-500">{partnerName}</span>
-                            <Avatar profile={partnerProfile} />
-                        </div>
-                        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5 text-center space-y-2 mr-9">
-                            <p className="text-sm text-amber-400 font-medium">{partnerName} has answered!</p>
-                            <p className="text-xs text-zinc-500">Submit your answer above to reveal theirs.</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-2.5">
-                        <div className="flex items-center gap-2.5 px-1 justify-end">
-                            <span className="text-sm font-medium text-zinc-500">{partnerName}</span>
-                            <Avatar profile={partnerProfile} />
-                        </div>
-                        <div className="rounded-xl border border-dashed border-zinc-800 p-4 text-sm text-zinc-500 text-center mr-9">
-                            Hasn&apos;t answered yet.
-                        </div>
-                    </div>
+                    </section>
                 )}
             </div>
 
-            {/* ===== CHAT (only when both answered) ===== */}
-            {bothAnswered && (
-                <div className="space-y-4 pt-4">
-                    {/* Chat thread */}
-                    <div className="space-y-3">
-                        <h4 className="text-xs font-medium uppercase tracking-widest text-zinc-500">Chat</h4>
-
-                        {messages.length > 0 ? (
-                            messages.map((msg) => {
-                                const isMe = msg.user_id === user!.id
-                                const profile = isMe ? myProfile : partnerProfile
-                                return (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex items-end gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200 ${isMe ? 'flex-row-reverse' : ''}`}
-                                    >
-                                        <Avatar profile={profile} />
-                                        <div className={`max-w-[75%] px-3.5 py-2 rounded-2xl text-sm ${isMe
-                                            ? 'bg-rose-600/20 border border-rose-500/20 rounded-br-sm text-zinc-200'
-                                            : 'bg-zinc-800 border border-zinc-700/50 rounded-bl-sm text-zinc-300'
-                                        }`}>
-                                            {msg.text}
-                                        </div>
-                                        <span className="text-[10px] text-zinc-600 shrink-0">
-                                            {format(parseISO(msg.created_at), 'HH:mm')}
-                                        </span>
-                                    </div>
-                                )
-                            })
-                        ) : (
-                            <p className="text-xs text-zinc-600 text-center py-2">
-                                Start a conversation about today&apos;s answers
-                            </p>
-                        )}
-                        <div ref={chatEndRef} />
-                    </div>
-
-                    {/* Chat input */}
-                    <div className="flex items-center gap-2 sticky bottom-20 bg-zinc-950/90 backdrop-blur-sm py-2 -mx-4 px-4">
-                        <input
-                            type="text"
-                            placeholder={`Message ${partnerName}...`}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
-                            value={chatInput}
-                            onChange={(e) => setChatInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault()
-                                    sendMessage()
-                                }
-                            }}
-                            maxLength={500}
-                            disabled={isSendingMsg}
-                        />
-                        <button
-                            onClick={sendMessage}
-                            disabled={!chatInput.trim() || isSendingMsg}
-                            className="p-2.5 rounded-full bg-rose-600 hover:bg-rose-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-white transition-colors shrink-0"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            {/* ===== DAILY JOURNAL for this date ===== */}
-            {(myLog || partnerLog) && (
-                <div className="space-y-4 pt-4 border-t border-zinc-800/50">
-                    <h4 className="text-xs font-medium uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                        <Camera className="w-3.5 h-3.5" /> Journal
-                    </h4>
-
-                    {[myLog, partnerLog].filter(Boolean).map((log) => {
-                        const isMe = log!.user_id === user!.id
-                        const profile = isMe ? myProfile : partnerProfile
-                        const name = isMe ? 'You' : partnerName
-                        return (
-                            <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                                <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                                    <Avatar profile={profile} />
-                                    <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
-                                </div>
-                                <div className="px-4 pb-4 space-y-3">
-                                    {log!.text && (
-                                        <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
-                                    )}
-                                    {log!.images && log!.images.length > 0 && (
-                                        <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                            {log!.images.map((url, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => setPreviewImage(url)}
-                                                    className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
-                                                >
-                                                    <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            )}
-
-            {/* Fullscreen image preview */}
+            {/* ─── FULLSCREEN IMAGE PREVIEW ─── */}
             {previewImage && (
                 <div
                     className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
