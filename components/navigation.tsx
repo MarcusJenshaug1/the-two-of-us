@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     MessageSquare, Inbox, Activity, Settings, Heart,
-    CalendarDays, MoreHorizontal, X, ChevronRight
+    CalendarDays, MoreHorizontal, X, ChevronRight, Star
 } from "lucide-react"
 import { clsx } from "clsx"
 
@@ -18,6 +18,7 @@ const primaryTabs = [
 ]
 
 const moreTabs = [
+    { name: "Memories", href: "/app/memories", icon: Star },
     { name: "Progress", href: "/app/progress", icon: Activity },
     { name: "Settings", href: "/app/settings", icon: Settings },
 ]
