@@ -1,6 +1,13 @@
 // Custom worker additions for next-pwa
 // This gets merged into the generated service worker
 
+// ─── SKIP_WAITING: controlled by AppUpdateNotifier ───
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting()
+    }
+})
+
 // Push notification received
 self.addEventListener('push', (event) => {
     let data = { title: 'The Two of Us', body: 'You have a new update!' }

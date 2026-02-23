@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/supabase/auth-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { AppUpdateNotifier } from "@/components/app-update-notifier";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -60,6 +61,7 @@ export default function RootLayout({
             <body className={`${inter.className} bg-zinc-950 text-zinc-50 antialiased min-h-screen flex flex-col`}>
                 <AuthProvider>
                     <ToastProvider>
+                        <AppUpdateNotifier />
                         {children}
                     </ToastProvider>
                 </AuthProvider>
