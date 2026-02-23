@@ -99,6 +99,31 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- 5. Storage bucket for daily log photos
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('daily-logs', 'daily-logs', true, 5242880, ARRAY['image/jpeg','image/png','image/webp'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies for daily-logs bucket
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Authenticated users can upload daily-log images') THEN
+    CREATE POLICY "Authenticated users can upload daily-log images" ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'daily-logs' AND auth.role() = 'authenticated');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Anyone can view daily-log images') THEN
+    CREATE POLICY "Anyone can view daily-log images" ON storage.objects FOR SELECT
+    USING (bucket_id = 'daily-logs');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Users can update own daily-log images') THEN
+    CREATE POLICY "Users can update own daily-log images" ON storage.objects FOR UPDATE
+    USING (bucket_id = 'daily-logs' AND (storage.foldername(name))[1] = auth.uid()::text);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='objects' AND schemaname='storage' AND policyname='Users can delete own daily-log images') THEN
+    CREATE POLICY "Users can delete own daily-log images" ON storage.objects FOR DELETE
+    USING (bucket_id = 'daily-logs' AND (storage.foldername(name))[1] = auth.uid()::text);
+  END IF;
+END $$;
+
 -- 4. Add daily_questions INSERT policy for authenticated users (fixes Strategy 3 fallback)
 DO $$
 BEGIN
