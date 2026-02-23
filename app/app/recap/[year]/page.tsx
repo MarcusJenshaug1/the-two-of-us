@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import {
     ArrowLeft, Calendar, Heart, MessageSquare, Smile, Star,
-    MapPin, Tag, ChevronRight, Trophy
+    MapPin, Tag, ChevronRight, Trophy, Lightbulb
 } from 'lucide-react'
 import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -30,6 +30,9 @@ type RecapData = {
     highlights: { id: string; title: string; happened_at: string; images: string[]; location: string | null }[]
     milestones: { id: string; title: string; kind: string; happened_at: string }[]
     totalMemories: number
+    datesPlanned: number
+    datesDone: number
+    topDateCategories: { category: string; count: number }[]
 }
 
 export default function YearRecapPage() {
@@ -147,6 +150,29 @@ export default function YearRecapPage() {
                 .lte('happened_at', dateEnd)
                 .order('happened_at', { ascending: true })
 
+            // 6. Date completions
+            const { data: dcData } = await supabase
+                .from('date_completions')
+                .select('status, date_ideas(category)')
+                .eq('room_id', rid)
+                .gte('created_at', `${dateStart}T00:00:00`)
+                .lte('created_at', `${dateEnd}T23:59:59`)
+
+            let datesPlanned = 0, datesDone = 0
+            const dateCatCounts: Record<string, number> = {}
+            if (dcData) {
+                for (const dc of dcData as any[]) {
+                    if (dc.status === 'planned' || dc.status === 'done') datesPlanned++
+                    if (dc.status === 'done') datesDone++
+                    const cat = dc.date_ideas?.category
+                    if (cat && dc.status === 'done') dateCatCounts[cat] = (dateCatCounts[cat] || 0) + 1
+                }
+            }
+            const topDateCategories = Object.entries(dateCatCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 4)
+                .map(([category, count]) => ({ category, count }))
+
             setData({
                 daysWithBothAnswers,
                 totalNudges: nudgeCount || 0,
@@ -155,6 +181,9 @@ export default function YearRecapPage() {
                 highlights,
                 milestones: msData || [],
                 totalMemories: memData?.length || 0,
+                datesPlanned,
+                datesDone,
+                topDateCategories,
             })
         } catch (err) {
             console.error('Recap load error', err)
@@ -191,7 +220,7 @@ export default function YearRecapPage() {
             </div>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <MessageSquare className="w-5 h-5 text-rose-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.daysWithBothAnswers || 0}</p>
@@ -211,6 +240,11 @@ export default function YearRecapPage() {
                     <Trophy className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.milestones.length || 0}</p>
                     <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Milestones</p>
+                </div>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                    <Lightbulb className="w-5 h-5 text-purple-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold">{data?.datesDone || 0}<span className="text-sm text-zinc-600">/{data?.datesPlanned || 0}</span></p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Dates done</p>
                 </div>
             </div>
 
@@ -301,6 +335,20 @@ export default function YearRecapPage() {
                                     <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy')}</p>
                                 </div>
                             </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Date idea categories */}
+            {data && data.topDateCategories.length > 0 && (
+                <div className="space-y-3">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Date Night Favorites</h3>
+                    <div className="flex gap-2 flex-wrap">
+                        {data.topDateCategories.map(({ category, count }) => (
+                            <span key={category} className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
+                                <Lightbulb className="w-3 h-3" /> {category} <span className="text-zinc-600">×{count}</span>
+                            </span>
                         ))}
                     </div>
                 </div>
