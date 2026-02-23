@@ -19,7 +19,6 @@ WHERE id = 'daily-logs';
 -- 1b. Drop old overly-permissive storage policies
 DROP POLICY IF EXISTS "Authenticated users can upload daily-log images" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can view daily-log images" ON storage.objects;
-DROP POLICY IF EXISTS "Users can delete own daily-log images" ON storage.objects;
 
 
 -- 1c. New storage RLS: path-based access control
@@ -27,6 +26,12 @@ DROP POLICY IF EXISTS "Users can delete own daily-log images" ON storage.objects
 --   Journal:  {userId}/{dateKey}/{file}.jpg
 --   Memories: memories/{userId}/{file}.jpg
 -- Room membership checked via get_my_room_ids()
+
+-- Drop new-style policies if re-running
+DROP POLICY IF EXISTS "Room members can view daily-log images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload daily-log images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update own daily-log images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own daily-log images" ON storage.objects;
 
 -- SELECT: room members can view images from any member in their room
 -- We allow SELECT for any auth'd user whose room includes the uploader.
