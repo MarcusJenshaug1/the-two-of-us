@@ -9,20 +9,28 @@ const signedUrlCache = new Map<string, { url: string; expiresAt: number }>()
 /**
  * Resolve an image reference to a displayable URL.
  *
- * Handles three formats:
+ * Handles multiple formats:
  *  1. Object { bucket, path } → generate signed URL
  *  2. Relative path string (no http) → generate signed URL
- *  3. Full http(s) URL (legacy public) → return as-is
+ *  3. Old public Supabase URLs → extract path and generate signed URL
+ *  4. Other full http(s) URLs (external) → return as-is
  */
 export async function resolveImageUrl(image: string | { bucket: string; path: string }): Promise<string> {
-    // Legacy: full public URL → pass through
-    if (typeof image === 'string' && image.startsWith('http')) {
+    // Extract path
+    let path = typeof image === 'string' ? image : image.path
+    const bucket = typeof image === 'object' ? image.bucket : BUCKET
+
+    // Detect old public Supabase URL format: https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}
+    if (typeof image === 'string' && image.startsWith('https://') && image.includes('.supabase.co/storage/v1/object/public/')) {
+        // Extract path from old public URL
+        const match = image.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/)
+        if (match && match[1]) {
+            path = decodeURIComponent(match[1])
+        }
+    } else if (typeof image === 'string' && image.startsWith('http') && !image.includes('.supabase.co')) {
+        // Other external URLs (non-Supabase) → pass through as-is
         return image
     }
-
-    // Extract path
-    const path = typeof image === 'string' ? image : image.path
-    const bucket = typeof image === 'object' ? image.bucket : BUCKET
 
     // Check cache
     const cached = signedUrlCache.get(path)
@@ -37,8 +45,8 @@ export async function resolveImageUrl(image: string | { bucket: string; path: st
         .createSignedUrl(path, SIGNED_URL_TTL)
 
     if (error || !data?.signedUrl) {
-        console.error('Failed to create signed URL', error)
-        // Fallback: try public URL (legacy compat)
+        console.error('Failed to create signed URL for path:', path, error)
+        // Fallback: if it's an external URL, try returning it as-is
         if (typeof image === 'string' && image.startsWith('http')) return image
         return ''
     }
