@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
-import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen, MessageCircle } from 'lucide-react'
+import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
 
 const PAGE_SIZE = 30
 
@@ -45,7 +45,52 @@ type NudgeItem = {
     created_at: string
 }
 
-type FeedItem = QuestionItem | JournalItem | NudgeItem
+type EventItem = {
+    type: 'event'
+    id: string
+    date_key: string
+    title: string
+    location: string | null
+    start_at: string
+    all_day: boolean
+}
+
+type TaskItem = {
+    type: 'task'
+    id: string
+    date_key: string
+    title: string
+    is_done: boolean
+    due_at: string | null
+}
+
+type MemoryItem = {
+    type: 'memory'
+    id: string
+    memoryId: string
+    date_key: string
+    title: string
+    imageCount: number
+    location: string | null
+}
+
+type MilestoneItem = {
+    type: 'milestone'
+    id: string
+    date_key: string
+    title: string
+    kind: string
+}
+
+type DatePlanItem = {
+    type: 'dateplan'
+    id: string
+    date_key: string
+    ideaTitle: string
+    status: string
+}
+
+type FeedItem = QuestionItem | JournalItem | NudgeItem | EventItem | TaskItem | MemoryItem | MilestoneItem | DatePlanItem
 
 function formatDateLabel(dateKey: string): string {
     const d = parseISO(dateKey)
@@ -127,9 +172,45 @@ export default function InboxPage() {
                 .lte('created_at', `${dateKeys[0]}T23:59:59`)
                 .order('created_at', { ascending: false })
 
+            // 4. Load events for these dates
+            const { data: eventData } = await supabase
+                .from('shared_events')
+                .select('id, title, location, start_at, all_day, date_key')
+                .eq('room_id', member.room_id)
+                .in('date_key', dateKeys)
+
+            // 5. Load tasks with due dates in these dates
+            const { data: taskData } = await supabase
+                .from('shared_tasks')
+                .select('id, title, is_done, due_at, due_date_key')
+                .eq('room_id', member.room_id)
+                .in('due_date_key', dateKeys)
+
+            // 6. Load memories for these dates
+            const { data: memoryData } = await supabase
+                .from('memories')
+                .select('id, title, images, location, date_key')
+                .eq('room_id', member.room_id)
+                .in('date_key', dateKeys)
+
+            // 7. Load milestones for these dates
+            const { data: milestoneData } = await supabase
+                .from('milestones')
+                .select('id, title, kind, happened_at')
+                .eq('room_id', member.room_id)
+                .in('happened_at', dateKeys)
+
+            // 8. Load date plans for these dates
+            const { data: datePlanData } = await supabase
+                .from('date_completions')
+                .select('id, status, planned_for, date_ideas(title)')
+                .eq('room_id', member.room_id)
+                .in('planned_for', dateKeys)
+                .neq('status', 'skipped')
+
             const logDateSet = new Set((logData || []).map((l: any) => l.date_key))
 
-            // 4. Load latest messages per question
+            // 9. Load latest messages per question
             const dqIds = dqData.map((d: any) => d.id)
             const { data: msgData } = await supabase
                 .from('messages')
@@ -199,14 +280,62 @@ export default function InboxPage() {
                 created_at: n.created_at,
             }))
 
-            // Combine & sort: group by date_key, question first, then journal, then nudges
-            const allItems: FeedItem[] = [...questionItems, ...journalItems, ...nudgeItems]
+            // Build event items
+            const eventItems: EventItem[] = (eventData || []).map((e: any) => ({
+                type: 'event' as const,
+                id: `event_${e.id}`,
+                date_key: e.date_key,
+                title: e.title,
+                location: e.location,
+                start_at: e.start_at,
+                all_day: e.all_day,
+            }))
+
+            // Build task items
+            const taskItems: TaskItem[] = (taskData || []).map((t: any) => ({
+                type: 'task' as const,
+                id: `task_${t.id}`,
+                date_key: t.due_date_key,
+                title: t.title,
+                is_done: t.is_done,
+                due_at: t.due_at,
+            }))
+
+            // Build memory items
+            const memoryItems: MemoryItem[] = (memoryData || []).map((m: any) => ({
+                type: 'memory' as const,
+                id: `memory_${m.id}`,
+                memoryId: m.id,
+                date_key: m.date_key,
+                title: m.title,
+                imageCount: m.images?.length || 0,
+                location: m.location,
+            }))
+
+            // Build milestone items
+            const milestoneItems: MilestoneItem[] = (milestoneData || []).map((ms: any) => ({
+                type: 'milestone' as const,
+                id: `ms_${ms.id}`,
+                date_key: ms.happened_at,
+                title: ms.title,
+                kind: ms.kind,
+            }))
+
+            // Build date plan items
+            const datePlanItems: DatePlanItem[] = (datePlanData || []).map((dc: any) => ({
+                type: 'dateplan' as const,
+                id: `dp_${dc.id}`,
+                date_key: dc.planned_for,
+                ideaTitle: dc.date_ideas?.title || 'Date idea',
+                status: dc.status,
+            }))
+
+            // Combine & sort: group by date_key, ordered by type priority
+            const allItems: FeedItem[] = [...questionItems, ...journalItems, ...nudgeItems, ...eventItems, ...taskItems, ...memoryItems, ...milestoneItems, ...datePlanItems]
             allItems.sort((a, b) => {
-                // Sort by date descending
                 if (a.date_key !== b.date_key) return b.date_key.localeCompare(a.date_key)
-                // Within same date: question > journal > nudge
-                const priority = { question: 0, journal: 1, nudge: 2 }
-                return priority[a.type] - priority[b.type]
+                const priority: Record<string, number> = { question: 0, journal: 1, memory: 2, milestone: 3, event: 4, task: 5, dateplan: 6, nudge: 7 }
+                return (priority[a.type] ?? 99) - (priority[b.type] ?? 99)
             })
 
             if (append) {
@@ -426,6 +555,84 @@ export default function InboxPage() {
                                                     )}
                                                 </div>
                                                 <Heart className="w-3.5 h-3.5 text-rose-500/40 shrink-0" />
+                                            </div>
+                                        )
+                                    }
+
+                                    if (item.type === 'event') {
+                                        const e = item as EventItem
+                                        return (
+                                            <Link key={e.id} href={`/app/inbox/${e.date_key}`} className="block group">
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/5 border border-blue-500/10 hover:border-blue-500/30 transition-colors">
+                                                    <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{e.title}</p>
+                                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            {e.all_day ? 'All day' : format(parseISO(e.start_at), 'HH:mm')}
+                                                            {e.location && <><MapPin className="w-3 h-3 ml-1" /> <span className="truncate">{e.location}</span></>}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        )
+                                    }
+
+                                    if (item.type === 'task') {
+                                        const t = item as TaskItem
+                                        return (
+                                            <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/40">
+                                                {t.is_done
+                                                    ? <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                    : <CircleDashed className="w-4 h-4 text-zinc-600 shrink-0" />
+                                                }
+                                                <p className={`text-sm flex-1 truncate ${t.is_done ? 'text-zinc-500 line-through' : ''}`}>{t.title}</p>
+                                                {t.due_at && !t.is_done && (
+                                                    <span className="text-[10px] text-amber-400 shrink-0">{format(parseISO(t.due_at), 'MMM d')}</span>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
+                                    if (item.type === 'memory') {
+                                        const m = item as MemoryItem
+                                        return (
+                                            <Link key={m.id} href={`/app/memories/${m.memoryId}`} className="block group">
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 hover:border-amber-500/30 transition-colors">
+                                                    <Star className="w-4 h-4 text-amber-400 shrink-0" />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium truncate">{m.title}</p>
+                                                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                                            {m.imageCount > 0 && <span className="flex items-center gap-0.5"><Camera className="w-3 h-3" /> {m.imageCount}</span>}
+                                                            {m.location && <span className="flex items-center gap-0.5 truncate"><MapPin className="w-3 h-3 shrink-0" /> {m.location}</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        )
+                                    }
+
+                                    if (item.type === 'milestone') {
+                                        const ms = item as MilestoneItem
+                                        return (
+                                            <div key={ms.id} className="flex items-center gap-3 p-3 rounded-xl bg-purple-500/5 border border-purple-500/10">
+                                                <Trophy className="w-4 h-4 text-purple-400 shrink-0" />
+                                                <p className="text-sm font-medium">{ms.title}</p>
+                                            </div>
+                                        )
+                                    }
+
+                                    if (item.type === 'dateplan') {
+                                        const dp = item as DatePlanItem
+                                        return (
+                                            <div key={dp.id} className="flex items-center gap-3 p-3 rounded-xl bg-pink-500/5 border border-pink-500/10">
+                                                <Lightbulb className={`w-4 h-4 shrink-0 ${dp.status === 'done' ? 'text-emerald-400' : 'text-pink-400'}`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium truncate">{dp.ideaTitle}</p>
+                                                    <p className="text-[10px] text-zinc-500">
+                                                        {dp.status === 'done' ? 'Date completed ✓' : 'Date planned'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         )
                                     }

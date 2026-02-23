@@ -11,7 +11,7 @@ import {
     subMonths, addMonths, isAfter, getMonth, getDate
 } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
-import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles, Plus, X, Star, BookOpen } from 'lucide-react'
+import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles, Plus, X, Star, BookOpen, Lightbulb } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -39,6 +39,7 @@ export default function ProgressPage() {
     const [isSavingMood, setIsSavingMood] = useState(false)
     const [roomId, setRoomId] = useState<string | null>(null)
     const confettiFired = useRef(false)
+    const [dayBadges, setDayBadges] = useState<Record<string, string[]>>({})
 
     // Milestones
     const [userMilestones, setUserMilestones] = useState<any[]>([])
@@ -159,6 +160,45 @@ export default function ProgressPage() {
         loadProgress()
         return () => { mounted = false }
     }, [user, supabase])
+
+    // Load calendar content badges per month
+    useEffect(() => {
+        if (!roomId) return
+        const mStart = format(startOfMonth(calMonth), 'yyyy-MM-dd')
+        const mEnd = format(endOfMonth(calMonth), 'yyyy-MM-dd')
+
+        const loadBadges = async () => {
+            const [evR, tkR, memR, dpR, logR] = await Promise.all([
+                supabase.from('shared_events').select('date_key').eq('room_id', roomId).gte('date_key', mStart).lte('date_key', mEnd),
+                supabase.from('shared_tasks').select('due_date_key').eq('room_id', roomId).not('due_date_key', 'is', null).gte('due_date_key', mStart).lte('due_date_key', mEnd),
+                supabase.from('memories').select('date_key').eq('room_id', roomId).gte('date_key', mStart).lte('date_key', mEnd),
+                supabase.from('date_completions').select('planned_for').eq('room_id', roomId).not('planned_for', 'is', null).gte('planned_for', mStart).lte('planned_for', mEnd).neq('status', 'skipped'),
+                supabase.from('daily_logs').select('date_key').eq('room_id', roomId).gte('date_key', mStart).lte('date_key', mEnd),
+            ])
+
+            const badges: Record<string, string[]> = {}
+            const add = (dk: string, type: string) => {
+                if (!badges[dk]) badges[dk] = []
+                if (!badges[dk].includes(type)) badges[dk].push(type)
+            }
+
+            for (const e of evR.data || []) add(e.date_key, 'event')
+            for (const t of tkR.data || []) if (t.due_date_key) add(t.due_date_key, 'task')
+            for (const m of memR.data || []) add(m.date_key, 'memory')
+            for (const d of dpR.data || []) if (d.planned_for) add(d.planned_for, 'dateplan')
+            for (const l of logR.data || []) add(l.date_key, 'journal')
+
+            for (const ms of userMilestones) {
+                if (ms.happened_at >= mStart && ms.happened_at <= mEnd) {
+                    add(ms.happened_at, 'milestone')
+                }
+            }
+
+            setDayBadges(badges)
+        }
+
+        loadBadges()
+    }, [calMonth, roomId, supabase, userMilestones])
 
     // Calendar days
     const calendarDays = useMemo(() => {
@@ -462,9 +502,10 @@ export default function ProgressPage() {
                             const dateKey = format(day, 'yyyy-MM-dd')
                             const status = answeredDates[dateKey]
                             const special = specialDates[dateKey]
+                            const badges = dayBadges[dateKey] || []
                             const isToday = dateKey === format(new Date(), 'yyyy-MM-dd')
                             const isFuture = isAfter(day, new Date())
-                            const isTappable = !!status || !!special
+                            const isTappable = !!status || !!special || badges.length > 0
 
                             // Base styling based on answer status
                             const statusClass = status === 'both'
@@ -480,17 +521,21 @@ export default function ProgressPage() {
                             const hoverClass = isTappable && !isFuture ? 'hover:brightness-125 cursor-pointer' : ''
                             const todayRing = isToday ? 'ring-1 ring-rose-500/50' : ''
 
+                            const BADGE_COLORS: Record<string, string> = {
+                                event: 'bg-blue-400', task: 'bg-emerald-400', memory: 'bg-amber-400',
+                                milestone: 'bg-purple-400', dateplan: 'bg-pink-400', journal: 'bg-cyan-400',
+                            }
+
                             return (
                                 <button
                                     key={dateKey}
                                     onClick={() => {
                                         if (special) {
                                             setSelectedSpecial(special)
-                                            // If there's also an answer, navigate after a brief moment
-                                            if (status) {
+                                            if (status || badges.length > 0) {
                                                 setTimeout(() => router.push(`/app/inbox/${dateKey}`), 1200)
                                             }
-                                        } else if (status) {
+                                        } else if (isTappable) {
                                             router.push(`/app/inbox/${dateKey}`)
                                         }
                                     }}
@@ -504,6 +549,15 @@ export default function ProgressPage() {
                                     {/* Show answer dot on special dates that also have answers */}
                                     {special && status && (
                                         <span className={`absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${status === 'both' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
+                                    )}
+                                    {/* Content badges */}
+                                    {badges.length > 0 && !special && (
+                                        <div className="flex gap-px absolute bottom-0.5 left-1/2 -translate-x-1/2">
+                                            {badges.slice(0, 3).map(b => (
+                                                <span key={b} className={`w-1 h-1 rounded-full ${BADGE_COLORS[b] || 'bg-zinc-500'}`} />
+                                            ))}
+                                            {badges.length > 3 && <span className="text-[5px] text-zinc-500 leading-none">+</span>}
+                                        </div>
                                     )}
                                 </button>
                             )
@@ -523,10 +577,14 @@ export default function ProgressPage() {
                     )}
 
                     {/* Legend */}
-                    <div className="flex items-center justify-end flex-wrap gap-3 mt-4 text-xs text-zinc-500">
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500/40 mr-1.5" /> Both answered</div>
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-700/50 mr-1.5" /> Partial</div>
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-amber-500/30 ring-1 ring-amber-500/30 mr-1.5" /> Special</div>
+                    <div className="flex items-center justify-end flex-wrap gap-x-3 gap-y-1.5 mt-4 text-[10px] text-zinc-500">
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500/40 mr-1" /> Both</div>
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-700/50 mr-1" /> Partial</div>
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-amber-500/30 ring-1 ring-amber-500/30 mr-1" /> Special</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1" /> Event</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1" /> Task</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1" /> Memory</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-1" /> Journal</div>
                     </div>
                 </div>
             </div>

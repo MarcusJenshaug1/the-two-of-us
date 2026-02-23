@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
-import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X, MessageCircle, BookOpen } from 'lucide-react'
+import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X, MessageCircle, BookOpen, CalendarDays, MapPin, Trophy, Star, Lightbulb } from 'lucide-react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 type Profile = {
@@ -52,6 +53,19 @@ export default function InboxDetailPage() {
     const [partnerLog, setPartnerLog] = useState<DailyLog | null>(null)
     const [previewImage, setPreviewImage] = useState<string | null>(null)
 
+    // Unified day content
+    const [roomId, setRoomId] = useState<string | null>(null)
+    const [dayEvents, setDayEvents] = useState<any[]>([])
+    const [dayTasks, setDayTasks] = useState<any[]>([])
+    const [dayMemories, setDayMemories] = useState<any[]>([])
+    const [dayMilestones, setDayMilestones] = useState<any[]>([])
+    const [dayDatePlans, setDayDatePlans] = useState<any[]>([])
+    const [showSaveMemory, setShowSaveMemory] = useState(false)
+    const [memTitle, setMemTitle] = useState('')
+    const [memDesc, setMemDesc] = useState('')
+    const [memImages, setMemImages] = useState<string[]>([])
+    const [isSavingMemory, setIsSavingMemory] = useState(false)
+
     // Answer form state
     const [draft, setDraft] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -77,6 +91,7 @@ export default function InboxDetailPage() {
                 .single()
 
             if (!member) return
+            setRoomId(member.room_id)
 
             // 2. Load profiles of room members
             const { data: members } = await supabase
@@ -160,6 +175,48 @@ export default function InboxDetailPage() {
                 if (myEntry) setMyLog(myEntry)
                 if (partnerEntry) setPartnerLog(partnerEntry)
             }
+
+            // 6. Load planner events for this date
+            const { data: evData } = await supabase
+                .from('shared_events')
+                .select('id, title, location, start_at, all_day')
+                .eq('room_id', member.room_id)
+                .eq('date_key', dateKey)
+                .order('start_at')
+            setDayEvents(evData || [])
+
+            // 7. Load tasks due on this date
+            const { data: tkData } = await supabase
+                .from('shared_tasks')
+                .select('id, title, is_done, due_at')
+                .eq('room_id', member.room_id)
+                .eq('due_date_key', dateKey)
+            setDayTasks(tkData || [])
+
+            // 8. Load memories for this date
+            const { data: memData } = await supabase
+                .from('memories')
+                .select('id, title, images, location')
+                .eq('room_id', member.room_id)
+                .eq('date_key', dateKey)
+            setDayMemories(memData || [])
+
+            // 9. Load milestones for this date
+            const { data: milData } = await supabase
+                .from('milestones')
+                .select('id, title, kind')
+                .eq('room_id', member.room_id)
+                .eq('happened_at', dateKey)
+            setDayMilestones(milData || [])
+
+            // 10. Load date plans for this date
+            const { data: dpData } = await supabase
+                .from('date_completions')
+                .select('id, status, date_ideas(title)')
+                .eq('room_id', member.room_id)
+                .eq('planned_for', dateKey)
+                .neq('status', 'skipped')
+            setDayDatePlans(dpData || [])
 
             // Load draft
             const savedDraft = localStorage.getItem(`draft_inbox_${dqData.id}`)
@@ -311,6 +368,32 @@ export default function InboxDetailPage() {
             console.error('Failed to send message', err)
         } finally {
             setIsSendingMsg(false)
+        }
+    }
+
+    // === Save journal as memory ===
+    const handleSaveAsMemory = async () => {
+        if (!user || !roomId || !memTitle.trim()) return
+        setIsSavingMemory(true)
+        try {
+            const { error } = await supabase.from('memories').insert({
+                room_id: roomId,
+                created_by: user.id,
+                title: memTitle.trim(),
+                description: memDesc.trim() || null,
+                happened_at: dateKey,
+                date_key: dateKey,
+                images: memImages,
+                tags: [],
+            })
+            if (error) throw error
+            toast('Saved as memory ✨', 'success')
+            setShowSaveMemory(false)
+            loadDetail()
+        } catch (err: any) {
+            toast(err.message || 'Failed to save', 'error')
+        } finally {
+            setIsSavingMemory(false)
         }
     }
 
@@ -638,7 +721,169 @@ export default function InboxDetailPage() {
                         </div>
                     </section>
                 )}
+
+                {/* ─── SECTION 4: PLANNER ─── */}
+                {(dayEvents.length > 0 || dayTasks.length > 0) && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <CalendarDays className="w-3.5 h-3.5 text-zinc-500" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Planner</h3>
+                        </div>
+                        <div className="space-y-2">
+                            {dayEvents.map((ev: any) => (
+                                <div key={ev.id} className="flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl">
+                                    <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{ev.title}</p>
+                                        <p className="text-xs text-zinc-500">
+                                            {ev.all_day ? 'All day' : format(parseISO(ev.start_at), 'HH:mm')}
+                                            {ev.location && ` · ${ev.location}`}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                            {dayTasks.map((task: any) => (
+                                <div key={task.id} className="flex items-center gap-3 p-3 bg-zinc-900/60 border border-zinc-800/60 rounded-xl">
+                                    {task.is_done
+                                        ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        : <Clock className="w-4 h-4 text-zinc-600 shrink-0" />
+                                    }
+                                    <p className={`text-sm flex-1 truncate ${task.is_done ? 'text-zinc-500 line-through' : ''}`}>{task.title}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* ─── SECTION 5: MEMORIES ─── */}
+                {dayMemories.length > 0 && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Star className="w-3.5 h-3.5 text-zinc-500" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Memories</h3>
+                        </div>
+                        <div className="space-y-2">
+                            {dayMemories.map((mem: any) => (
+                                <Link key={mem.id} href={`/app/memories/${mem.id}`} className="block group">
+                                    <div className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl hover:border-amber-500/30 transition-colors">
+                                        <Star className="w-4 h-4 text-amber-400 shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium truncate">{mem.title}</p>
+                                            {mem.location && <p className="text-xs text-zinc-500">{mem.location}</p>}
+                                        </div>
+                                        {mem.images?.length > 0 && (
+                                            <span className="text-[10px] text-amber-400 flex items-center gap-0.5 shrink-0">
+                                                <Camera className="w-3 h-3" /> {mem.images.length}
+                                            </span>
+                                        )}
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* ─── SECTION 6: MILESTONES ─── */}
+                {dayMilestones.length > 0 && (
+                    <section>
+                        <div className="space-y-2">
+                            {dayMilestones.map((ms: any) => (
+                                <div key={ms.id} className="flex items-center gap-3 p-3 bg-purple-500/5 border border-purple-500/10 rounded-xl">
+                                    <Trophy className="w-4 h-4 text-purple-400 shrink-0" />
+                                    <p className="text-sm font-medium">{ms.title}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* ─── SECTION 7: DATE PLANS ─── */}
+                {dayDatePlans.length > 0 && (
+                    <section>
+                        <div className="space-y-2">
+                            {dayDatePlans.map((dp: any) => (
+                                <div key={dp.id} className="flex items-center gap-3 p-3 bg-pink-500/5 border border-pink-500/10 rounded-xl">
+                                    <Lightbulb className={`w-4 h-4 shrink-0 ${dp.status === 'done' ? 'text-emerald-400' : 'text-pink-400'}`} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{dp.date_ideas?.title || 'Date idea'}</p>
+                                        <p className="text-[10px] text-zinc-500">{dp.status === 'done' ? 'Completed ✓' : 'Planned'}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* ─── SAVE AS MEMORY CTA ─── */}
+                {(() => {
+                    const hasJournalContent = (myLog?.text || (myLog?.images && myLog.images.length > 0)) || (partnerLog?.text || (partnerLog?.images && partnerLog.images.length > 0))
+                    return hasJournalContent && dayMemories.length === 0 && !showSaveMemory ? (
+                        <button
+                            onClick={() => {
+                                const journal = myLog || partnerLog
+                                setMemTitle(`Memory from ${formatDateHeading(dateKey)}`)
+                                setMemDesc(journal?.text || '')
+                                setMemImages(journal?.images || [])
+                                setShowSaveMemory(true)
+                            }}
+                            className="w-full flex items-center justify-center gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-amber-400 text-sm font-medium hover:border-amber-500/40 transition-colors"
+                        >
+                            <Star className="w-4 h-4" /> Save journal as memory
+                        </button>
+                    ) : null
+                })()}
             </div>
+
+            {/* ─── SAVE AS MEMORY MODAL ─── */}
+            {showSaveMemory && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowSaveMemory(false)}
+                >
+                    <div
+                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Save as Memory</h3>
+                            <button onClick={() => setShowSaveMemory(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <input
+                                type="text"
+                                value={memTitle}
+                                onChange={e => setMemTitle(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600"
+                                placeholder="Title *"
+                                maxLength={120}
+                            />
+                            <textarea
+                                value={memDesc}
+                                onChange={e => setMemDesc(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600 resize-none min-h-[80px]"
+                                placeholder="Description"
+                                maxLength={1000}
+                            />
+                            {memImages.length > 0 && (
+                                <div className="flex gap-1.5">
+                                    {memImages.map((url: string, i: number) => (
+                                        <img key={i} src={url} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <Button
+                            onClick={handleSaveAsMemory}
+                            disabled={!memTitle.trim() || isSavingMemory}
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                            {isSavingMemory ? 'Saving...' : 'Save memory'}
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             {/* ─── FULLSCREEN IMAGE PREVIEW ─── */}
             {previewImage && (
