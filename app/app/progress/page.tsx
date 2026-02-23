@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
@@ -11,8 +11,10 @@ import {
     subMonths, addMonths, isAfter, getMonth, getDate
 } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
-import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles, Plus, X, Star, BookOpen } from 'lucide-react'
 import confetti from 'canvas-confetti'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 
 const MOODS = [
     { id: 'great', emoji: '😄', label: 'Great' },
@@ -37,6 +39,23 @@ export default function ProgressPage() {
     const [isSavingMood, setIsSavingMood] = useState(false)
     const [roomId, setRoomId] = useState<string | null>(null)
     const confettiFired = useRef(false)
+
+    // Milestones
+    const [userMilestones, setUserMilestones] = useState<any[]>([])
+    const [showMilestoneForm, setShowMilestoneForm] = useState(false)
+    const [msKind, setMsKind] = useState('custom')
+    const [msTitle, setMsTitle] = useState('')
+    const [msDate, setMsDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+    const [msNote, setMsNote] = useState('')
+    const [isSavingMs, setIsSavingMs] = useState(false)
+
+    const MILESTONE_KINDS = [
+        { value: 'first_date', label: '☕ First Date' },
+        { value: 'engagement', label: '💍 Engagement' },
+        { value: 'moved_in', label: '🏠 Moved In' },
+        { value: 'wedding', label: '💒 Wedding' },
+        { value: 'custom', label: '✨ Custom' },
+    ]
 
     const supabase = createClient()
     const { user } = useAuth()
@@ -101,6 +120,14 @@ export default function ProgressPage() {
                     if (myMoodEntry) setMyMood(myMoodEntry.mood)
                     if (partnerMoodEntry) setPartnerMood(partnerMoodEntry.mood)
                 }
+
+                // 4b. Load milestones
+                const { data: msData } = await supabase
+                    .from('milestones')
+                    .select('*')
+                    .eq('room_id', member.room_id)
+                    .order('happened_at', { ascending: true })
+                setUserMilestones(msData || [])
 
                 // 5. Get all answered questions for calendar
                 const { data: dqData } = await supabase
@@ -257,6 +284,46 @@ export default function ProgressPage() {
 
     // Reversed activity (newest first)
     const reversedActivity = [...activityMap].reverse()
+
+    // Milestone save
+    const handleSaveMilestone = async () => {
+        if (!user || !roomId || !msTitle.trim() || !msDate) return
+        setIsSavingMs(true)
+        try {
+            const { error } = await supabase.from('milestones').insert({
+                room_id: roomId,
+                created_by: user.id,
+                kind: msKind,
+                title: msTitle.trim(),
+                happened_at: msDate,
+                note: msNote.trim() || null,
+                images: [],
+            })
+            if (error) throw error
+            toast('Milestone added 🏆', 'love')
+            setShowMilestoneForm(false)
+            setMsKind('custom'); setMsTitle(''); setMsDate(format(new Date(), 'yyyy-MM-dd')); setMsNote('')
+            // Reload milestones
+            const { data: msData } = await supabase
+                .from('milestones').select('*').eq('room_id', roomId)
+                .order('happened_at', { ascending: true })
+            setUserMilestones(msData || [])
+        } catch (err: any) {
+            toast(err.message || 'Failed to save', 'error')
+        } finally {
+            setIsSavingMs(false)
+        }
+    }
+
+    const handleDeleteMilestone = async (id: string) => {
+        const { error } = await supabase.from('milestones').delete().eq('id', id)
+        if (error) { toast('Failed to delete', 'error'); return }
+        setUserMilestones(prev => prev.filter(m => m.id !== id))
+        toast('Milestone deleted', 'success')
+    }
+
+    const currentYear = new Date().getFullYear()
+    const currentMonth = format(new Date(), 'MM')
 
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24">
@@ -497,6 +564,161 @@ export default function ProgressPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Recap Links */}
+            <div className="space-y-4 pt-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-purple-500" /> Recap
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                    <Link
+                        href={`/app/recap/${currentYear}/${currentMonth}`}
+                        className="bg-gradient-to-br from-purple-500/10 to-zinc-900 border border-purple-500/20 rounded-2xl p-4 text-center hover:border-purple-500/40 transition-colors"
+                    >
+                        <p className="text-sm font-medium text-purple-400">This Month</p>
+                        <p className="text-xs text-zinc-500 mt-1">{format(new Date(), 'MMMM')}</p>
+                    </Link>
+                    <Link
+                        href={`/app/recap/${currentYear}`}
+                        className="bg-gradient-to-br from-rose-500/10 to-zinc-900 border border-rose-500/20 rounded-2xl p-4 text-center hover:border-rose-500/40 transition-colors"
+                    >
+                        <p className="text-sm font-medium text-rose-400">This Year</p>
+                        <p className="text-xs text-zinc-500 mt-1">{currentYear}</p>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Milestones */}
+            <div className="space-y-4 pt-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Trophy className="w-5 h-5 text-amber-500" /> Milestones
+                    </h3>
+                    <button
+                        onClick={() => setShowMilestoneForm(true)}
+                        className="flex items-center gap-1 text-xs font-medium text-rose-400 hover:text-rose-300 transition-colors"
+                    >
+                        <Plus className="w-3.5 h-3.5" /> Add
+                    </button>
+                </div>
+
+                {userMilestones.length === 0 ? (
+                    <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
+                        <Trophy className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                        No milestones yet — add your first!
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {userMilestones.map(ms => (
+                            <div key={ms.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 group">
+                                <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                                    <Trophy className="w-4 h-4 text-amber-500" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium">{ms.title}</p>
+                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy')}</p>
+                                    {ms.note && <p className="text-xs text-zinc-400 mt-1">{ms.note}</p>}
+                                </div>
+                                <button
+                                    onClick={() => handleDeleteMilestone(ms.id)}
+                                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all shrink-0"
+                                    aria-label="Delete milestone"
+                                >
+                                    <X className="w-3.5 h-3.5 text-zinc-500" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Memories shortcut */}
+            <Link
+                href="/app/memories"
+                className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 hover:border-zinc-700 transition-colors"
+            >
+                <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                    <Star className="w-4 h-4 text-rose-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">Memories</p>
+                    <p className="text-xs text-zinc-500">Browse your shared photo archive</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
+            </Link>
+
+            {/* ═══ MILESTONE FORM MODAL ═══ */}
+            {showMilestoneForm && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowMilestoneForm(false)}
+                >
+                    <div
+                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">New Milestone</h3>
+                            <button onClick={() => setShowMilestoneForm(false)} className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors" aria-label="Close">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            {/* Kind selector */}
+                            <div className="flex gap-1.5 flex-wrap">
+                                {MILESTONE_KINDS.map(k => (
+                                    <button
+                                        key={k.value}
+                                        onClick={() => {
+                                            setMsKind(k.value)
+                                            if (k.value !== 'custom') setMsTitle(k.label.slice(2).trim())
+                                        }}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                            msKind === k.value ? 'bg-amber-600 text-white' : 'bg-zinc-800 text-zinc-400'
+                                        }`}
+                                    >
+                                        {k.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <input
+                                type="text"
+                                placeholder="Title *"
+                                value={msTitle}
+                                onChange={e => setMsTitle(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600"
+                                maxLength={120}
+                            />
+                            <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">When?</label>
+                                <input
+                                    type="date"
+                                    value={msDate}
+                                    onChange={e => setMsDate(e.target.value)}
+                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 [color-scheme:dark]"
+                                />
+                            </div>
+                            <textarea
+                                placeholder="Note (optional)"
+                                value={msNote}
+                                onChange={e => setMsNote(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
+                                maxLength={500}
+                            />
+                        </div>
+
+                        <Button
+                            onClick={handleSaveMilestone}
+                            disabled={!msTitle.trim() || !msDate || isSavingMs}
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                            {isSavingMs ? 'Saving...' : 'Add milestone'}
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
