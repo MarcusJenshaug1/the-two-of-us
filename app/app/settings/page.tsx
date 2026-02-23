@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera } from 'lucide-react'
+import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera, Bell, BellOff, BellRing } from 'lucide-react'
+import { useNotifications } from '@/hooks/use-notifications'
 
 // Resize image before upload (max 400x400)
 function resizeImage(file: File, maxSize = 400): Promise<Blob> {
@@ -47,6 +48,7 @@ export default function SettingsPage() {
     const [isIOS, setIsIOS] = useState(false)
     const [isStandalone, setIsStandalone] = useState(false)
     const avatarInputRef = useRef<HTMLInputElement>(null)
+    const { status: notifStatus, subscribe: subscribeNotifs, unsubscribe: unsubscribeNotifs, isSubscribing } = useNotifications()
 
     const supabase = createClient()
     const { user, signOut } = useAuth()
@@ -427,6 +429,60 @@ export default function SettingsPage() {
                             </div>
                             <Button variant="outline" size="sm" onClick={handleInstallClick}>
                                 Install
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* Notifications Section */}
+            <section className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                    <Bell className="w-4 h-4 mr-2" /> Notifications
+                </h2>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                    {notifStatus === 'unsupported' ? (
+                        <div className="flex items-center space-x-3 text-zinc-500">
+                            <BellOff className="w-5 h-5 shrink-0" />
+                            <div>
+                                <p className="font-medium text-sm">Not Available</p>
+                                <p className="text-xs text-zinc-500">Your browser doesn&apos;t support push notifications. Try installing the app first.</p>
+                            </div>
+                        </div>
+                    ) : notifStatus === 'denied' ? (
+                        <div className="flex items-center space-x-3 text-amber-400">
+                            <BellOff className="w-5 h-5 shrink-0" />
+                            <div>
+                                <p className="font-medium text-sm">Blocked</p>
+                                <p className="text-xs text-zinc-400">Notifications are blocked. Go to your browser/phone settings to allow them for this site.</p>
+                            </div>
+                        </div>
+                    ) : notifStatus === 'subscribed' ? (
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3 text-emerald-400">
+                                <BellRing className="w-5 h-5 shrink-0" />
+                                <div>
+                                    <p className="font-medium text-sm">Notifications On</p>
+                                    <p className="text-xs text-zinc-400">You&apos;ll get notified when your partner answers.</p>
+                                </div>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={unsubscribeNotifs}>
+                                Turn Off
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <p className="font-medium text-sm">Enable Notifications</p>
+                                <p className="text-xs text-zinc-400">Get notified when your partner answers or reacts.</p>
+                            </div>
+                            <Button
+                                size="sm"
+                                className="bg-rose-600 hover:bg-rose-700 text-white"
+                                onClick={subscribeNotifs}
+                                disabled={isSubscribing || notifStatus === 'loading'}
+                            >
+                                {isSubscribing ? 'Enabling...' : 'Enable'}
                             </Button>
                         </div>
                     )}

@@ -1,19 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
-import { format, differenceInDays, differenceInMonths, differenceInYears, parseISO } from 'date-fns'
-import { CalendarHeart, Flame, Trophy, Activity, Calendar } from 'lucide-react'
+import {
+    format, differenceInDays, differenceInMonths, differenceInYears,
+    parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
+    subMonths, addMonths, isSameMonth, isAfter
+} from 'date-fns'
+import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ProgressPage() {
     const [stats, setStats] = useState<any>(null)
     const [room, setRoom] = useState<any>(null)
     const [activityMap, setActivityMap] = useState<any[]>([])
+    const [answeredDates, setAnsweredDates] = useState<Record<string, string>>({})
+    const [calMonth, setCalMonth] = useState(new Date())
     const [isLoading, setIsLoading] = useState(true)
 
     const supabase = createClient()
     const { user } = useAuth()
+    const router = useRouter()
 
     useEffect(() => {
         if (!user) return
@@ -52,6 +60,26 @@ export default function ProgressPage() {
                     setActivityMap(activityData)
                 }
 
+                // 4. Get all answered questions for calendar
+                const { data: dqData } = await supabase
+                    .from('daily_questions')
+                    .select('date_key, answers(user_id)')
+                    .eq('room_id', member.room_id)
+
+                if (dqData) {
+                    const dateMap: Record<string, string> = {}
+                    for (const dq of dqData) {
+                        const answers = dq.answers || []
+                        const iAnswered = answers.some((a: any) => a.user_id === user.id)
+                        const partnerAnswered = answers.some((a: any) => a.user_id !== user.id)
+                        if (iAnswered && partnerAnswered) {
+                            dateMap[dq.date_key] = 'both'
+                        } else if (iAnswered || partnerAnswered) {
+                            dateMap[dq.date_key] = 'partial'
+                        }
+                    }
+                    setAnsweredDates(dateMap)
+                }
             } catch (err) {
                 console.error('Error loading progress', err)
             } finally {
@@ -62,6 +90,17 @@ export default function ProgressPage() {
         loadProgress()
         return () => { mounted = false }
     }, [user, supabase])
+
+    // Calendar days
+    const calendarDays = useMemo(() => {
+        const monthStart = startOfMonth(calMonth)
+        const monthEnd = endOfMonth(calMonth)
+        const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+        const startDow = getDay(monthStart) // 0=Sun
+        // Shift to Mon=0: (dow + 6) % 7
+        const offset = (startDow + 6) % 7
+        return { days, offset }
+    }, [calMonth])
 
     if (isLoading) {
         return (
@@ -93,6 +132,9 @@ export default function ProgressPage() {
     const milestones = [100, 200, 365, 500, 1000]
     const nextMilestone = milestones.find(m => m > totalDays)
     const daysToMilestone = nextMilestone ? nextMilestone - totalDays : null
+
+    // Reversed activity (newest first)
+    const reversedActivity = [...activityMap].reverse()
 
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24">
@@ -148,13 +190,88 @@ export default function ProgressPage() {
                 )}
             </div>
 
-            {/* Activity Heatmap Mock/Simple implementation */}
+            {/* Calendar View */}
+            <div className="space-y-4 pt-4">
+                <h3 className="font-semibold text-lg">Calendar</h3>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                    {/* Month navigation */}
+                    <div className="flex items-center justify-between mb-4">
+                        <button
+                            onClick={() => setCalMonth(prev => subMonths(prev, 1))}
+                            className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                        >
+                            <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <h4 className="text-sm font-semibold">{format(calMonth, 'MMMM yyyy')}</h4>
+                        <button
+                            onClick={() => setCalMonth(prev => addMonths(prev, 1))}
+                            disabled={isAfter(addMonths(calMonth, 1), new Date())}
+                            className="p-2 rounded-full hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Day headers */}
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                            <div key={d} className="text-center text-[10px] font-medium text-zinc-600 uppercase">
+                                {d}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Calendar grid */}
+                    <div className="grid grid-cols-7 gap-1">
+                        {/* Empty offset cells */}
+                        {Array.from({ length: calendarDays.offset }).map((_, i) => (
+                            <div key={`empty-${i}`} className="aspect-square" />
+                        ))}
+
+                        {calendarDays.days.map(day => {
+                            const dateKey = format(day, 'yyyy-MM-dd')
+                            const status = answeredDates[dateKey]
+                            const isToday = dateKey === format(new Date(), 'yyyy-MM-dd')
+                            const isFuture = isAfter(day, new Date())
+
+                            return (
+                                <button
+                                    key={dateKey}
+                                    onClick={() => {
+                                        if (status) router.push(`/app/inbox/${dateKey}`)
+                                    }}
+                                    disabled={!status || isFuture}
+                                    className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
+                                        status === 'both'
+                                            ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 cursor-pointer'
+                                            : status === 'partial'
+                                                ? 'bg-zinc-700/30 text-zinc-400 hover:bg-zinc-700/50 cursor-pointer'
+                                                : isFuture
+                                                    ? 'text-zinc-800'
+                                                    : 'text-zinc-600'
+                                    } ${isToday ? 'ring-1 ring-rose-500/50' : ''}`}
+                                >
+                                    {format(day, 'd')}
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex items-center justify-end space-x-4 mt-4 text-xs text-zinc-500">
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500/40 mr-1.5" /> Both answered</div>
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-700/50 mr-1.5" /> Partial</div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Activity Heatmap - newest first */}
             <div className="space-y-4 pt-4">
                 <h3 className="font-semibold text-lg">Last 90 Days Activity</h3>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 overflow-x-auto">
-                    {activityMap.length > 0 ? (
+                    {reversedActivity.length > 0 ? (
                         <div className="flex gap-1">
-                            {activityMap.map((day, i) => (
+                            {reversedActivity.map((day, i) => (
                                 <div
                                     key={i}
                                     className={`w-3 h-12 rounded-sm flex-shrink-0 ${day.status === 'both_answered' ? 'bg-rose-500' :
@@ -170,10 +287,14 @@ export default function ProgressPage() {
                             Activity data requires the get_activity_data RPC function to be deployed.
                         </p>
                     )}
-                    <div className="flex items-center justify-end space-x-4 mt-6 text-xs text-zinc-500">
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-800 mr-2" /> Missed</div>
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-600 mr-2" /> Partial</div>
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500 mr-2" /> Completed</div>
+                    <div className="flex items-center justify-between mt-6 text-xs text-zinc-500">
+                        <span>Newest</span>
+                        <div className="flex items-center space-x-4">
+                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-800 mr-2" /> Missed</div>
+                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-600 mr-2" /> Partial</div>
+                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500 mr-2" /> Completed</div>
+                        </div>
+                        <span>Oldest</span>
                     </div>
                 </div>
             </div>

@@ -6,6 +6,7 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   buildExcludes: [/middleware-manifest\.json$/],
+  customWorkerSrc: 'worker',
 });
 
 const nextConfig: NextConfig = {

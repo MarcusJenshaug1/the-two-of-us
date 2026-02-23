@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,15 @@ export default function RoomPage() {
     const router = useRouter()
     const supabase = createClient()
     const { user } = useAuth()
+
+    // Auto-fill invite code from sessionStorage (from invite link)
+    useEffect(() => {
+        const pendingCode = sessionStorage.getItem('inviteCode')
+        if (pendingCode) {
+            setJoinCode(pendingCode.toUpperCase())
+            setMode('join')
+        }
+    }, [])
 
     const generateRoomCode = () => {
         return Math.random().toString(36).substring(2, 8).toUpperCase()
@@ -97,6 +106,7 @@ export default function RoomPage() {
 
             if (joinError) throw new Error('Failed to join room. It might be full.')
 
+            sessionStorage.removeItem('inviteCode')
             router.push('/app/questions') // Skip anniversary if joining
         } catch (err: any) {
             setError(err.message)

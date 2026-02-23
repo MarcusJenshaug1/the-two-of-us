@@ -94,6 +94,31 @@ Deno.serve(async (req) => {
                     console.error(`Failed to insert for room ${room.id}`, insertError)
                 } else {
                     addedCount++
+
+                    // Send push notification to room members
+                    try {
+                        const { data: members } = await supabase
+                            .from("room_members")
+                            .select("user_id")
+                            .eq("room_id", room.id)
+
+                        if (members) {
+                            for (const member of members) {
+                                await supabase.functions.invoke("send-push-notification", {
+                                    body: {
+                                        user_id: member.user_id,
+                                        title: "💕 New Question!",
+                                        body: "Today's question is ready. Open the app to answer!",
+                                        url: "/app/questions",
+                                        tag: "daily-question",
+                                        badge: 1,
+                                    },
+                                })
+                            }
+                        }
+                    } catch (pushErr) {
+                        console.error("Push notification failed:", pushErr)
+                    }
                 }
             }
         }

@@ -1,0 +1,635 @@
+-- ==========================================
+-- COMPLETE MIGRATION - RUN THIS IN SUPABASE SQL EDITOR
+-- Copy everything and paste into: Supabase Dashboard → SQL Editor → New Query → Run
+-- ==========================================
+
+
+-- ==========================================
+-- PART 1: Fix RLS infinite recursion
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION get_my_room_ids()
+RETURNS SETOF UUID AS $$
+  SELECT room_id FROM room_members WHERE user_id = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+DROP POLICY IF EXISTS "Users can view members of their rooms" ON room_members;
+DROP POLICY IF EXISTS "Users can view their rooms" ON rooms;
+DROP POLICY IF EXISTS "Users can update their rooms" ON rooms;
+DROP POLICY IF EXISTS "Users can view daily questions in their room" ON daily_questions;
+DROP POLICY IF EXISTS "Users can view answers in their room" ON answers;
+DROP POLICY IF EXISTS "Users can view reactions in their room" ON reactions;
+DROP POLICY IF EXISTS "Users can view stats for their room" ON stats;
+DROP POLICY IF EXISTS "Users can view audit for their room" ON audit;
+DROP POLICY IF EXISTS "Users can insert audit logs" ON audit;
+
+CREATE POLICY "Users can view members of their rooms" ON room_members FOR SELECT USING (
+  room_id IN (SELECT get_my_room_ids())
+);
+
+CREATE POLICY "Users can view their rooms" ON rooms FOR SELECT USING (
+  id IN (SELECT get_my_room_ids()) OR created_by = auth.uid()
+);
+CREATE POLICY "Users can update their rooms" ON rooms FOR UPDATE USING (
+  id IN (SELECT get_my_room_ids()) OR created_by = auth.uid()
+);
+
+CREATE POLICY "Users can view daily questions in their room" ON daily_questions FOR SELECT USING (
+  room_id IN (SELECT get_my_room_ids())
+);
+
+CREATE POLICY "Users can view answers in their room" ON answers FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM daily_questions dq
+    WHERE dq.id = answers.daily_question_id
+    AND dq.room_id IN (SELECT get_my_room_ids())
+  )
+);
+
+CREATE POLICY "Users can view reactions in their room" ON reactions FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM daily_questions dq
+    WHERE dq.id = reactions.daily_question_id
+    AND dq.room_id IN (SELECT get_my_room_ids())
+  )
+);
+
+CREATE POLICY "Users can view stats for their room" ON stats FOR SELECT USING (
+  room_id IN (SELECT get_my_room_ids())
+);
+
+CREATE POLICY "Users can view audit for their room" ON audit FOR SELECT USING (
+  room_id IN (SELECT get_my_room_ids())
+);
+CREATE POLICY "Users can insert audit logs" ON audit FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+
+-- ==========================================
+-- PART 2: Allow room lookup by invite code
+-- ==========================================
+
+DROP POLICY IF EXISTS "Authenticated users can find rooms by invite code" ON rooms;
+CREATE POLICY "Authenticated users can find rooms by invite code"
+  ON rooms FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+
+-- ==========================================
+-- PART 3: Daily question RPC
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION ensure_daily_question(room_id_param UUID)
+RETURNS TABLE (
+  id UUID,
+  question_id UUID,
+  date_key DATE,
+  question_text TEXT,
+  question_category TEXT
+) AS $$
+DECLARE
+  v_date DATE;
+  v_existing_id UUID;
+  v_selected_question_id UUID;
+BEGIN
+  v_date := (NOW() AT TIME ZONE 'Europe/Oslo')::DATE;
+  IF EXTRACT(HOUR FROM NOW() AT TIME ZONE 'Europe/Oslo') < 6 THEN
+    v_date := v_date - 1;
+  END IF;
+
+  SELECT dq.id INTO v_existing_id
+  FROM daily_questions dq
+  WHERE dq.room_id = room_id_param AND dq.date_key = v_date;
+
+  IF v_existing_id IS NOT NULL THEN
+    RETURN QUERY
+    SELECT dq.id, dq.question_id, dq.date_key, q.text, q.category
+    FROM daily_questions dq
+    JOIN questions q ON q.id = dq.question_id
+    WHERE dq.id = v_existing_id;
+    RETURN;
+  END IF;
+
+  SELECT q.id INTO v_selected_question_id
+  FROM questions q
+  WHERE q.id NOT IN (
+    SELECT dq2.question_id FROM daily_questions dq2
+    WHERE dq2.room_id = room_id_param
+    ORDER BY dq2.created_at DESC
+    LIMIT 60
+  )
+  ORDER BY RANDOM()
+  LIMIT 1;
+
+  IF v_selected_question_id IS NULL THEN
+    SELECT q.id INTO v_selected_question_id
+    FROM questions q
+    ORDER BY RANDOM()
+    LIMIT 1;
+  END IF;
+
+  IF v_selected_question_id IS NULL THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO daily_questions (room_id, question_id, date_key)
+  VALUES (room_id_param, v_selected_question_id, v_date)
+  ON CONFLICT (room_id, date_key) DO NOTHING;
+
+  RETURN QUERY
+  SELECT dq.id, dq.question_id, dq.date_key, q.text, q.category
+  FROM daily_questions dq
+  JOIN questions q ON q.id = dq.question_id
+  WHERE dq.room_id = room_id_param AND dq.date_key = v_date;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ==========================================
+-- PART 4: Profile visibility between room members
+-- ==========================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Users can view room member profiles' AND tablename = 'profiles'
+  ) THEN
+    CREATE POLICY "Users can view room member profiles"
+    ON profiles FOR SELECT
+    USING (
+      id IN (
+        SELECT rm.user_id FROM room_members rm
+        WHERE rm.room_id IN (SELECT get_my_room_ids())
+      )
+    );
+  END IF;
+END $$;
+
+
+-- ==========================================
+-- PART 5: Avatar storage bucket
+-- ==========================================
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can upload their own avatar' AND tablename = 'objects' AND schemaname = 'storage') THEN
+    CREATE POLICY "Users can upload their own avatar"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can update their own avatar' AND tablename = 'objects' AND schemaname = 'storage') THEN
+    CREATE POLICY "Users can update their own avatar"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can view avatars' AND tablename = 'objects' AND schemaname = 'storage') THEN
+    CREATE POLICY "Anyone can view avatars"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'avatars');
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can delete their own avatar' AND tablename = 'objects' AND schemaname = 'storage') THEN
+    CREATE POLICY "Users can delete their own avatar"
+    ON storage.objects FOR DELETE
+    USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+  END IF;
+END $$;
+
+
+-- ==========================================
+-- PART 6: Seed 365 questions
+-- ==========================================
+
+INSERT INTO questions (text, category) VALUES
+
+-- ===== REFLECTION (30) =====
+('What moment in our relationship made you realize this was something special?', 'Reflection'),
+('What is a challenge we overcame together that made us stronger?', 'Reflection'),
+('How have I changed since we first met, in your eyes?', 'Reflection'),
+('What was the best surprise I ever gave you?', 'Reflection'),
+('What is your favorite photo of us, and why?', 'Reflection'),
+('What song will always remind you of us?', 'Reflection'),
+('What was going through your mind on our first date?', 'Reflection'),
+('What habit of mine did you find strange at first but now love?', 'Reflection'),
+('When was the last time I made you laugh so hard it hurt?', 'Reflection'),
+('What was the most meaningful gift you ever received from me?', 'Reflection'),
+('What is one thing about our early days that you miss?', 'Reflection'),
+('When did you first feel truly comfortable around me?', 'Reflection'),
+('What was the hardest conversation we ever had, and what did it teach us?', 'Reflection'),
+('What is a small, everyday moment with me that you treasure?', 'Reflection'),
+('What is something I said once that stuck with you?', 'Reflection'),
+('How has our way of handling disagreements evolved over time?', 'Reflection'),
+('What was the first meal we ever cooked together?', 'Reflection'),
+('What trip or outing together turned out better than expected?', 'Reflection'),
+('What was the most spontaneous thing we ever did together?', 'Reflection'),
+('What is one lesson our relationship has taught you about yourself?', 'Reflection'),
+('What was the funniest misunderstanding we ever had?', 'Reflection'),
+('What inside joke of ours will never get old?', 'Reflection'),
+('When did you last feel truly proud of us as a couple?', 'Reflection'),
+('What is a phase of our relationship you look back on fondly?', 'Reflection'),
+('What is something you worried about in the beginning that turned out fine?', 'Reflection'),
+('What is the bravest thing you have seen me do?', 'Reflection'),
+('What holiday or celebration together stands out the most?', 'Reflection'),
+('What was the best lazy day we ever spent together?', 'Reflection'),
+('What is the kindest thing a stranger ever did for us as a couple?', 'Reflection'),
+('What is something we used to argue about that seems silly now?', 'Reflection'),
+
+-- ===== FUTURE (30) =====
+('Where do you see us living in ten years?', 'Future'),
+('What is one tradition you want us to start together?', 'Future'),
+('What does your ideal retirement with me look like?', 'Future'),
+('If money were no issue, what home would you build for us?', 'Future'),
+('What skill do you want us to learn together this year?', 'Future'),
+('What kind of old couple do you think we will become?', 'Future'),
+('What is a bucket list experience you want us to share?', 'Future'),
+('If we could move abroad for a year, where would you choose?', 'Future'),
+('What is one goal you want us to accomplish together in the next five years?', 'Future'),
+('How do you want us to celebrate our next big anniversary?', 'Future'),
+('What pet would you want us to get someday?', 'Future'),
+('What does a perfect weekend look like for us in five years?', 'Future'),
+('What kind of neighborhood do you dream of us living in?', 'Future'),
+('Is there a hobby you hope we pick up together someday?', 'Future'),
+('What is one thing you want to make sure we never stop doing?', 'Future'),
+('If we wrote a book about our life together, what would the next chapter be?', 'Future'),
+('What family tradition from your childhood do you want to carry forward with us?', 'Future'),
+('What does growing old together look like in your imagination?', 'Future'),
+('What would you want us to volunteer for or give back to together?', 'Future'),
+('Where should we go on our next trip, and why?', 'Future'),
+('What milestone are you most excited about reaching together?', 'Future'),
+('If we started a business together, what would it be?', 'Future'),
+('How do you want us to handle big financial decisions in the future?', 'Future'),
+('What is a recipe or dish you want us to master together?', 'Future'),
+('What holiday destination do you dream of visiting with me?', 'Future'),
+('What is a conversation about our future we should have soon?', 'Future'),
+('If you could guarantee one thing about our future, what would it be?', 'Future'),
+('What is something new you want to try in the next month with me?', 'Future'),
+('What role do you want creativity to play in our life together?', 'Future'),
+('How do you envision our morning routine in ten years?', 'Future'),
+
+-- ===== ROMANCE (30) =====
+('What is your favorite way to be shown love?', 'Romance'),
+('What is the most romantic thing I have ever done for you?', 'Romance'),
+('What small gesture from me means the most to you?', 'Romance'),
+('What is your favorite thing about the way I look at you?', 'Romance'),
+('What is a date night idea you have been wanting to try?', 'Romance'),
+('What does intimacy mean to you beyond the physical?', 'Romance'),
+('What love song describes how you feel about me?', 'Romance'),
+('What compliment from me do you replay in your head?', 'Romance'),
+('What is your favorite way we say goodnight?', 'Romance'),
+('If you could relive one romantic moment with me, which would it be?', 'Romance'),
+('What makes you feel most connected to me?', 'Romance'),
+('What physical touch from me do you find most comforting?', 'Romance'),
+('What is the most thoughtful text or message I ever sent you?', 'Romance'),
+('What outfit of mine do you secretly love the most?', 'Romance'),
+('What is something I do without realizing that makes your heart skip?', 'Romance'),
+('What is your favorite time of day to spend with me, and why?', 'Romance'),
+('How would you describe the feeling of being in love with me?', 'Romance'),
+('What is a romantic movie scene that reminds you of us?', 'Romance'),
+('What kind of flowers or gift would brighten your day right now?', 'Romance'),
+('What is the most romantic setting you can imagine for us?', 'Romance'),
+('What do you love most about falling asleep next to me?', 'Romance'),
+('What was the sweetest thing I ever did when you were having a bad day?', 'Romance'),
+('What is your favorite pet name for me, or one you wish we used?', 'Romance'),
+('What scent reminds you of me or of us?', 'Romance'),
+('What does a perfect at-home date night look like for you?', 'Romance'),
+('What was the moment you knew you were falling in love with me?', 'Romance'),
+('What three words would you use to describe how I make you feel?', 'Romance'),
+('If we renewed our commitment to each other tomorrow, what would you say?', 'Romance'),
+('What is a love letter topic you would want to write to me about?', 'Romance'),
+('What is one romantic thing you wish we did more often?', 'Romance'),
+
+-- ===== FUN (30) =====
+('If we were characters in a sitcom, what would our show be called?', 'Fun'),
+('What is the weirdest food combination you secretly enjoy?', 'Fun'),
+('If we switched lives for a day, what would surprise you the most?', 'Fun'),
+('What would our couple Halloween costume be this year?', 'Fun'),
+('If we had a theme song that played every time we walked in together, what would it be?', 'Fun'),
+('What emoji best represents our relationship?', 'Fun'),
+('If we competed on a reality TV show, which one would we win?', 'Fun'),
+('What is the most embarrassing thing that happened to you this week?', 'Fun'),
+('If you could have any animal ability, what would it be?', 'Fun'),
+('What board game or video game would you always beat me at?', 'Fun'),
+('If we had a couple superpower, what would it be?', 'Fun'),
+('What fictional couple are we most like?', 'Fun'),
+('What is the silliest thing you have ever gotten emotional about?', 'Fun'),
+('If we opened a restaurant, what would be on the menu?', 'Fun'),
+('What is a trend you secretly enjoy but would never publicly admit?', 'Fun'),
+('If you could swap wardrobes with any celebrity for a week, who?', 'Fun'),
+('What is the worst haircut you have ever had?', 'Fun'),
+('What would your wrestler name and entrance music be?', 'Fun'),
+('If we were in a heist movie, what would our roles be?', 'Fun'),
+('What is the strangest dream you have had about me?', 'Fun'),
+('If you had to eat one cuisine for the rest of your life, which one?', 'Fun'),
+('What is your guilty pleasure TV show or movie?', 'Fun'),
+('If we could time-travel for just one day, when and where?', 'Fun'),
+('What is the funniest autocorrect fail you have ever sent?', 'Fun'),
+('What was your most irrational childhood fear?', 'Fun'),
+('If you could master any musical instrument overnight, which one?', 'Fun'),
+('What is the best prank you have ever pulled or experienced?', 'Fun'),
+('If we had to survive a zombie apocalypse, what would our strategy be?', 'Fun'),
+('What is a word you always misspell or mispronounce?', 'Fun'),
+('If our relationship had a Yelp review, what would it say?', 'Fun'),
+
+-- ===== DEEP (25) =====
+('What is something you have never told anyone else but would share with me?', 'Deep'),
+('What do you think is the meaning of a truly fulfilling life?', 'Deep'),
+('What fear have you overcome since being with me?', 'Deep'),
+('What part of yourself are you still learning to accept?', 'Deep'),
+('What does forgiveness mean to you in a relationship?', 'Deep'),
+('What is a belief you held strongly that has changed over time?', 'Deep'),
+('What would you want people to say about us at our golden anniversary?', 'Deep'),
+('What is a question you are afraid to ask me?', 'Deep'),
+('How do you define trust, and how do I make you feel trusted?', 'Deep'),
+('What is the most important lesson life has taught you so far?', 'Deep'),
+('What does home mean to you emotionally, not just physically?', 'Deep'),
+('What is a vulnerability you are glad you shared with me?', 'Deep'),
+('In what way do you think we balance each other out?', 'Deep'),
+('What is something you wish more people understood about relationships?', 'Deep'),
+('What does being truly seen by someone feel like to you?', 'Deep'),
+('What would you change about the way society views love?', 'Deep'),
+('What is a hard truth you have come to accept about yourself?', 'Deep'),
+('How do you want to be remembered by the people closest to you?', 'Deep'),
+('What is a boundary that is important to you in our relationship?', 'Deep'),
+('What does emotional safety look like to you?', 'Deep'),
+('What part of your identity do you feel most protective of?', 'Deep'),
+('What has loss or grief taught you about what truly matters?', 'Deep'),
+('What is something you find hard to ask for but really need?', 'Deep'),
+('What does unconditional love mean to you in practice?', 'Deep'),
+('If you could have a deep conversation with any person, alive or dead, who would it be?', 'Deep'),
+
+-- ===== DREAMS (25) =====
+('What is a dream you have not shared with many people?', 'Dreams'),
+('If you could wake up tomorrow with a new talent, what would it be?', 'Dreams'),
+('What is something you wanted to be as a child that still excites you?', 'Dreams'),
+('What creative project have you always wanted to start?', 'Dreams'),
+('If you could live in any era of history, when would you choose?', 'Dreams'),
+('What does your dream morning routine look like?', 'Dreams'),
+('If you could solve one global problem, which would you choose?', 'Dreams'),
+('What kind of legacy do you want to leave behind?', 'Dreams'),
+('What is a place you dream of visiting but have not yet?', 'Dreams'),
+('If you could have any job for a year without worrying about money, what would it be?', 'Dreams'),
+('What does your dream garden or outdoor space look like?', 'Dreams'),
+('What would your dream birthday celebration look like?', 'Dreams'),
+('If you could learn any language fluently overnight, which one?', 'Dreams'),
+('What is a dream you had to let go of, and how do you feel about it now?', 'Dreams'),
+('If you could design our perfect home, what is the one must-have feature?', 'Dreams'),
+('What is a cause you dream of dedicating more time to?', 'Dreams'),
+('If you could write a book, what would it be about?', 'Dreams'),
+('What is your dream way to spend a rainy Sunday?', 'Dreams'),
+('If you had unlimited resources, what experience would you create for us?', 'Dreams'),
+('What is a childhood dream that still quietly lives inside you?', 'Dreams'),
+('What does your ideal work-life balance look like?', 'Dreams'),
+('If you could host any kind of event, what would it be?', 'Dreams'),
+('What is a personal record or achievement you dream of reaching?', 'Dreams'),
+('If you could collaborate with anyone on a project, who and what?', 'Dreams'),
+('What would your dream Saturday night look like?', 'Dreams'),
+
+-- ===== DAILY LIFE (25) =====
+('What is the best part of your average day right now?', 'Daily Life'),
+('What household chore do you secretly not mind doing?', 'Daily Life'),
+('What is your current favorite thing to eat for breakfast?', 'Daily Life'),
+('What small daily ritual keeps you grounded?', 'Daily Life'),
+('What is something about our daily routine you would like to improve?', 'Daily Life'),
+('What is the last thing you usually think about before falling asleep?', 'Daily Life'),
+('What podcast, show, or book are you into right now?', 'Daily Life'),
+('What was the highlight of your day today?', 'Daily Life'),
+('What is a food you have been craving lately?', 'Daily Life'),
+('What is your go-to way to unwind after a stressful day?', 'Daily Life'),
+('What do you wish we had more time for in our weekly routine?', 'Daily Life'),
+('What is one thing that always makes a bad day better for you?', 'Daily Life'),
+('What is a recent purchase that has made your life easier?', 'Daily Life'),
+('What is the first app you open in the morning?', 'Daily Life'),
+('What is a weeknight dinner we should add to our rotation?', 'Daily Life'),
+('What is the best cup of coffee or tea you have had recently?', 'Daily Life'),
+('What does your ideal lunch break look like?', 'Daily Life'),
+('What is a chore we should split differently?', 'Daily Life'),
+('What is a smell that instantly makes you feel at home?', 'Daily Life'),
+('What is one thing you do every day just for yourself?', 'Daily Life'),
+('What song have you had on repeat this week?', 'Daily Life'),
+('What is something about our home you really love?', 'Daily Life'),
+('What is a small comfort you cannot live without?', 'Daily Life'),
+('How do you feel about our current bedtime routine?', 'Daily Life'),
+('What is something mundane that actually brings you joy?', 'Daily Life'),
+
+-- ===== GRATITUDE (25) =====
+('What is one thing about me you are grateful for today?', 'Gratitude'),
+('What is a kindness someone showed you recently that stuck with you?', 'Gratitude'),
+('What is something about our life together you never want to take for granted?', 'Gratitude'),
+('What is a struggle that ended up leading to something beautiful?', 'Gratitude'),
+('What person outside our relationship are you most thankful for?', 'Gratitude'),
+('What is a freedom or privilege you are especially grateful for?', 'Gratitude'),
+('What about this season of our life are you most appreciative of?', 'Gratitude'),
+('What is a quality in me that you value the most?', 'Gratitude'),
+('What everyday convenience do you sometimes forget to appreciate?', 'Gratitude'),
+('What was the last thing that made you think "I am really lucky"?', 'Gratitude'),
+('What is something about your health or body you are grateful for?', 'Gratitude'),
+('What memory with me fills you with the most gratitude?', 'Gratitude'),
+('What is a simple pleasure you experienced today?', 'Gratitude'),
+('Who taught you the most about love before you met me?', 'Gratitude'),
+('What aspect of our communication are you grateful for?', 'Gratitude'),
+('What is something I do for you that you might not thank me for enough?', 'Gratitude'),
+('What part of our neighborhood or community are you thankful for?', 'Gratitude'),
+('What technology are you most grateful to have in your daily life?', 'Gratitude'),
+('What was a turning point in your life that you now feel grateful for?', 'Gratitude'),
+('What is something about our morning routine you appreciate?', 'Gratitude'),
+('What is a talent or ability of yours you are grateful for?', 'Gratitude'),
+('What experience shaped who you are that you are most thankful for?', 'Gratitude'),
+('What is one thing about today that went right?', 'Gratitude'),
+('What sacrifice has someone made for you that you will never forget?', 'Gratitude'),
+('What about our home life makes you feel the most grateful?', 'Gratitude'),
+
+-- ===== CHILDHOOD (20) =====
+('What is your happiest childhood memory?', 'Childhood'),
+('What was your favorite toy or game growing up?', 'Childhood'),
+('What did you dream of being when you grew up?', 'Childhood'),
+('What was your favorite family tradition as a kid?', 'Childhood'),
+('Who was your childhood best friend, and where are they now?', 'Childhood'),
+('What was the first movie that made you cry?', 'Childhood'),
+('What is a lesson from your childhood that still guides you?', 'Childhood'),
+('What was your favorite thing to eat as a child?', 'Childhood'),
+('What is your earliest memory?', 'Childhood'),
+('What was your favorite subject in school, and why?', 'Childhood'),
+('What is something your parents said that you still think about?', 'Childhood'),
+('What book or story had the biggest impact on you as a kid?', 'Childhood'),
+('What family vacation do you remember most vividly?', 'Childhood'),
+('What was your bedroom like growing up?', 'Childhood'),
+('What neighborhood game or activity do you miss the most?', 'Childhood'),
+('What is a smell that takes you straight back to childhood?', 'Childhood'),
+('Who was your hero growing up?', 'Childhood'),
+('What was the first album or song you were obsessed with?', 'Childhood'),
+('What is a rule your parents had that you now understand?', 'Childhood'),
+('What was the most adventurous thing you did as a kid?', 'Childhood'),
+
+-- ===== HYPOTHETICAL (25) =====
+('If we won the lottery tomorrow, what is the first thing we would do?', 'Hypothetical'),
+('If you could have dinner with any three people, alive or dead, who?', 'Hypothetical'),
+('If we could live in any fictional universe, which would you choose?', 'Hypothetical'),
+('If you could freeze one moment in time to revisit whenever you want, which one?', 'Hypothetical'),
+('If you could instantly become an expert in something, what would it be?', 'Hypothetical'),
+('If we had to live without internet for a month, how would we spend our time?', 'Hypothetical'),
+('If you could change one thing about the world, what would it be?', 'Hypothetical'),
+('If you could relive one year of your life, which one?', 'Hypothetical'),
+('If we were given a free year with no obligations, how would we spend it?', 'Hypothetical'),
+('If you could send a message to your teenage self, what would it say?', 'Hypothetical'),
+('If you could eliminate one daily annoyance forever, what would it be?', 'Hypothetical'),
+('If we could adopt any lifestyle from another culture, which one?', 'Hypothetical'),
+('If you could have any view from our bedroom window, what would it be?', 'Hypothetical'),
+('If we could only listen to one genre of music forever, which one?', 'Hypothetical'),
+('If you could wake up with one new quality tomorrow, what would it be?', 'Hypothetical'),
+('If we had to pick a new city to move to next week, where would we go?', 'Hypothetical'),
+('If you could make one rule everyone in the world had to follow, what would it be?', 'Hypothetical'),
+('If you could be invisible for a day, what would you do?', 'Hypothetical'),
+('If we had a time capsule to open in 20 years, what would you put in it?', 'Hypothetical'),
+('If you could experience something again for the first time, what would it be?', 'Hypothetical'),
+('If you could trade lives with me for a week, what would you do differently?', 'Hypothetical'),
+('If we could bring one fictional character into our friend group, who?', 'Hypothetical'),
+('If you could guarantee our children one quality, what would it be?', 'Hypothetical'),
+('If you could teleport to one place right now, where?', 'Hypothetical'),
+('If we could only eat homemade meals or only eat out, which would you pick?', 'Hypothetical'),
+
+-- ===== VALUES (25) =====
+('What value was most important in your upbringing?', 'Values'),
+('What does loyalty mean to you in a relationship?', 'Values'),
+('How important is alone time to you, and how much do you need?', 'Values'),
+('What is a principle you would never compromise on?', 'Values'),
+('How do you define success in life?', 'Values'),
+('What role does honesty play in how you approach our relationship?', 'Values'),
+('What does respect look like to you in everyday interactions?', 'Values'),
+('How do you feel about balancing generosity and financial security?', 'Values'),
+('What is more important to you: stability or adventure?', 'Values'),
+('How important is it to you that we share the same political views?', 'Values'),
+('What does fairness look like to you in a partnership?', 'Values'),
+('How do you feel about the role of family in our lives?', 'Values'),
+('What is a value you have gained since we have been together?', 'Values'),
+('What does being a good partner mean to you?', 'Values'),
+('How do you feel about keeping secrets, even small ones?', 'Values'),
+('What is a social cause you care deeply about?', 'Values'),
+('How do you approach making big decisions with another person?', 'Values'),
+('What does work ethic mean to you?', 'Values'),
+('How do you define a healthy relationship?', 'Values'),
+('What is more important: being right or being kind?', 'Values'),
+('What does patience mean to you, and when is it hardest?', 'Values'),
+('How do you balance personal ambition with relationship goals?', 'Values'),
+('What is a non-negotiable standard you hold for yourself?', 'Values'),
+('How important is punctuality to you, honestly?', 'Values'),
+('What does commitment mean to you beyond staying together?', 'Values'),
+
+-- ===== ADVENTURE (25) =====
+('What is the most beautiful place you have ever visited?', 'Adventure'),
+('What is an adventure you want to have before the year is over?', 'Adventure'),
+('What is the best meal you have ever had while traveling?', 'Adventure'),
+('If we had 48 hours and a full tank of gas, where would we go?', 'Adventure'),
+('What is an outdoor activity you have always wanted to try?', 'Adventure'),
+('What is the most spontaneous trip you have ever taken?', 'Adventure'),
+('What kind of vacation do you prefer: relaxing or action-packed?', 'Adventure'),
+('What is a local place near us that we still have not explored?', 'Adventure'),
+('What country is at the top of your travel bucket list?', 'Adventure'),
+('Would you rather go camping in the mountains or relax on a beach?', 'Adventure'),
+('What is the best road trip snack?', 'Adventure'),
+('What is the most thrilling experience you have ever had?', 'Adventure'),
+('If we could take a cooking class anywhere in the world, where?', 'Adventure'),
+('What is a festival or event you want us to attend together?', 'Adventure'),
+('Would you rather explore a new city or revisit a favorite one?', 'Adventure'),
+('What is the longest trip you have ever taken, and what did you learn?', 'Adventure'),
+('What is a type of accommodation you want to try: treehouse, houseboat, igloo?', 'Adventure'),
+('If we planned a surprise weekend getaway, what would your ideal one be?', 'Adventure'),
+('What is a sport or physical activity you want us to try together?', 'Adventure'),
+('What was the best sunset or sunrise you have ever seen?', 'Adventure'),
+('What is a hidden gem in our city we should visit?', 'Adventure'),
+('Would you rather take a scenic train ride or a hot air balloon ride?', 'Adventure'),
+('What is an adventure from a movie or book you wish you could experience?', 'Adventure'),
+('What is the best souvenir you have ever brought home?', 'Adventure'),
+('If we planned a one-week digital detox trip, where should we go?', 'Adventure'),
+
+-- ===== COMMUNICATION (25) =====
+('How do you prefer to resolve disagreements: immediately or after cooling off?', 'Communication'),
+('What is the best way for me to support you when you are stressed?', 'Communication'),
+('How can I tell when something is bothering you even if you do not say it?', 'Communication'),
+('What is a topic you wish we talked about more openly?', 'Communication'),
+('How do you feel most heard in a conversation?', 'Communication'),
+('What is something I could do to make you feel more appreciated daily?', 'Communication'),
+('Do you prefer words of encouragement or actions that show support?', 'Communication'),
+('How do you feel about us checking in with each other emotionally each week?', 'Communication'),
+('What is the hardest thing for you to bring up in conversation?', 'Communication'),
+('How do you feel about giving and receiving constructive feedback?', 'Communication'),
+('When I apologize, what makes it feel most genuine to you?', 'Communication'),
+('What is one thing I could say more often that would mean a lot to you?', 'Communication'),
+('How do you prefer to share good news: in person, call, or text?', 'Communication'),
+('What makes you feel safe enough to be completely honest with me?', 'Communication'),
+('How do you feel about discussing our relationship with close friends?', 'Communication'),
+('What is your preferred way to plan things together: talking, lists, or spontaneity?', 'Communication'),
+('Is there something I have misunderstood about you that you want to clarify?', 'Communication'),
+('How do you feel about saying "I love you" — can it be said too much?', 'Communication'),
+('What is the most effective way for us to make decisions together?', 'Communication'),
+('How do you feel about silence between us — comfortable or uneasy?', 'Communication'),
+('What is one thing you wish I understood better about how you think?', 'Communication'),
+('How do you want me to react when you share something difficult?', 'Communication'),
+('What language or phrase from our relationship has special meaning to you?', 'Communication'),
+('How can we make sure we stay emotionally connected during busy weeks?', 'Communication'),
+('What is one question you have always wanted me to ask you?', 'Communication'),
+
+-- ===== MEMORIES (20) =====
+('What is your favorite season we have experienced together so far?', 'Memories'),
+('What concert, show, or event we attended together was the most fun?', 'Memories'),
+('What is a time we got completely lost and it turned into an adventure?', 'Memories'),
+('What is the best home-cooked meal we have made together?', 'Memories'),
+('What New Year''s Eve together stands out the most?', 'Memories'),
+('What is a random weekday moment with me you will never forget?', 'Memories'),
+('What was our best rainy day together?', 'Memories'),
+('What was the first gift you gave me?', 'Memories'),
+('What was the funniest thing that happened on one of our trips?', 'Memories'),
+('What shared experience brought us closer than we expected?', 'Memories'),
+('What is the best birthday you have had since we have been together?', 'Memories'),
+('What is a time we helped each other through something really tough?', 'Memories'),
+('What was the most meaningful conversation we have had late at night?', 'Memories'),
+('What is a silly tradition we accidentally started?', 'Memories'),
+('What is the most beautiful place we have visited together?', 'Memories'),
+('What was a moment when we worked as a perfect team?', 'Memories'),
+('What was the best picnic or outdoor meal we shared?', 'Memories'),
+('What shared playlist or album defined a period of our relationship?', 'Memories'),
+('What was a moment you felt incredibly close to me without us saying a word?', 'Memories'),
+('What was the best movie night or binge-watch session we had?', 'Memories'),
+
+-- ===== GROWTH (30) =====
+('What is one area of your life you are actively trying to improve?', 'Growth'),
+('What is a fear you want to work on overcoming?', 'Growth'),
+('What is a habit you have built recently that you are proud of?', 'Growth'),
+('How has being in a relationship helped you grow as a person?', 'Growth'),
+('What is something you are better at now than you were a year ago?', 'Growth'),
+('What is a mistake you made that taught you something valuable?', 'Growth'),
+('What does self-care look like for you these days?', 'Growth'),
+('What is a book, podcast, or talk that changed your perspective recently?', 'Growth'),
+('What is one thing you want to be more patient about?', 'Growth'),
+('How do you handle setbacks, and what helps you bounce back?', 'Growth'),
+('What is a part of your character you have worked hard to develop?', 'Growth'),
+('What is the most important thing you have unlearned?', 'Growth'),
+('How do you want to grow emotionally in the next year?', 'Growth'),
+('What is a compliment you have a hard time accepting about yourself?', 'Growth'),
+('What is a relationship pattern from your past you have worked to change?', 'Growth'),
+('What does mental health mean to you, and how do you prioritize it?', 'Growth'),
+('What is one area where you want more discipline?', 'Growth'),
+('How do you balance self-improvement with self-acceptance?', 'Growth'),
+('What advice would you give yourself from five years ago?', 'Growth'),
+('What is something you want to forgive yourself for?', 'Growth'),
+('What is a strength of yours that you sometimes underestimate?', 'Growth'),
+('How has your definition of happiness changed over time?', 'Growth'),
+('What is a conversation or experience that shifted your worldview?', 'Growth'),
+('What is one thing you want to let go of this year?', 'Growth'),
+('How do you measure personal progress in your life?', 'Growth'),
+('What role does gratitude play in your personal growth?', 'Growth'),
+('What is a challenge you are currently facing that will make you stronger?', 'Growth'),
+('What is something you need to hear right now?', 'Growth'),
+('How have your priorities shifted in the last few years?', 'Growth'),
+('What is one thing you want to be known for?', 'Growth')
+
+ON CONFLICT DO NOTHING;
+
+
+-- ==========================================
+-- DONE! Refresh the page and questions should appear.
+-- ==========================================

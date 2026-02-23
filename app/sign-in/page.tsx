@@ -49,7 +49,13 @@ export default function SignInPage() {
                     password,
                 })
                 if (error) throw error
-                router.push('/app/questions')
+                // Redirect to invite page if pending invite code
+                const pendingCode = sessionStorage.getItem('inviteCode')
+                if (pendingCode) {
+                    router.push(`/invite/${pendingCode}`)
+                } else {
+                    router.push('/app/questions')
+                }
             }
         } catch (err: any) {
             setError(err.message)
@@ -70,6 +76,7 @@ export default function SignInPage() {
                 type: 'signup',
             })
             if (error) throw error
+            // Keep invite code in sessionStorage — profile page will handle it
             router.push('/onboarding/profile')
         } catch (err: any) {
             setError(err.message)

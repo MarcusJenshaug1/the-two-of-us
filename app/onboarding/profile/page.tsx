@@ -93,7 +93,13 @@ export default function ProfilePage() {
 
             if (updateError) throw updateError
 
-            router.push('/onboarding/room') // Next step
+            // If there's a pending invite code, go directly to that invite page
+            const pendingCode = sessionStorage.getItem('inviteCode')
+            if (pendingCode) {
+                router.push(`/invite/${pendingCode}`)
+            } else {
+                router.push('/onboarding/room') // Next step
+            }
         } catch (err: any) {
             setError(err.message)
         } finally {

@@ -60,8 +60,9 @@ export async function middleware(request: NextRequest) {
     const isAppRoute = pathname.startsWith('/app')
     const isOnboardingRoute = pathname.startsWith('/onboarding')
     const isSignIn = pathname === '/sign-in'
+    const isInviteRoute = pathname.startsWith('/invite')
 
-    // 1. Not logged in -> can only access /sign-in
+    // 1. Not logged in -> can only access /sign-in and /invite (invite handles its own redirect)
     if (!user && (isAppRoute || isOnboardingRoute)) {
         return NextResponse.redirect(new URL('/sign-in', request.url))
     }
