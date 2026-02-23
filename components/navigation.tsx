@@ -1,13 +1,14 @@
 'use client'
 
 import Link from "next/link"
-import { MessageSquare, Inbox, Activity, Settings, Heart } from "lucide-react"
+import { MessageSquare, Inbox, Activity, Settings, Heart, CalendarDays } from "lucide-react"
 import { clsx } from "clsx"
 import { usePathname } from "next/navigation"
 
 const navItems = [
     { name: "Today", href: "/app/questions", icon: MessageSquare },
     { name: "Inbox", href: "/app/inbox", icon: Inbox },
+    { name: "Planner", href: "/app/planner", icon: CalendarDays },
     { name: "Love", href: "/app/nudge", icon: Heart },
     { name: "Progress", href: "/app/progress", icon: Activity },
     { name: "Settings", href: "/app/settings", icon: Settings },
@@ -31,8 +32,8 @@ export function BottomNav() {
                                 isActive ? "text-rose-500" : "text-zinc-500 hover:text-zinc-300"
                             )}
                         >
-                            <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[10px] font-medium">{item.name}</span>
+                            <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.5 : 2} />
+                            <span className="text-[9px] font-medium leading-none">{item.name}</span>
                         </Link>
                     )
                 })}
