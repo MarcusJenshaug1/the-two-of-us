@@ -736,7 +736,7 @@ export default function InboxDetailPage() {
                         </div>
                         <div className="space-y-2">
                             {dayEvents.map((ev: any) => (
-                                <div key={ev.id} className="flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl">
+                                <button key={ev.id} onClick={() => router.push('/app/planner')} className="w-full text-left flex items-center gap-3 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl hover:border-blue-500/30 hover:bg-blue-500/10 transition-colors">
                                     <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{ev.title}</p>
@@ -745,16 +745,16 @@ export default function InboxDetailPage() {
                                             {ev.location && ` · ${ev.location}`}
                                         </p>
                                     </div>
-                                </div>
+                                </button>
                             ))}
                             {dayTasks.map((task: any) => (
-                                <div key={task.id} className="flex items-center gap-3 p-3 bg-zinc-900/60 border border-zinc-800/60 rounded-xl">
+                                <button key={task.id} onClick={() => router.push('/app/planner')} className="w-full text-left flex items-center gap-3 p-3 bg-zinc-900/60 border border-zinc-800/60 rounded-xl hover:border-zinc-700 hover:bg-zinc-800/60 transition-colors">
                                     {task.is_done
                                         ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
                                         : <Clock className="w-4 h-4 text-zinc-600 shrink-0" />
                                     }
                                     <p className={`text-sm flex-1 truncate ${task.is_done ? 'text-zinc-500 line-through' : ''}`}>{task.title}</p>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </section>
@@ -807,13 +807,13 @@ export default function InboxDetailPage() {
                     <section>
                         <div className="space-y-2">
                             {dayDatePlans.map((dp: any) => (
-                                <div key={dp.id} className="flex items-center gap-3 p-3 bg-pink-500/5 border border-pink-500/10 rounded-xl">
+                                <button key={dp.id} onClick={() => router.push('/app/planner')} className="w-full text-left flex items-center gap-3 p-3 bg-pink-500/5 border border-pink-500/10 rounded-xl hover:border-pink-500/30 hover:bg-pink-500/10 transition-colors">
                                     <Lightbulb className={`w-4 h-4 shrink-0 ${dp.status === 'done' ? 'text-emerald-400' : 'text-pink-400'}`} />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{dp.date_ideas?.title || 'Date idea'}</p>
                                         <p className="text-[10px] text-zinc-500">{dp.status === 'done' ? 'Completed ✓' : 'Planned'}</p>
                                     </div>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </section>
