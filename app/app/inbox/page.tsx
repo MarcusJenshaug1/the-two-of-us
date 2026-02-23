@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
-import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2 } from 'lucide-react'
+import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera } from 'lucide-react'
 
 const PAGE_SIZE = 30
 
@@ -15,6 +15,7 @@ type InboxItem = {
     text: string
     category: string | null
     status: 'completed' | 'your_turn' | 'waiting' | 'unanswered'
+    hasLog: boolean
 }
 
 export default function InboxPage() {
@@ -57,6 +58,16 @@ export default function InboxPage() {
 
             if (dqData.length < PAGE_SIZE) setHasMore(false)
 
+            // Check which dates have journal entries
+            const dateKeys = dqData.map((d: any) => d.date_key)
+            const { data: logDates } = await supabase
+                .from('daily_logs')
+                .select('date_key')
+                .eq('room_id', member.room_id)
+                .in('date_key', dateKeys)
+
+            const logDateSet = new Set((logDates || []).map((l: any) => l.date_key))
+
             const processed: InboxItem[] = dqData.map((item: any) => {
                 const myAnswer = item.answers?.find((a: any) => a.user_id === user.id)
                 const theirAnswer = item.answers?.find((a: any) => a.user_id !== user.id)
@@ -77,7 +88,8 @@ export default function InboxPage() {
                     date_key: item.date_key,
                     text: item.questions?.text || 'Unknown question',
                     category: item.questions?.category || null,
-                    status
+                    status,
+                    hasLog: logDateSet.has(item.date_key),
                 }
             })
 
@@ -163,6 +175,11 @@ export default function InboxPage() {
                                                 {item.category}
                                             </span>
                                         )}
+                                        {item.hasLog && (
+                                            <span className="flex items-center gap-0.5 text-[10px] text-rose-400">
+                                                <Camera className="w-3 h-3" /> Journal
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <ArrowRight className="h-4 w-4 text-rose-500/50 mt-1.5 group-hover:text-rose-400 transition-colors" />
@@ -216,6 +233,11 @@ export default function InboxPage() {
                                         )}
                                         {item.status === 'waiting' && (
                                             <span className="text-[10px] text-amber-500">Waiting for partner</span>
+                                        )}
+                                        {item.hasLog && (
+                                            <span className="flex items-center gap-0.5 text-[10px] text-rose-400">
+                                                <Camera className="w-3 h-3" /> Journal
+                                            </span>
                                         )}
                                     </div>
                                 </div>

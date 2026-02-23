@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
 import { format, parseISO } from 'date-fns'
-import { ArrowLeft, Send, Clock, CheckCircle2, User } from 'lucide-react'
+import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 type Profile = {
@@ -19,6 +19,14 @@ type Message = {
     user_id: string
     text: string
     created_at: string
+}
+
+type DailyLog = {
+    id: string
+    user_id: string
+    text: string | null
+    images: string[]
+    date_key: string
 }
 
 export default function InboxDetailPage() {
@@ -38,6 +46,11 @@ export default function InboxDetailPage() {
     const [chatInput, setChatInput] = useState('')
     const [isSendingMsg, setIsSendingMsg] = useState(false)
     const chatEndRef = useRef<HTMLDivElement>(null)
+
+    // Journal state
+    const [myLog, setMyLog] = useState<DailyLog | null>(null)
+    const [partnerLog, setPartnerLog] = useState<DailyLog | null>(null)
+    const [previewImage, setPreviewImage] = useState<string | null>(null)
 
     // Answer form state
     const [draft, setDraft] = useState('')
@@ -132,6 +145,20 @@ export default function InboxDetailPage() {
                     .order('created_at', { ascending: true })
 
                 if (msgData) setMessages(msgData)
+            }
+
+            // 5. Load daily logs for this date
+            const { data: logData } = await supabase
+                .from('daily_logs')
+                .select('*')
+                .eq('room_id', member.room_id)
+                .eq('date_key', dateKey)
+
+            if (logData) {
+                const myEntry = logData.find((l: any) => l.user_id === user.id) as DailyLog | undefined
+                const partnerEntry = logData.find((l: any) => l.user_id !== user.id) as DailyLog | undefined
+                if (myEntry) setMyLog(myEntry)
+                if (partnerEntry) setPartnerLog(partnerEntry)
             }
 
             // Load draft
@@ -553,6 +580,68 @@ export default function InboxDetailPage() {
                             <Send className="w-4 h-4" />
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* ===== DAILY JOURNAL for this date ===== */}
+            {(myLog || partnerLog) && (
+                <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+                    <h4 className="text-xs font-medium uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                        <Camera className="w-3.5 h-3.5" /> Journal
+                    </h4>
+
+                    {[myLog, partnerLog].filter(Boolean).map((log) => {
+                        const isMe = log!.user_id === user!.id
+                        const profile = isMe ? myProfile : partnerProfile
+                        const name = isMe ? 'You' : partnerName
+                        return (
+                            <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                                    <Avatar profile={profile} />
+                                    <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
+                                </div>
+                                <div className="px-4 pb-4 space-y-3">
+                                    {log!.text && (
+                                        <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
+                                    )}
+                                    {log!.images && log!.images.length > 0 && (
+                                        <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                            {log!.images.map((url, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setPreviewImage(url)}
+                                                    className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
+                                                >
+                                                    <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+
+            {/* Fullscreen image preview */}
+            {previewImage && (
+                <div
+                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => setPreviewImage(null)}
+                >
+                    <button
+                        className="absolute top-4 right-4 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
+                        onClick={() => setPreviewImage(null)}
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
+                    <img
+                        src={previewImage}
+                        alt=""
+                        className="max-h-[85vh] max-w-full rounded-2xl object-contain animate-in zoom-in duration-200"
+                        onClick={(e) => e.stopPropagation()}
+                    />
                 </div>
             )}
         </div>
