@@ -8,6 +8,8 @@ import { Sparkles, Camera, X, Send, User, ImagePlus, Pencil, Check } from 'lucid
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
+import { resizeImage } from '@/lib/storage'
+import { SignedImage, useSignedUrl } from '@/components/signed-image'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -45,24 +47,6 @@ type DailyLog = {
     images: string[]
     date_key: string
     created_at: string
-}
-
-function resizeImage(file: File, maxSize = 1200): Promise<Blob> {
-    return new Promise((resolve) => {
-        const img = new Image()
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')!
-        img.onload = () => {
-            let w = img.width, h = img.height
-            if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize } }
-            else { if (h > maxSize) { w = w * maxSize / h; h = maxSize } }
-            canvas.width = w
-            canvas.height = h
-            ctx.drawImage(img, 0, 0, w, h)
-            canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8)
-        }
-        img.src = URL.createObjectURL(file)
-    })
 }
 
 export default function LovePage() {
@@ -216,7 +200,7 @@ export default function LovePage() {
         }
         setIsUploadingImage(true)
         try {
-            const newUrls: string[] = []
+            const newPaths: string[] = []
             for (const file of Array.from(files)) {
                 const resized = await resizeImage(file)
                 const filename = `${user.id}/${dateKey}/${Date.now()}_${Math.random().toString(36).slice(2, 6)}.jpg`
@@ -224,11 +208,10 @@ export default function LovePage() {
                     .from('daily-logs')
                     .upload(filename, resized, { contentType: 'image/jpeg', upsert: false })
                 if (uploadErr) throw uploadErr
-                const { data: { publicUrl } } = supabase.storage.from('daily-logs').getPublicUrl(filename)
-                newUrls.push(publicUrl)
+                newPaths.push(filename)
             }
-            setLogImages(prev => [...prev, ...newUrls])
-            toast(`${newUrls.length} photo${newUrls.length > 1 ? 's' : ''} added 📸`, 'success')
+            setLogImages(prev => [...prev, ...newPaths])
+            toast(`${newPaths.length} photo${newPaths.length > 1 ? 's' : ''} added 📸`, 'success')
         } catch (err: any) {
             toast(err.message || 'Failed to upload image', 'error')
         } finally {
@@ -355,7 +338,7 @@ export default function LovePage() {
                                 <div className={`grid gap-1.5 ${myLog.images.length === 1 ? 'grid-cols-1' : myLog.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                                     {myLog.images.map((url, i) => (
                                         <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
-                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                            <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
                                         </button>
                                     ))}
                                 </div>
@@ -375,7 +358,7 @@ export default function LovePage() {
                             <div className="flex flex-wrap gap-2">
                                 {logImages.map((url, i) => (
                                     <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-zinc-800 group">
-                                        <img src={url} alt="" className="h-full w-full object-cover" />
+                                        <SignedImage path={url} alt="" className="h-full w-full object-cover" />
                                         <button
                                             onClick={() => removeImage(i)}
                                             className="absolute top-1 right-1 p-0.5 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
@@ -464,7 +447,7 @@ export default function LovePage() {
                                 <div className={`grid gap-1.5 ${partnerLog.images.length === 1 ? 'grid-cols-1' : partnerLog.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                                     {partnerLog.images.map((url, i) => (
                                         <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
-                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                            <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
                                         </button>
                                     ))}
                                 </div>
@@ -543,8 +526,8 @@ export default function LovePage() {
                     >
                         <X className="w-6 h-6" />
                     </button>
-                    <img
-                        src={previewImage}
+                    <SignedImage
+                        path={previewImage}
                         alt=""
                         className="max-h-[85vh] max-w-full rounded-2xl object-contain animate-in zoom-in duration-200"
                         onClick={(e) => e.stopPropagation()}

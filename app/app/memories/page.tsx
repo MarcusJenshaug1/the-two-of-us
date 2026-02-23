@@ -11,6 +11,8 @@ import {
     Trash2, ChevronRight, ImageIcon
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { resizeImage } from '@/lib/storage'
+import { SignedImage } from '@/components/signed-image'
 
 type Memory = {
     id: string
@@ -27,23 +29,6 @@ type Memory = {
 }
 
 type Favorite = { memory_id: string }
-
-function resizeImage(file: File, maxSize = 1200): Promise<Blob> {
-    return new Promise((resolve) => {
-        const img = new Image()
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')!
-        img.onload = () => {
-            let w = img.width, h = img.height
-            if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize } }
-            else { if (h > maxSize) { w = w * maxSize / h; h = maxSize } }
-            canvas.width = w; canvas.height = h
-            ctx.drawImage(img, 0, 0, w, h)
-            canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.8)
-        }
-        img.src = URL.createObjectURL(file)
-    })
-}
 
 export default function MemoriesPage() {
     const [memories, setMemories] = useState<Memory[]>([])
@@ -132,20 +117,19 @@ export default function MemoriesPage() {
         if (files.length === 0) return
 
         setUploadingImages(true)
-        const newUrls: string[] = []
+        const newPaths: string[] = []
         for (const file of files) {
             try {
                 const blob = await resizeImage(file)
                 const path = `memories/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`
                 const { error } = await supabase.storage.from('daily-logs').upload(path, blob, { contentType: 'image/jpeg' })
                 if (error) throw error
-                const { data } = supabase.storage.from('daily-logs').getPublicUrl(path)
-                newUrls.push(data.publicUrl)
+                newPaths.push(path)
             } catch (err) {
                 console.error('Upload failed', err)
             }
         }
-        setFormImages(prev => [...prev, ...newUrls])
+        setFormImages(prev => [...prev, ...newPaths])
         setUploadingImages(false)
         if (fileRef.current) fileRef.current.value = ''
     }
@@ -296,7 +280,7 @@ export default function MemoriesPage() {
                                 <div className="flex h-28 overflow-hidden">
                                     {mem.images.slice(0, 3).map((url, i) => (
                                         <div key={i} className="flex-1 min-w-0 relative">
-                                            <img src={url} alt="" className="w-full h-full object-cover" />
+                                            <SignedImage path={url} alt="" className="w-full h-full object-cover" />
                                         </div>
                                     ))}
                                     {mem.images.length > 3 && (
@@ -430,7 +414,7 @@ export default function MemoriesPage() {
                                     <div className="flex gap-2 flex-wrap">
                                         {formImages.map((url, i) => (
                                             <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden">
-                                                <img src={url} alt="" className="w-full h-full object-cover" />
+                                                <SignedImage path={url} alt="" className="w-full h-full object-cover" />
                                                 <button
                                                     onClick={() => setFormImages(prev => prev.filter((_, j) => j !== i))}
                                                     className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5"

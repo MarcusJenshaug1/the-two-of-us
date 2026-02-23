@@ -58,20 +58,24 @@ export default function InviteClient({ code }: { code: string }) {
                     return
                 }
 
-                // 4. Find room with code
-                const { data: roomData, error: findError } = await supabase
-                    .from('rooms')
-                    .select('id, created_by')
-                    .eq('invite_code', code.toUpperCase())
-                    .single()
+                // 4. Find room with secure RPC (least-privilege)
+                const { data: lookupData, error: lookupError } = await supabase
+                    .rpc('lookup_room_by_invite_code', { p_invite_code: code.toUpperCase() })
 
-                if (findError || !roomData) throw new Error('Invalid or expired invite link.')
+                if (lookupError || !lookupData || lookupData.length === 0) {
+                    throw new Error('Invalid or expired invite link.')
+                }
+
+                const room = lookupData[0]
+                if (room.is_full) {
+                    throw new Error('This room is already full.')
+                }
 
                 // 5. Join the room
                 const { error: joinError } = await supabase
                     .from('room_members')
                     .insert({
-                        room_id: roomData.id,
+                        room_id: room.room_id,
                         user_id: user.id
                     })
 

@@ -9,6 +9,7 @@ import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X, MessageCircle, BookOpen, CalendarDays, MapPin, Trophy, Star, Lightbulb } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { SignedImage } from '@/components/signed-image'
 
 type Profile = {
     name: string | null
@@ -869,7 +870,7 @@ export default function InboxDetailPage() {
                             {memImages.length > 0 && (
                                 <div className="flex gap-1.5">
                                     {memImages.map((url: string, i: number) => (
-                                        <img key={i} src={url} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                                        <SignedImage key={i} path={url} alt="" className="w-14 h-14 rounded-lg object-cover" />
                                     ))}
                                 </div>
                             )}
@@ -897,8 +898,8 @@ export default function InboxDetailPage() {
                     >
                         <X className="w-6 h-6" />
                     </button>
-                    <img
-                        src={previewImage}
+                    <SignedImage
+                        path={previewImage}
                         alt=""
                         className="max-h-[85vh] max-w-full rounded-2xl object-contain animate-in zoom-in duration-200"
                         onClick={(e) => e.stopPropagation()}

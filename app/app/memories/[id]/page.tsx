@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
+import { SignedImage } from '@/components/signed-image'
 
 type Memory = {
     id: string
@@ -128,7 +129,7 @@ export default function MemoryDetailPage() {
                                 onClick={() => setViewerIndex(i)}
                                 className="flex-shrink-0 w-full h-64 sm:h-80 snap-center"
                             >
-                                <img src={url} alt={`${memory.title} photo ${i + 1}`} className="w-full h-full object-cover" />
+                                <SignedImage path={url} alt={`${memory.title} photo ${i + 1}`} className="w-full h-full object-cover" />
                             </button>
                         ))}
                     </div>
@@ -228,7 +229,7 @@ export default function MemoryDetailPage() {
                                     onClick={() => setViewerIndex(i)}
                                     className="aspect-square rounded-xl overflow-hidden hover:opacity-80 transition-opacity"
                                 >
-                                    <img src={url} alt="" className="w-full h-full object-cover" />
+                                    <SignedImage path={url} alt="" className="w-full h-full object-cover" />
                                 </button>
                             ))}
                         </div>
@@ -270,8 +271,8 @@ export default function MemoryDetailPage() {
                         </button>
                     )}
 
-                    <img
-                        src={memory.images[viewerIndex]}
+                    <SignedImage
+                        path={memory.images[viewerIndex]}
                         alt=""
                         className="max-h-[85vh] max-w-full rounded-2xl object-contain animate-in zoom-in duration-200"
                         onClick={(e) => e.stopPropagation()}

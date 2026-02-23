@@ -49,15 +49,14 @@ export default function RoomPage() {
 
             if (roomError) throw roomError
 
-            // 2. Find the room we just created
-            const { data: roomData, error: findError } = await supabase
-                .from('rooms')
-                .select('id')
-                .eq('invite_code', roomCode)
-                .eq('created_by', user.id)
-                .single()
+            // 2. Find the room we just created (via RPC)
+            const { data: lookupData, error: findError } = await supabase
+                .rpc('lookup_room_by_invite_code', { p_invite_code: roomCode })
 
-            if (findError || !roomData) throw new Error('Room was created but could not be found. Please try again.')
+            if (findError || !lookupData || lookupData.length === 0) {
+                throw new Error('Room was created but could not be found. Please try again.')
+            }
+            const roomData = { id: lookupData[0].room_id }
 
             // 3. Add user to room
             const { error: memberError } = await supabase
@@ -85,22 +84,24 @@ export default function RoomPage() {
         setError(null)
 
         try {
-            // 1. Find room by code
-            const { data: roomData, error: findError } = await supabase
-                .from('rooms')
-                .select('id')
-                .eq('invite_code', joinCode.trim().toUpperCase())
-                .single()
+            // 1. Find room by secure RPC (least-privilege)
+            const { data: lookupData, error: lookupError } = await supabase
+                .rpc('lookup_room_by_invite_code', { p_invite_code: joinCode.trim().toUpperCase() })
 
-            if (findError || !roomData) {
+            if (lookupError || !lookupData || lookupData.length === 0) {
                 throw new Error('Room not found or invalid code')
+            }
+
+            const room = lookupData[0]
+            if (room.is_full) {
+                throw new Error('This room is already full.')
             }
 
             // 2. Join room (Trigger handles max 2 members logic ideally, or we catch constraint error)
             const { error: joinError } = await supabase
                 .from('room_members')
                 .insert({
-                    room_id: roomData.id,
+                    room_id: room.room_id,
                     user_id: user.id
                 })
 
