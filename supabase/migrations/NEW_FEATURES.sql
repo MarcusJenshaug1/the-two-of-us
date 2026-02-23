@@ -44,7 +44,29 @@ CREATE POLICY "Users can view moods in their room" ON mood_checkins FOR SELECT U
 CREATE POLICY "Users can insert own mood" ON mood_checkins FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own mood" ON mood_checkins FOR UPDATE USING (auth.uid() = user_id);
 
--- 3. Enable Realtime for nudges
+-- 3. DAILY LOGS ("Things done today" journal with photos)
+CREATE TABLE IF NOT EXISTS daily_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  room_id UUID REFERENCES rooms(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  text TEXT CHECK (char_length(text) <= 1000),
+  images JSONB DEFAULT '[]'::jsonb,
+  date_key DATE NOT NULL DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(room_id, user_id, date_key)
+);
+
+ALTER TABLE daily_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view logs in their room" ON daily_logs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM room_members WHERE room_id = daily_logs.room_id AND user_id = auth.uid())
+);
+CREATE POLICY "Users can insert own logs" ON daily_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own logs" ON daily_logs FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own logs" ON daily_logs FOR DELETE USING (auth.uid() = user_id);
+
+-- 4. Enable Realtime for nudges
 ALTER PUBLICATION supabase_realtime ADD TABLE nudges;
 
 -- 4. Add daily_questions INSERT policy for authenticated users (fixes Strategy 3 fallback)
