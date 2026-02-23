@@ -516,57 +516,7 @@ export default function InboxDetailPage() {
                     </div>
                 </section>
 
-                {/* ─── SECTION 2: JOURNAL ─── */}
-                {hasJournal && (
-                    <section>
-                        <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Journal</h3>
-                        </div>
-
-                        <div className="space-y-3">
-                            {[myLog, partnerLog].filter(Boolean).map((log) => {
-                                const isMe = log!.user_id === user!.id
-                                const profile = isMe ? myProfile : partnerProfile
-                                const name = isMe ? 'You' : partnerName
-                                const hasImages = log!.images && log!.images.length > 0
-                                return (
-                                    <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                                        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                                            <Avatar profile={profile} />
-                                            <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
-                                            {hasImages && (
-                                                <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
-                                                    <Camera className="w-3 h-3" /> {log!.images.length}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="px-4 pb-4 space-y-3">
-                                            {log!.text && (
-                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
-                                            )}
-                                            {hasImages && (
-                                                <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                                    {log!.images.map((url, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => setPreviewImage(url)}
-                                                            className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
-                                                        >
-                                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </section>
-                )}
-
-                {/* ─── SECTION 3: CHAT ─── */}
+                {/* ─── SECTION 2: CHAT ─── */}
                 {hasChat && (
                     <section>
                         <div className="flex items-center gap-2 mb-3">
@@ -635,6 +585,56 @@ export default function InboxDetailPage() {
                                     <Send className="w-4 h-4" />
                                 </button>
                             </div>
+                        </div>
+                    </section>
+                )}
+
+                {/* ─── SECTION 3: JOURNAL ─── */}
+                {hasJournal && (
+                    <section>
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Journal</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                            {[myLog, partnerLog].filter(Boolean).map((log) => {
+                                const isMe = log!.user_id === user!.id
+                                const profile = isMe ? myProfile : partnerProfile
+                                const name = isMe ? 'You' : partnerName
+                                const hasImages = log!.images && log!.images.length > 0
+                                return (
+                                    <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                                            <Avatar profile={profile} />
+                                            <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
+                                            {hasImages && (
+                                                <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
+                                                    <Camera className="w-3 h-3" /> {log!.images.length}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="px-4 pb-4 space-y-3">
+                                            {log!.text && (
+                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
+                                            )}
+                                            {hasImages && (
+                                                <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                                    {log!.images.map((url, i) => (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => setPreviewImage(url)}
+                                                            className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
+                                                        >
+                                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </section>
                 )}
