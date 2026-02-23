@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/supabase/auth-provider'
 import {
     format, differenceInDays, differenceInMonths, differenceInYears,
     parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
-    subMonths, addMonths, isSameMonth, isAfter
+    subMonths, addMonths, isAfter, getMonth, getDate
 } from 'date-fns'
 import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 
@@ -101,6 +101,47 @@ export default function ProgressPage() {
         const offset = (startDow + 6) % 7
         return { days, offset }
     }, [calMonth])
+
+    // Special dates for the current calendar month
+    const specialDates = useMemo(() => {
+        const map: Record<string, { emoji: string; label: string }> = {}
+        const year = calMonth.getFullYear()
+
+        // Fixed celebrations (MM-DD -> emoji + label)
+        const celebrations: { month: number; day: number; emoji: string; label: string }[] = [
+            { month: 1, day: 1, emoji: '🎆', label: 'New Year' },
+            { month: 2, day: 14, emoji: '💕', label: "Valentine's Day" },
+            { month: 3, day: 8, emoji: '💐', label: "Women's Day" },
+            { month: 5, day: 17, emoji: '🇳🇴', label: '17. mai' },
+            { month: 12, day: 24, emoji: '🎄', label: 'Christmas Eve' },
+            { month: 12, day: 25, emoji: '🎁', label: 'Christmas Day' },
+            { month: 12, day: 31, emoji: '🥂', label: "New Year's Eve" },
+        ]
+
+        for (const c of celebrations) {
+            if (getMonth(calMonth) + 1 === c.month) {
+                const key = format(new Date(year, c.month - 1, c.day), 'yyyy-MM-dd')
+                map[key] = { emoji: c.emoji, label: c.label }
+            }
+        }
+
+        // Anniversary (same month/day each year)
+        if (room?.anniversary_date) {
+            const anniv = parseISO(room.anniversary_date)
+            const annivMonth = getMonth(anniv) + 1
+            const annivDay = getDate(anniv)
+            if (getMonth(calMonth) + 1 === annivMonth) {
+                const key = format(new Date(year, annivMonth - 1, annivDay), 'yyyy-MM-dd')
+                const yearsCount = year - anniv.getFullYear()
+                map[key] = {
+                    emoji: '💍',
+                    label: yearsCount > 0 ? `Anniversary (${yearsCount}y)` : 'Anniversary'
+                }
+            }
+        }
+
+        return map
+    }, [calMonth, room?.anniversary_date])
 
     if (isLoading) {
         return (
@@ -205,8 +246,7 @@ export default function ProgressPage() {
                         <h4 className="text-sm font-semibold">{format(calMonth, 'MMMM yyyy')}</h4>
                         <button
                             onClick={() => setCalMonth(prev => addMonths(prev, 1))}
-                            disabled={isAfter(addMonths(calMonth, 1), new Date())}
-                            className="p-2 rounded-full hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -231,6 +271,7 @@ export default function ProgressPage() {
                         {calendarDays.days.map(day => {
                             const dateKey = format(day, 'yyyy-MM-dd')
                             const status = answeredDates[dateKey]
+                            const special = specialDates[dateKey]
                             const isToday = dateKey === format(new Date(), 'yyyy-MM-dd')
                             const isFuture = isAfter(day, new Date())
 
@@ -241,26 +282,33 @@ export default function ProgressPage() {
                                         if (status) router.push(`/app/inbox/${dateKey}`)
                                     }}
                                     disabled={!status || isFuture}
-                                    className={`aspect-square rounded-lg flex items-center justify-center text-xs font-medium transition-all ${
-                                        status === 'both'
-                                            ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 cursor-pointer'
-                                            : status === 'partial'
-                                                ? 'bg-zinc-700/30 text-zinc-400 hover:bg-zinc-700/50 cursor-pointer'
-                                                : isFuture
-                                                    ? 'text-zinc-800'
-                                                    : 'text-zinc-600'
+                                    title={special?.label}
+                                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all relative ${
+                                        special
+                                            ? 'bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30'
+                                            : status === 'both'
+                                                ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 cursor-pointer'
+                                                : status === 'partial'
+                                                    ? 'bg-zinc-700/30 text-zinc-400 hover:bg-zinc-700/50 cursor-pointer'
+                                                    : isFuture
+                                                        ? 'text-zinc-800'
+                                                        : 'text-zinc-600'
                                     } ${isToday ? 'ring-1 ring-rose-500/50' : ''}`}
                                 >
-                                    {format(day, 'd')}
+                                    {special ? (
+                                        <span className="text-[11px] leading-none">{special.emoji}</span>
+                                    ) : null}
+                                    <span className={special ? 'text-[9px] leading-none' : ''}>{format(day, 'd')}</span>
                                 </button>
                             )
                         })}
                     </div>
 
                     {/* Legend */}
-                    <div className="flex items-center justify-end space-x-4 mt-4 text-xs text-zinc-500">
+                    <div className="flex items-center justify-end flex-wrap gap-3 mt-4 text-xs text-zinc-500">
                         <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500/40 mr-1.5" /> Both answered</div>
                         <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-700/50 mr-1.5" /> Partial</div>
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-amber-500/30 ring-1 ring-amber-500/30 mr-1.5" /> Special</div>
                     </div>
                 </div>
             </div>
