@@ -7,9 +7,10 @@ import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import {
     CalendarDays, Plus, Check, Circle, Trash2, MapPin, Clock, Bell,
-    X, ChevronDown, ChevronUp, Pencil, User
+    X, ChevronDown, ChevronUp, Pencil, User, Heart, Lightbulb,
+    Shuffle, Sparkles, Filter, DollarSign, Timer, Sun, CheckCircle2
 } from 'lucide-react'
-import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays } from 'date-fns'
+import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 
 const TIMEZONE = 'Europe/Oslo'
@@ -63,7 +64,53 @@ type SharedTask = {
     created_at: string
 }
 
-type Tab = 'events' | 'tasks'
+type DateIdea = {
+    id: string
+    room_id: string | null
+    created_by: string | null
+    title: string
+    description: string | null
+    category: string
+    price_level: string
+    duration_minutes: number
+    time_of_day: string
+    is_active: boolean
+}
+
+type DateCompletion = {
+    id: string
+    room_id: string
+    date_idea_id: string
+    created_by: string
+    status: string
+    planned_for: string | null
+    completed_at: string | null
+    created_at: string
+    date_ideas?: DateIdea
+}
+
+const CATEGORIES = [
+    { key: 'food', label: '🍽️ Food', emoji: '🍽️' },
+    { key: 'outdoors', label: '🌿 Outdoors', emoji: '🌿' },
+    { key: 'culture', label: '🎭 Culture', emoji: '🎭' },
+    { key: 'cozy', label: '🕯️ Cozy', emoji: '🕯️' },
+    { key: 'travel', label: '✈️ Travel', emoji: '✈️' },
+    { key: 'home', label: '🏠 Home', emoji: '🏠' },
+    { key: 'surprise', label: '🎁 Surprise', emoji: '🎁' },
+    { key: 'other', label: '✨ Other', emoji: '✨' },
+]
+
+const PRICE_LABELS: Record<string, string> = { free: 'Free', low: '$', medium: '$$', high: '$$$' }
+const PRICE_COLORS: Record<string, string> = { free: 'text-emerald-400', low: 'text-zinc-400', medium: 'text-amber-400', high: 'text-rose-400' }
+
+function formatDuration(mins: number): string {
+    if (mins < 60) return `${mins}m`
+    const h = Math.floor(mins / 60)
+    const m = mins % 60
+    return m ? `${h}h ${m}m` : `${h}h`
+}
+
+type Tab = 'events' | 'tasks' | 'ideas'
 
 export default function PlannerPage() {
     const [tab, setTab] = useState<Tab>('events')
@@ -89,6 +136,23 @@ export default function PlannerPage() {
     const [isAddingTask, setIsAddingTask] = useState(false)
     const [showDoneTasks, setShowDoneTasks] = useState(false)
 
+    // Ideas state
+    const [ideas, setIdeas] = useState<DateIdea[]>([])
+    const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+    const [completions, setCompletions] = useState<DateCompletion[]>([])
+    const [catFilter, setCatFilter] = useState<string | null>(null)
+    const [priceFilter, setPriceFilter] = useState<string | null>(null)
+    const [showSavedOnly, setShowSavedOnly] = useState(false)
+    const [randomIdea, setRandomIdea] = useState<DateIdea | null>(null)
+    const [showAddIdea, setShowAddIdea] = useState(false)
+    const [newIdeaTitle, setNewIdeaTitle] = useState('')
+    const [newIdeaDesc, setNewIdeaDesc] = useState('')
+    const [newIdeaCat, setNewIdeaCat] = useState('food')
+    const [newIdeaPrice, setNewIdeaPrice] = useState('free')
+    const [newIdeaDuration, setNewIdeaDuration] = useState('90')
+    const [newIdeaTime, setNewIdeaTime] = useState('any')
+    const [isSavingIdea, setIsSavingIdea] = useState(false)
+
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
@@ -106,7 +170,7 @@ export default function PlannerPage() {
             if (!member) return
             setRoomId(member.room_id)
 
-            const [eventsRes, tasksRes] = await Promise.all([
+            const [eventsRes, tasksRes, ideasGlobalRes, ideasRoomRes, savedRes, completionsRes] = await Promise.all([
                 supabase
                     .from('shared_events')
                     .select('*')
@@ -120,10 +184,36 @@ export default function PlannerPage() {
                     .eq('room_id', member.room_id)
                     .order('created_at', { ascending: false })
                     .limit(200),
+                supabase
+                    .from('date_ideas')
+                    .select('*')
+                    .is('room_id', null)
+                    .eq('is_active', true)
+                    .order('category'),
+                supabase
+                    .from('date_ideas')
+                    .select('*')
+                    .eq('room_id', member.room_id)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false }),
+                supabase
+                    .from('saved_date_ideas')
+                    .select('date_idea_id')
+                    .eq('room_id', member.room_id)
+                    .eq('user_id', user.id),
+                supabase
+                    .from('date_completions')
+                    .select('*, date_ideas(*)')
+                    .eq('room_id', member.room_id)
+                    .order('created_at', { ascending: false })
+                    .limit(50),
             ])
 
             setEvents(eventsRes.data || [])
             setTasks(tasksRes.data || [])
+            setIdeas([...(ideasGlobalRes.data || []), ...(ideasRoomRes.data || [])])
+            setSavedIds(new Set((savedRes.data || []).map((s: any) => s.date_idea_id)))
+            setCompletions(completionsRes.data || [])
         } catch (err) {
             console.error('Error loading planner', err)
         } finally {
@@ -148,6 +238,12 @@ export default function PlannerPage() {
                 event: '*',
                 schema: 'public',
                 table: 'shared_tasks',
+                filter: `room_id=eq.${roomId}`,
+            }, () => { loadData() })
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'date_completions',
                 filter: `room_id=eq.${roomId}`,
             }, () => { loadData() })
             .subscribe()
@@ -288,9 +384,148 @@ export default function PlannerPage() {
         loadData()
     }
 
+    // ─── Ideas Helpers ───
+    async function handleToggleSaveIdea(ideaId: string) {
+        if (!roomId || !user) return
+        if (savedIds.has(ideaId)) {
+            await supabase.from('saved_date_ideas').delete().eq('date_idea_id', ideaId).eq('user_id', user.id)
+            setSavedIds(prev => { const n = new Set(prev); n.delete(ideaId); return n })
+        } else {
+            await supabase.from('saved_date_ideas').insert({ date_idea_id: ideaId, user_id: user.id, room_id: roomId })
+            setSavedIds(prev => new Set(prev).add(ideaId))
+        }
+    }
+
+    async function handlePlanIdea(idea: DateIdea) {
+        if (!roomId || !user) return
+        const now = new Date()
+        // Next Saturday in Oslo
+        let sat: Date
+        if (isSaturday(now)) {
+            sat = now
+        } else if (isSunday(now)) {
+            sat = nextSaturday(now)
+        } else {
+            sat = nextSaturday(now)
+        }
+        const plannedFor = formatInTimeZone(sat, TIMEZONE, 'yyyy-MM-dd')
+        const startAt = `${plannedFor}T18:00:00+01:00`
+        const dateKey = plannedFor
+
+        try {
+            // Create shared event
+            const { data: evData, error: evErr } = await supabase
+                .from('shared_events')
+                .insert({
+                    room_id: roomId,
+                    created_by: user.id,
+                    title: `Date: ${idea.title}`,
+                    description: idea.description || null,
+                    start_at: startAt,
+                    all_day: false,
+                    date_key: dateKey,
+                })
+                .select('id')
+                .single()
+            if (evErr) throw evErr
+
+            // Create completion
+            const { error: cErr } = await supabase.from('date_completions').insert({
+                room_id: roomId,
+                date_idea_id: idea.id,
+                created_by: user.id,
+                status: 'planned',
+                planned_for: plannedFor,
+                planned_event_id: evData?.id || null,
+            })
+            if (cErr) throw cErr
+
+            toast('Planned for this weekend! 🎉', 'success')
+            loadData()
+        } catch (err: any) {
+            toast(err.message || 'Failed to plan', 'error')
+        }
+    }
+
+    async function handleMarkDone(completion: DateCompletion) {
+        const { error } = await supabase
+            .from('date_completions')
+            .update({ status: 'done', completed_at: new Date().toISOString() })
+            .eq('id', completion.id)
+        if (error) { toast('Failed to update', 'error'); return }
+        toast('Marked as done! 🎉', 'success')
+        loadData()
+    }
+
+    async function handleSkipCompletion(completion: DateCompletion) {
+        const { error } = await supabase
+            .from('date_completions')
+            .update({ status: 'skipped' })
+            .eq('id', completion.id)
+        if (error) { toast('Failed to update', 'error'); return }
+        loadData()
+    }
+
+    async function handleDeleteCompletion(id: string) {
+        const { error } = await supabase.from('date_completions').delete().eq('id', id)
+        if (error) { toast('Failed to delete', 'error'); return }
+        loadData()
+    }
+
+    function handleRandomSuggestion() {
+        const pool = filteredIdeas.length > 0 ? filteredIdeas : ideas
+        if (pool.length === 0) return
+        const pick = pool[Math.floor(Math.random() * pool.length)]
+        setRandomIdea(pick)
+    }
+
+    async function handleAddCustomIdea() {
+        if (!roomId || !user || !newIdeaTitle.trim()) return
+        setIsSavingIdea(true)
+        try {
+            const { error } = await supabase.from('date_ideas').insert({
+                room_id: roomId,
+                created_by: user.id,
+                title: newIdeaTitle.trim(),
+                description: newIdeaDesc.trim() || null,
+                category: newIdeaCat,
+                price_level: newIdeaPrice,
+                duration_minutes: parseInt(newIdeaDuration) || 90,
+                time_of_day: newIdeaTime,
+            })
+            if (error) throw error
+            toast('Idea added!', 'success')
+            setShowAddIdea(false)
+            setNewIdeaTitle(''); setNewIdeaDesc(''); setNewIdeaCat('food'); setNewIdeaPrice('free'); setNewIdeaDuration('90'); setNewIdeaTime('any')
+            loadData()
+        } catch (err: any) {
+            toast(err.message || 'Failed to add idea', 'error')
+        } finally {
+            setIsSavingIdea(false)
+        }
+    }
+
+    async function handleDeleteIdea(id: string) {
+        const { error } = await supabase.from('date_ideas').delete().eq('id', id)
+        if (error) { toast('Failed to delete', 'error'); return }
+        toast('Idea deleted', 'success')
+        loadData()
+    }
+
     // ─── Derived data ───
     const openTasks = tasks.filter(t => !t.is_done)
     const doneTasks = tasks.filter(t => t.is_done)
+
+    // Filtered ideas
+    const filteredIdeas = ideas.filter(idea => {
+        if (catFilter && idea.category !== catFilter) return false
+        if (priceFilter && idea.price_level !== priceFilter) return false
+        if (showSavedOnly && !savedIds.has(idea.id)) return false
+        return true
+    })
+
+    const plannedCompletions = completions.filter(c => c.status === 'planned')
+    const doneCompletions = completions.filter(c => c.status === 'done')
 
     // Group events by date_key
     const eventGroups: { dateKey: string; items: SharedEvent[] }[] = []
@@ -345,6 +580,18 @@ export default function PlannerPage() {
                 >
                     <Check className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
                     Tasks ({openTasks.length})
+                </button>
+                <button
+                    onClick={() => setTab('ideas')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                        tab === 'ideas'
+                            ? 'bg-zinc-800 text-white'
+                            : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    aria-current={tab === 'ideas' ? 'page' : undefined}
+                >
+                    <Lightbulb className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                    Ideas
                 </button>
             </div>
 
@@ -524,6 +771,348 @@ export default function PlannerPage() {
                             )}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ═══ IDEAS TAB ═══ */}
+            {tab === 'ideas' && (
+                <div className="space-y-4">
+                    {/* Planned dates section */}
+                    {plannedCompletions.length > 0 && (
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Planned Dates</h3>
+                            {plannedCompletions.map(c => (
+                                <div key={c.id} className="bg-zinc-900 border border-amber-500/30 rounded-2xl p-4 space-y-2">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0 space-y-1">
+                                            <p className="text-sm font-medium">{c.date_ideas?.title || 'Date idea'}</p>
+                                            {c.planned_for && (
+                                                <p className="text-xs text-amber-400 flex items-center gap-1">
+                                                    <CalendarDays className="w-3 h-3" />
+                                                    {format(parseISO(c.planned_for), 'EEE, MMM d')}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                onClick={() => handleMarkDone(c)}
+                                                className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors"
+                                                aria-label="Mark as done"
+                                            >
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleSkipCompletion(c)}
+                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                aria-label="Skip this date"
+                                            >
+                                                <X className="w-4 h-4 text-zinc-500" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Random suggestion card */}
+                    {randomIdea && (
+                        <div className="bg-gradient-to-br from-rose-500/10 via-purple-500/5 to-zinc-900 border border-rose-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-rose-400" />
+                                <span className="text-xs font-medium text-rose-400 uppercase tracking-wider">Suggestion</span>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-medium">{randomIdea.title}</p>
+                                {randomIdea.description && (
+                                    <p className="text-sm text-zinc-400">{randomIdea.description}</p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-zinc-500 pt-1">
+                                    <span>{CATEGORIES.find(c => c.key === randomIdea.category)?.emoji} {randomIdea.category}</span>
+                                    <span className={PRICE_COLORS[randomIdea.price_level]}>{PRICE_LABELS[randomIdea.price_level]}</span>
+                                    <span>{formatDuration(randomIdea.duration_minutes)}</span>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    onClick={() => handlePlanIdea(randomIdea)}
+                                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                                >
+                                    <CalendarDays className="w-4 h-4 mr-1.5" /> Plan this weekend
+                                </Button>
+                                <button
+                                    onClick={() => setRandomIdea(null)}
+                                    className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+                                    aria-label="Dismiss suggestion"
+                                >
+                                    <X className="w-4 h-4 text-zinc-500" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={handleRandomSuggestion}
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                        >
+                            <Shuffle className="w-4 h-4 mr-2" /> Surprise me
+                        </Button>
+                        <Button
+                            onClick={() => setShowAddIdea(true)}
+                            className="bg-zinc-800 hover:bg-zinc-700 text-white px-4"
+                            aria-label="Add custom idea"
+                        >
+                            <Plus className="w-4 h-4" />
+                        </Button>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="space-y-2">
+                        {/* Category chips */}
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                            <button
+                                onClick={() => setCatFilter(null)}
+                                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                    !catFilter ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                }`}
+                            >
+                                All
+                            </button>
+                            {CATEGORIES.map(c => (
+                                <button
+                                    key={c.key}
+                                    onClick={() => setCatFilter(catFilter === c.key ? null : c.key)}
+                                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                        catFilter === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                    }`}
+                                >
+                                    {c.emoji} {c.key}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Secondary filters */}
+                        <div className="flex gap-2">
+                            <div className="flex gap-1">
+                                {(['free', 'low', 'medium', 'high'] as const).map(p => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setPriceFilter(priceFilter === p ? null : p)}
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                                            priceFilter === p ? 'bg-amber-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                                        }`}
+                                    >
+                                        {PRICE_LABELS[p]}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => setShowSavedOnly(!showSavedOnly)}
+                                className={`ml-auto px-3 py-1 rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 ${
+                                    showSavedOnly ? 'bg-pink-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                                }`}
+                                aria-label={showSavedOnly ? 'Show all ideas' : 'Show saved only'}
+                            >
+                                <Heart className={`w-3 h-3 ${showSavedOnly ? 'fill-current' : ''}`} /> Saved
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Ideas list */}
+                    {filteredIdeas.length === 0 ? (
+                        <div className="text-center py-12 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
+                            <Lightbulb className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                            {showSavedOnly ? 'No saved ideas yet.' : 'No ideas match your filters.'}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {filteredIdeas.map(idea => (
+                                <div
+                                    key={idea.id}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2 group"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0 space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">{CATEGORIES.find(c => c.key === idea.category)?.emoji}</span>
+                                                <p className="font-medium text-sm leading-snug">{idea.title}</p>
+                                                {idea.room_id && (
+                                                    <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">custom</span>
+                                                )}
+                                            </div>
+                                            {idea.description && (
+                                                <p className="text-xs text-zinc-400 line-clamp-2">{idea.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+                                                <span className={PRICE_COLORS[idea.price_level]}>{PRICE_LABELS[idea.price_level]}</span>
+                                                <span className="flex items-center gap-0.5"><Timer className="w-3 h-3" /> {formatDuration(idea.duration_minutes)}</span>
+                                                {idea.time_of_day !== 'any' && (
+                                                    <span className="flex items-center gap-0.5"><Sun className="w-3 h-3" /> {idea.time_of_day}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                onClick={() => handleToggleSaveIdea(idea.id)}
+                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                aria-label={savedIds.has(idea.id) ? 'Remove from saved' : 'Save idea'}
+                                            >
+                                                <Heart className={`w-4 h-4 transition-colors ${
+                                                    savedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
+                                                }`} />
+                                            </button>
+                                            <button
+                                                onClick={() => handlePlanIdea(idea)}
+                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                aria-label="Plan this weekend"
+                                            >
+                                                <CalendarDays className="w-4 h-4 text-zinc-600 hover:text-amber-400" />
+                                            </button>
+                                            {idea.room_id && (
+                                                <button
+                                                    onClick={() => handleDeleteIdea(idea.id)}
+                                                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
+                                                    aria-label="Delete idea"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Done dates history */}
+                    {doneCompletions.length > 0 && (
+                        <div className="space-y-2">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-2">Completed Dates ✓</h3>
+                            {doneCompletions.slice(0, 5).map(c => (
+                                <div key={c.id} className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-4 py-3">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                    <span className="flex-1 text-sm text-zinc-400 truncate">{c.date_ideas?.title || 'Date'}</span>
+                                    {c.completed_at && (
+                                        <span className="text-[10px] text-zinc-600">{format(parseISO(c.completed_at), 'MMM d')}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ═══ ADD IDEA MODAL ═══ */}
+            {showAddIdea && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowAddIdea(false)}
+                >
+                    <div
+                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Add custom idea</h3>
+                            <button onClick={() => setShowAddIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            <input
+                                type="text"
+                                placeholder="Idea title *"
+                                value={newIdeaTitle}
+                                onChange={e => setNewIdeaTitle(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                                maxLength={120}
+                                autoFocus
+                            />
+
+                            <textarea
+                                placeholder="Description (optional)"
+                                value={newIdeaDesc}
+                                onChange={e => setNewIdeaDesc(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
+                                maxLength={800}
+                            />
+
+                            {/* Category pills */}
+                            <div>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5 block">Category</label>
+                                <div className="flex gap-1.5 flex-wrap">
+                                    {CATEGORIES.map(c => (
+                                        <button
+                                            key={c.key}
+                                            onClick={() => setNewIdeaCat(c.key)}
+                                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                                                newIdeaCat === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-800 text-zinc-400'
+                                            }`}
+                                        >
+                                            {c.emoji} {c.key}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Price + Duration + Time */}
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Price</label>
+                                    <select
+                                        value={newIdeaPrice}
+                                        onChange={e => setNewIdeaPrice(e.target.value)}
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                    >
+                                        <option value="free">Free</option>
+                                        <option value="low">$</option>
+                                        <option value="medium">$$</option>
+                                        <option value="high">$$$</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Duration</label>
+                                    <select
+                                        value={newIdeaDuration}
+                                        onChange={e => setNewIdeaDuration(e.target.value)}
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                    >
+                                        <option value="30">30 min</option>
+                                        <option value="60">1 hour</option>
+                                        <option value="90">1.5 hours</option>
+                                        <option value="120">2 hours</option>
+                                        <option value="180">3 hours</option>
+                                        <option value="240">4 hours</option>
+                                        <option value="480">Full day</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Time</label>
+                                    <select
+                                        value={newIdeaTime}
+                                        onChange={e => setNewIdeaTime(e.target.value)}
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                    >
+                                        <option value="any">Any time</option>
+                                        <option value="morning">Morning</option>
+                                        <option value="afternoon">Afternoon</option>
+                                        <option value="evening">Evening</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <Button
+                            onClick={handleAddCustomIdea}
+                            disabled={!newIdeaTitle.trim() || isSavingIdea}
+                            className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                        >
+                            {isSavingIdea ? 'Saving...' : 'Add idea'}
+                        </Button>
+                    </div>
                 </div>
             )}
 
