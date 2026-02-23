@@ -512,13 +512,15 @@ export default function ProgressPage() {
                                 ? 'bg-rose-500/20 text-rose-400'
                                 : status === 'partial'
                                     ? 'bg-zinc-700/30 text-zinc-400'
-                                    : isFuture
-                                        ? 'text-zinc-800'
-                                        : 'text-zinc-600'
+                                    : isFuture && isTappable
+                                        ? 'bg-amber-500/10 text-amber-300' // Future dates with content get highlighted
+                                        : isFuture
+                                            ? 'text-zinc-800'
+                                            : 'text-zinc-600'
 
                             // Special date ring overlay (doesn't replace answer status)
-                            const specialRing = special ? 'ring-1 ring-amber-500/50' : ''
-                            const hoverClass = isTappable && !isFuture ? 'hover:brightness-125 cursor-pointer' : ''
+                            const specialRing = special ? 'ring-1 ring-amber-500/50' : (isFuture && isTappable ? 'ring-1 ring-amber-500/50' : '')
+                            const hoverClass = isTappable ? 'hover:brightness-125 cursor-pointer' : ''
                             const todayRing = isToday ? 'ring-1 ring-rose-500/50' : ''
 
                             const BADGE_COLORS: Record<string, string> = {
