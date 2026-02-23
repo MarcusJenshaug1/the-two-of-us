@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { useToast } from '@/components/ui/toast'
 import { format, parseISO } from 'date-fns'
 import { ArrowLeft, Send, Clock, CheckCircle2, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,7 @@ export default function InboxDetailPage() {
     const router = useRouter()
     const supabase = createClient()
     const { user } = useAuth()
+    const { toast } = useToast()
     const dateKey = params.dateKey as string
 
     const loadDetail = async () => {
@@ -206,7 +208,7 @@ export default function InboxDetailPage() {
             setDraft('')
             localStorage.removeItem(`draft_inbox_${data.id}`)
         } catch (err: any) {
-            alert(err.message || 'Failed to submit answer')
+            toast(err.message || 'Failed to submit answer', 'error')
         } finally {
             setIsSubmitting(false)
         }

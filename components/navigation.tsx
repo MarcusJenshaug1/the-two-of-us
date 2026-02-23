@@ -1,13 +1,14 @@
 'use client'
 
 import Link from "next/link"
-import { MessageSquare, Inbox, Activity, Settings } from "lucide-react"
+import { MessageSquare, Inbox, Activity, Settings, Heart } from "lucide-react"
 import { clsx } from "clsx"
 import { usePathname } from "next/navigation"
 
 const navItems = [
-    { name: "Questions", href: "/app/questions", icon: MessageSquare },
+    { name: "Today", href: "/app/questions", icon: MessageSquare },
     { name: "Inbox", href: "/app/inbox", icon: Inbox },
+    { name: "Love", href: "/app/nudge", icon: Heart },
     { name: "Progress", href: "/app/progress", icon: Activity },
     { name: "Settings", href: "/app/settings", icon: Settings },
 ]

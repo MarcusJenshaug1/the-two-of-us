@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Heart, Mail, Lock, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react'
 import { clsx } from 'clsx'
 
-type AuthView = 'signIn' | 'signUp' | 'verifyEmail'
+type AuthView = 'signIn' | 'signUp' | 'verifyEmail' | 'forgotPassword' | 'resetSent'
 
 export default function SignInPage() {
     const [email, setEmail] = useState('')
@@ -103,6 +103,23 @@ export default function SignInPage() {
         }
     }
 
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setIsLoading(true)
+        setError(null)
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/app/settings`,
+            })
+            if (error) throw error
+            setView('resetSent')
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
         <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-950">
             <div className="w-full max-w-sm space-y-8 animate-in fade-in duration-700 slide-in-from-bottom-4">
@@ -112,17 +129,19 @@ export default function SignInPage() {
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-t from-zinc-400 to-zinc-50 bg-clip-text text-transparent">
-                            {view === 'verifyEmail' ? 'Verify Email' : 'The Two of Us'}
+                            {view === 'verifyEmail' ? 'Verify Email' : view === 'forgotPassword' ? 'Reset Password' : view === 'resetSent' ? 'Check Your Email' : 'The Two of Us'}
                         </h1>
                         <p className="text-zinc-400 text-sm font-medium">
                             {view === 'signIn' && 'Welcome back to your shared space.'}
                             {view === 'signUp' && 'Start your digital journey together today.'}
                             {view === 'verifyEmail' && `Enter the code we sent to ${email}`}
+                            {view === 'forgotPassword' && 'Enter your email to receive a reset link.'}
+                            {view === 'resetSent' && `We sent a reset link to ${email}`}
                         </p>
                     </div>
                 </div>
 
-                {view !== 'verifyEmail' ? (
+                {view === 'signIn' || view === 'signUp' ? (
                     <div className="space-y-6">
                         <div className="flex p-1 bg-zinc-900 rounded-xl border border-zinc-800">
                             <button
@@ -173,6 +192,16 @@ export default function SignInPage() {
                                 </div>
                             </div>
 
+                            {view === 'signIn' && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setView('forgotPassword'); setError(null); }}
+                                    className="text-xs text-zinc-500 hover:text-rose-400 transition-colors w-full text-right -mt-2"
+                                >
+                                    Forgot password?
+                                </button>
+                            )}
+
                             {error && (
                                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 animate-in shake-in">
                                     <p className="text-xs text-red-500 font-medium">{error}</p>
@@ -194,6 +223,57 @@ export default function SignInPage() {
                                 )}
                             </Button>
                         </form>
+                    </div>
+                ) : view === 'forgotPassword' ? (
+                    <form onSubmit={handleForgotPassword} className="space-y-6 animate-in fade-in duration-500">
+                        <div className="relative group">
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
+                            <Input
+                                type="email"
+                                placeholder="Email"
+                                className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                disabled={isLoading}
+                            />
+                        </div>
+
+                        {error && (
+                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                                <p className="text-xs text-red-500 font-medium">{error}</p>
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            className="w-full h-11 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Send Reset Link'}
+                        </Button>
+
+                        <button
+                            type="button"
+                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
+                            onClick={() => { setView('signIn'); setError(null); }}
+                        >
+                            <ArrowLeft className="h-3 w-3" /> Back to sign in
+                        </button>
+                    </form>
+                ) : view === 'resetSent' ? (
+                    <div className="space-y-6 animate-in fade-in duration-500 text-center">
+                        <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                            <Mail className="h-6 w-6 text-emerald-400" />
+                        </div>
+                        <p className="text-sm text-zinc-400">Click the link in the email to reset your password. You can close this page.</p>
+                        <button
+                            type="button"
+                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
+                            onClick={() => { setView('signIn'); setError(null); }}
+                        >
+                            <ArrowLeft className="h-3 w-3" /> Back to sign in
+                        </button>
                     </div>
                 ) : (
                     <form id="otp-form" onSubmit={handleVerifyOtp} className="space-y-8 animate-in fade-in duration-500">

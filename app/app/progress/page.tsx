@@ -1,15 +1,28 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { useToast } from '@/components/ui/toast'
 import {
     format, differenceInDays, differenceInMonths, differenceInYears,
     parseISO, startOfMonth, endOfMonth, eachDayOfInterval, getDay,
     subMonths, addMonths, isAfter, getMonth, getDate
 } from 'date-fns'
-import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { formatInTimeZone } from 'date-fns-tz'
+import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react'
+import confetti from 'canvas-confetti'
+
+const MOODS = [
+    { id: 'great', emoji: '😄', label: 'Great' },
+    { id: 'good', emoji: '🙂', label: 'Good' },
+    { id: 'okay', emoji: '😐', label: 'Okay' },
+    { id: 'low', emoji: '😔', label: 'Low' },
+    { id: 'rough', emoji: '😢', label: 'Rough' },
+] as const
+
+const TIMEZONE = 'Europe/Oslo'
 
 export default function ProgressPage() {
     const [stats, setStats] = useState<any>(null)
@@ -17,11 +30,25 @@ export default function ProgressPage() {
     const [activityMap, setActivityMap] = useState<any[]>([])
     const [answeredDates, setAnsweredDates] = useState<Record<string, string>>({})
     const [calMonth, setCalMonth] = useState(new Date())
+    const [selectedSpecial, setSelectedSpecial] = useState<{ emoji: string; label: string } | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [myMood, setMyMood] = useState<string | null>(null)
+    const [partnerMood, setPartnerMood] = useState<string | null>(null)
+    const [isSavingMood, setIsSavingMood] = useState(false)
+    const [roomId, setRoomId] = useState<string | null>(null)
+    const confettiFired = useRef(false)
 
     const supabase = createClient()
     const { user } = useAuth()
     const router = useRouter()
+    const { toast } = useToast()
+
+    const dateKey = (() => {
+        const now = new Date()
+        const osloHour = parseInt(formatInTimeZone(now, TIMEZONE, 'HH'), 10)
+        const businessDate = osloHour < 6 ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now
+        return formatInTimeZone(businessDate, TIMEZONE, 'yyyy-MM-dd')
+    })()
 
     useEffect(() => {
         if (!user) return
@@ -39,6 +66,7 @@ export default function ProgressPage() {
                 if (!member) return
                 const roomData = Array.isArray(member.rooms) ? member.rooms[0] : member.rooms
                 setRoom(roomData)
+                setRoomId(member.room_id)
 
                 // 2. Get stats
                 const { data: statsData } = await supabase
@@ -60,7 +88,21 @@ export default function ProgressPage() {
                     setActivityMap(activityData)
                 }
 
-                // 4. Get all answered questions for calendar
+                // 4. Load today's mood check-ins
+                const { data: moodData } = await supabase
+                    .from('mood_checkins')
+                    .select('user_id, mood')
+                    .eq('room_id', member.room_id)
+                    .eq('date_key', dateKey)
+
+                if (moodData) {
+                    const myMoodEntry = moodData.find((m: any) => m.user_id === user.id)
+                    const partnerMoodEntry = moodData.find((m: any) => m.user_id !== user.id)
+                    if (myMoodEntry) setMyMood(myMoodEntry.mood)
+                    if (partnerMoodEntry) setPartnerMood(partnerMoodEntry.mood)
+                }
+
+                // 5. Get all answered questions for calendar
                 const { data: dqData } = await supabase
                     .from('daily_questions')
                     .select('date_key, answers(user_id)')
@@ -170,9 +212,48 @@ export default function ProgressPage() {
     }
 
     // Calculate Next Milestone
-    const milestones = [100, 200, 365, 500, 1000]
+    const milestones = [50, 100, 200, 365, 500, 730, 1000, 1095, 1461, 1826]
     const nextMilestone = milestones.find(m => m > totalDays)
     const daysToMilestone = nextMilestone ? nextMilestone - totalDays : null
+    const hitMilestone = milestones.includes(totalDays)
+
+    // Confetti on milestone day
+    if (hitMilestone && !confettiFired.current) {
+        confettiFired.current = true
+        setTimeout(() => {
+            confetti({
+                particleCount: 150,
+                spread: 90,
+                origin: { y: 0.6 },
+                colors: ['#f43f5e', '#ec4899', '#f97316', '#eab308', '#a855f7']
+            })
+        }, 500)
+    }
+
+    // Mood save handler
+    const handleMoodSave = async (moodId: string) => {
+        if (!user || !roomId || isSavingMood) return
+        setIsSavingMood(true)
+        const prev = myMood
+        setMyMood(moodId)
+        try {
+            const { error } = await supabase
+                .from('mood_checkins')
+                .upsert({
+                    room_id: roomId,
+                    user_id: user.id,
+                    mood: moodId,
+                    date_key: dateKey,
+                }, { onConflict: 'room_id, user_id, date_key' })
+            if (error) throw error
+            toast('Mood saved ✨', 'love')
+        } catch (err: any) {
+            setMyMood(prev)
+            toast(err.message || 'Failed to save mood', 'error')
+        } finally {
+            setIsSavingMood(false)
+        }
+    }
 
     // Reversed activity (newest first)
     const reversedActivity = [...activityMap].reverse()
@@ -192,6 +273,48 @@ export default function ProgressPage() {
                 <p className="text-sm font-medium text-rose-400 uppercase tracking-widest relative z-10">Together for</p>
                 <h2 className="text-4xl font-bold tracking-tight relative z-10">{timeStr}</h2>
                 <p className="text-sm text-zinc-400 relative z-10">{totalDays} total days</p>
+            </div>
+
+            {/* Milestone celebration */}
+            {hitMilestone && (
+                <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 border border-amber-500/20 rounded-2xl p-5 text-center space-y-2 animate-in fade-in zoom-in duration-500">
+                    <div className="text-4xl">🎉</div>
+                    <h3 className="text-lg font-bold text-amber-300">Milestone!</h3>
+                    <p className="text-sm text-zinc-300">{totalDays} days together! Keep going! 💕</p>
+                </div>
+            )}
+
+            {/* Mood Check-in */}
+            <div className="space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5" /> How are you feeling today?
+                </h3>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between">
+                        {MOODS.map(m => (
+                            <button
+                                key={m.id}
+                                onClick={() => handleMoodSave(m.id)}
+                                disabled={isSavingMood}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-90 ${
+                                    myMood === m.id
+                                        ? 'bg-rose-500/10 ring-1 ring-rose-500/30 scale-105'
+                                        : 'hover:bg-zinc-800'
+                                }`}
+                            >
+                                <span className="text-2xl">{m.emoji}</span>
+                                <span className="text-[10px] text-zinc-500">{m.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {partnerMood && (
+                        <div className="flex items-center justify-center gap-2 pt-2 border-t border-zinc-800">
+                            <span className="text-xs text-zinc-500">Partner is feeling</span>
+                            <span className="text-lg">{MOODS.find(m => m.id === partnerMood)?.emoji}</span>
+                            <span className="text-xs text-zinc-400 font-medium">{MOODS.find(m => m.id === partnerMood)?.label}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -238,14 +361,14 @@ export default function ProgressPage() {
                     {/* Month navigation */}
                     <div className="flex items-center justify-between mb-4">
                         <button
-                            onClick={() => setCalMonth(prev => subMonths(prev, 1))}
+                            onClick={() => { setCalMonth(prev => subMonths(prev, 1)); setSelectedSpecial(null) }}
                             className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <h4 className="text-sm font-semibold">{format(calMonth, 'MMMM yyyy')}</h4>
                         <button
-                            onClick={() => setCalMonth(prev => addMonths(prev, 1))}
+                            onClick={() => { setCalMonth(prev => addMonths(prev, 1)); setSelectedSpecial(null) }}
                             className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
@@ -274,35 +397,63 @@ export default function ProgressPage() {
                             const special = specialDates[dateKey]
                             const isToday = dateKey === format(new Date(), 'yyyy-MM-dd')
                             const isFuture = isAfter(day, new Date())
+                            const isTappable = !!status || !!special
+
+                            // Base styling based on answer status
+                            const statusClass = status === 'both'
+                                ? 'bg-rose-500/20 text-rose-400'
+                                : status === 'partial'
+                                    ? 'bg-zinc-700/30 text-zinc-400'
+                                    : isFuture
+                                        ? 'text-zinc-800'
+                                        : 'text-zinc-600'
+
+                            // Special date ring overlay (doesn't replace answer status)
+                            const specialRing = special ? 'ring-1 ring-amber-500/50' : ''
+                            const hoverClass = isTappable && !isFuture ? 'hover:brightness-125 cursor-pointer' : ''
+                            const todayRing = isToday ? 'ring-1 ring-rose-500/50' : ''
 
                             return (
                                 <button
                                     key={dateKey}
                                     onClick={() => {
-                                        if (status) router.push(`/app/inbox/${dateKey}`)
+                                        if (special) {
+                                            setSelectedSpecial(special)
+                                            // If there's also an answer, navigate after a brief moment
+                                            if (status) {
+                                                setTimeout(() => router.push(`/app/inbox/${dateKey}`), 1200)
+                                            }
+                                        } else if (status) {
+                                            router.push(`/app/inbox/${dateKey}`)
+                                        }
                                     }}
-                                    disabled={!status || isFuture}
-                                    title={special?.label}
-                                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all relative ${
-                                        special
-                                            ? 'bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30'
-                                            : status === 'both'
-                                                ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 cursor-pointer'
-                                                : status === 'partial'
-                                                    ? 'bg-zinc-700/30 text-zinc-400 hover:bg-zinc-700/50 cursor-pointer'
-                                                    : isFuture
-                                                        ? 'text-zinc-800'
-                                                        : 'text-zinc-600'
-                                    } ${isToday ? 'ring-1 ring-rose-500/50' : ''}`}
+                                    disabled={!isTappable || (isFuture && !special)}
+                                    className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all relative ${statusClass} ${specialRing} ${hoverClass} ${todayRing}`}
                                 >
                                     {special ? (
                                         <span className="text-[11px] leading-none">{special.emoji}</span>
                                     ) : null}
                                     <span className={special ? 'text-[9px] leading-none' : ''}>{format(day, 'd')}</span>
+                                    {/* Show answer dot on special dates that also have answers */}
+                                    {special && status && (
+                                        <span className={`absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${status === 'both' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
+                                    )}
                                 </button>
                             )
                         })}
                     </div>
+
+                    {/* Special date popup */}
+                    {selectedSpecial && (
+                        <button
+                            onClick={() => setSelectedSpecial(null)}
+                            className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-sm font-medium animate-in fade-in slide-in-from-top-2 duration-200"
+                        >
+                            <span className="text-base">{selectedSpecial.emoji}</span>
+                            {selectedSpecial.label}
+                            <span className="text-amber-500/50 text-xs ml-1">✕</span>
+                        </button>
+                    )}
 
                     {/* Legend */}
                     <div className="flex items-center justify-end flex-wrap gap-3 mt-4 text-xs text-zinc-500">

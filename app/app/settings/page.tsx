@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera, Bell, BellOff, BellRing } from 'lucide-react'
 import { useNotifications } from '@/hooks/use-notifications'
+import { useToast } from '@/components/ui/toast'
 
 // Resize image before upload (max 400x400)
 function resizeImage(file: File, maxSize = 400): Promise<Blob> {
@@ -53,6 +54,7 @@ export default function SettingsPage() {
     const supabase = createClient()
     const { user, signOut } = useAuth()
     const router = useRouter()
+    const { toast } = useToast()
 
     useEffect(() => {
         // Detect iOS
@@ -137,7 +139,7 @@ export default function SettingsPage() {
             setProfile((p: any) => ({ ...p, name }))
         } catch (err) {
             console.error(err)
-            alert('Failed to update profile')
+            toast('Failed to update profile', 'error')
         } finally {
             setIsSaving(false)
         }
@@ -180,7 +182,7 @@ export default function SettingsPage() {
             setProfile((p: any) => ({ ...p, avatar_url: urlWithCacheBust }))
         } catch (err: any) {
             console.error(err)
-            alert(err.message || 'Failed to upload avatar')
+            toast(err.message || 'Failed to upload avatar', 'error')
         } finally {
             setIsUploadingAvatar(false)
         }
@@ -198,10 +200,10 @@ export default function SettingsPage() {
                 user_id: user?.id,
                 action: 'set_anniversary'
             })
-            alert('Relationship details updated')
+            toast('Relationship details updated', 'success')
         } catch (err) {
             console.error(err)
-            alert('Failed to update relationship details')
+            toast('Failed to update relationship details', 'error')
         } finally {
             setIsSaving(false)
         }
@@ -209,7 +211,7 @@ export default function SettingsPage() {
 
     const handleInstallClick = () => {
         if (!installPrompt) {
-            alert("App is already installed or your browser doesn't support automatic installation. You can usually install it from your browser's share or settings menu (e.g. 'Add to Home Screen' on Safari/iOS).")
+            toast("Your browser doesn't support auto-install. Use your browser menu → Add to Home Screen.", 'info')
             return
         }
         installPrompt.prompt()
@@ -337,7 +339,7 @@ export default function SettingsPage() {
                                         variant="outline"
                                         onClick={() => {
                                             navigator.clipboard.writeText(`${window.location.origin}/invite/${room?.invite_code}`)
-                                            alert('Copied to clipboard!')
+                                            toast('Copied to clipboard!', 'success')
                                         }}
                                     >
                                         Copy

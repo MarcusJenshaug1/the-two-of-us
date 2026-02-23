@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import { format, parseISO } from 'date-fns'
-import { CheckCircle2, CircleDashed, ArrowRight, Send } from 'lucide-react'
+import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2 } from 'lucide-react'
+
+const PAGE_SIZE = 30
 
 type InboxItem = {
     id: string
@@ -18,76 +20,98 @@ type InboxItem = {
 export default function InboxPage() {
     const [history, setHistory] = useState<InboxItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
+    const [hasMore, setHasMore] = useState(true)
+    const [page, setPage] = useState(0)
+    const loadMoreRef = useRef<HTMLDivElement>(null)
 
     const supabase = createClient()
     const { user } = useAuth()
 
-    useEffect(() => {
+    const loadInbox = useCallback(async (pageNum: number, append = false) => {
         if (!user) return
-        let mounted = true
+        try {
+            if (pageNum === 0) setIsLoading(true)
+            else setIsLoadingMore(true)
 
-        const loadInbox = async () => {
-            try {
-                // 1. Get user's room
-                const { data: member } = await supabase
-                    .from('room_members')
-                    .select('room_id')
-                    .eq('user_id', user.id)
-                    .single()
+            const { data: member } = await supabase
+                .from('room_members')
+                .select('room_id')
+                .eq('user_id', user.id)
+                .single()
 
-                if (!member) return
+            if (!member) return
 
-                // 2. Get past questions with answers
-                const { data: dqData } = await supabase
-                    .from('daily_questions')
-                    .select(`
-                        id, date_key, question_id,
-                        questions(text, category),
-                        answers(user_id)
-                    `)
-                    .eq('room_id', member.room_id)
-                    .order('date_key', { ascending: false })
-                    .limit(50)
+            const { data: dqData } = await supabase
+                .from('daily_questions')
+                .select(`
+                    id, date_key, question_id,
+                    questions(text, category),
+                    answers(user_id)
+                `)
+                .eq('room_id', member.room_id)
+                .order('date_key', { ascending: false })
+                .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
 
-                if (!mounted || !dqData) return
+            if (!dqData) return
 
-                // Process data with detailed status
-                const processed: InboxItem[] = dqData.map((item: any) => {
-                    const myAnswer = item.answers?.find((a: any) => a.user_id === user.id)
-                    const theirAnswer = item.answers?.find((a: any) => a.user_id !== user.id)
+            if (dqData.length < PAGE_SIZE) setHasMore(false)
 
-                    let status: InboxItem['status']
-                    if (myAnswer && theirAnswer) {
-                        status = 'completed'
-                    } else if (theirAnswer && !myAnswer) {
-                        status = 'your_turn' // Partner answered, you haven't
-                    } else if (myAnswer && !theirAnswer) {
-                        status = 'waiting' // You answered, waiting for partner
-                    } else {
-                        status = 'unanswered' // Neither answered
-                    }
+            const processed: InboxItem[] = dqData.map((item: any) => {
+                const myAnswer = item.answers?.find((a: any) => a.user_id === user.id)
+                const theirAnswer = item.answers?.find((a: any) => a.user_id !== user.id)
 
-                    return {
-                        id: item.id,
-                        date_key: item.date_key,
-                        text: item.questions?.text || 'Unknown question',
-                        category: item.questions?.category || null,
-                        status
-                    }
-                })
+                let status: InboxItem['status']
+                if (myAnswer && theirAnswer) {
+                    status = 'completed'
+                } else if (theirAnswer && !myAnswer) {
+                    status = 'your_turn'
+                } else if (myAnswer && !theirAnswer) {
+                    status = 'waiting'
+                } else {
+                    status = 'unanswered'
+                }
 
+                return {
+                    id: item.id,
+                    date_key: item.date_key,
+                    text: item.questions?.text || 'Unknown question',
+                    category: item.questions?.category || null,
+                    status
+                }
+            })
+
+            if (append) {
+                setHistory(prev => [...prev, ...processed])
+            } else {
                 setHistory(processed)
-            } catch (err) {
-                console.error('Error loading inbox', err)
-            } finally {
-                if (mounted) setIsLoading(false)
             }
+        } catch (err) {
+            console.error('Error loading inbox', err)
+        } finally {
+            setIsLoading(false)
+            setIsLoadingMore(false)
         }
+    }, [user, supabase])
 
-        loadInbox()
-        return () => { mounted = false }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user])
+    useEffect(() => {
+        loadInbox(0)
+    }, [loadInbox])
+
+    // Infinite scroll observer
+    useEffect(() => {
+        if (!loadMoreRef.current || !hasMore) return
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoadingMore && hasMore) {
+                const nextPage = page + 1
+                setPage(nextPage)
+                loadInbox(nextPage, true)
+            }
+        }, { threshold: 0.1 })
+
+        observer.observe(loadMoreRef.current)
+        return () => observer.disconnect()
+    }, [hasMore, isLoadingMore, page, loadInbox])
 
     if (isLoading) {
         return (
@@ -198,6 +222,13 @@ export default function InboxPage() {
                             </div>
                         </Link>
                     ))
+                )}
+
+                {/* Infinite scroll trigger */}
+                {hasMore && (
+                    <div ref={loadMoreRef} className="flex justify-center py-4">
+                        {isLoadingMore && <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />}
+                    </div>
                 )}
             </div>
         </div>

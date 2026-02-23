@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { useToast } from '@/components/ui/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Clock, Send, AlertTriangle, User } from 'lucide-react'
@@ -32,6 +33,7 @@ export default function QuestionsPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const { toast } = useToast()
     const dateKey = getDateKey()
 
     const loadData = useCallback(async () => {
@@ -212,6 +214,29 @@ export default function QuestionsPage() {
         loadData()
     }, [loadData])
 
+    // Real-time: listen for partner's answer
+    useEffect(() => {
+        if (!dailyQuestion?.id || !user) return
+
+        const channel = supabase
+            .channel(`answers_${dailyQuestion.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'answers',
+                filter: `daily_question_id=eq.${dailyQuestion.id}`,
+            }, (payload: any) => {
+                if (payload.new.user_id !== user.id) {
+                    setPartnerAnswer(payload.new)
+                    toast(`${partnerName} just answered! 💕`, 'love')
+                }
+            })
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dailyQuestion?.id, user?.id])
+
     const handleDraftChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const val = e.target.value
         setDraft(val)
@@ -241,7 +266,7 @@ export default function QuestionsPage() {
             setMyAnswer(data)
             localStorage.removeItem(`draft_${dailyQuestion.id}`)
         } catch (err: any) {
-            alert(err.message || 'Failed to submit answer')
+            toast(err.message || 'Failed to submit answer', 'error')
         } finally {
             setIsSubmitting(false)
         }
