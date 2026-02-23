@@ -456,10 +456,10 @@ export default function InboxDetailPage() {
                         <ArrowLeft className="w-5 h-5" />
                     </button>
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold">{formatDateHeading(data.date_key)}</p>
-                        <p className="text-[11px] text-zinc-500">{format(parseISO(data.date_key), 'MMMM d, yyyy')}</p>
+                        <p className="text-sm font-semibold">{formatDateHeading(dateKey)}</p>
+                        <p className="text-[11px] text-zinc-500">{format(parseISO(dateKey), 'MMMM d, yyyy')}</p>
                     </div>
-                    {data.category && (
+                    {data?.category && (
                         <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full shrink-0">
                             {data.category}
                         </span>
