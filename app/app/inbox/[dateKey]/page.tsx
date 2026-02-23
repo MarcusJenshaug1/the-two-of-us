@@ -111,7 +111,7 @@ export default function InboxDetailPage() {
                 }
             }
 
-            // 3. Get specific question
+            // 3. Get specific question (optional - might not exist for future dates)
             const { data: dqData, error: dqError } = await supabase
                 .from('daily_questions')
                 .select(`
@@ -123,44 +123,48 @@ export default function InboxDetailPage() {
                 .eq('date_key', dateKey)
                 .single()
 
-            if (dqError || !dqData) throw new Error('Question not found')
+            // Only set question data if it exists (might be null for future dates)
+            if (dqData) {
+                setData({
+                    id: dqData.id,
+                    date_key: dqData.date_key,
+                    text: (dqData.questions as any)?.text,
+                    category: (dqData.questions as any)?.category,
+                })
 
-            setData({
-                id: dqData.id,
-                date_key: dqData.date_key,
-                text: (dqData.questions as any)?.text,
-                category: (dqData.questions as any)?.category,
-            })
+                const mine = dqData.answers.find((a: any) => a.user_id === user.id)
+                const theirs = dqData.answers.find((a: any) => a.user_id !== user.id)
 
-            const mine = dqData.answers.find((a: any) => a.user_id === user.id)
-            const theirs = dqData.answers.find((a: any) => a.user_id !== user.id)
+                setMyAnswer(mine || null)
+                setPartnerAnswer(theirs || null)
 
-            setMyAnswer(mine || null)
-            setPartnerAnswer(theirs || null)
+                // 4. If both answered, load reactions + messages
+                if (mine && theirs) {
+                    const { data: allReactions } = await supabase
+                        .from('reactions')
+                        .select('*')
+                        .eq('daily_question_id', dqData.id)
 
-            // 4. If both answered, load reactions + messages
-            if (mine && theirs) {
-                const { data: allReactions } = await supabase
-                    .from('reactions')
-                    .select('*')
-                    .eq('daily_question_id', dqData.id)
+                    if (allReactions) {
+                        const myReaction = allReactions.find((r: any) => r.user_id === user.id)
+                        const theirReaction = allReactions.find((r: any) => r.user_id !== user.id)
 
-                if (allReactions) {
-                    const myReaction = allReactions.find((r: any) => r.user_id === user.id)
-                    const theirReaction = allReactions.find((r: any) => r.user_id !== user.id)
+                        if (myReaction) setActiveReaction(myReaction.emoji)
+                        if (theirReaction) setPartnerReaction(theirReaction.emoji)
+                    }
 
-                    if (myReaction) setActiveReaction(myReaction.emoji)
-                    if (theirReaction) setPartnerReaction(theirReaction.emoji)
+                    // Load messages
+                    const { data: msgData } = await supabase
+                        .from('messages')
+                        .select('*')
+                        .eq('daily_question_id', dqData.id)
+                        .order('created_at', { ascending: true })
+
+                    if (msgData) setMessages(msgData)
                 }
-
-                // Load messages
-                const { data: msgData } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .eq('daily_question_id', dqData.id)
-                    .order('created_at', { ascending: true })
-
-                if (msgData) setMessages(msgData)
+                // Load draft
+                const savedDraft = localStorage.getItem(`draft_inbox_${dqData.id}`)
+                if (savedDraft && !mine) setDraft(savedDraft)
             }
 
             // 5. Load daily logs for this date
@@ -219,9 +223,6 @@ export default function InboxDetailPage() {
                 .neq('status', 'skipped')
             setDayDatePlans(dpData || [])
 
-            // Load draft
-            const savedDraft = localStorage.getItem(`draft_inbox_${dqData.id}`)
-            if (savedDraft && !mine) setDraft(savedDraft)
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -428,10 +429,11 @@ export default function InboxDetailPage() {
         )
     }
 
-    if (error || !data) {
+    // Allow showing content even without a question (for future dates with planner/memories/etc)
+    if (error && !dayEvents.length && !dayTasks.length && !dayMemories.length && !dayMilestones.length && !dayDatePlans.length) {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
-                <p className="text-zinc-500">{error || 'Question not found'}</p>
+                <p className="text-zinc-500">{error || 'No content found'}</p>
                 <Button variant="outline" onClick={() => router.push('/app/inbox')}>Go back</Button>
             </div>
         )
@@ -467,7 +469,8 @@ export default function InboxDetailPage() {
 
             <div className="px-4 pt-6 space-y-6">
 
-                {/* ─── SECTION 1: DAILY QUESTION ─── */}
+                {/* ─── SECTION 1: DAILY QUESTION (only if it exists) ─── */}
+                {data && (
                 <section>
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
                         {/* Question text */}
@@ -599,6 +602,7 @@ export default function InboxDetailPage() {
                         </div>
                     </div>
                 </section>
+                )}
 
                 {/* ─── SECTION 2: CHAT ─── */}
                 {hasChat && (

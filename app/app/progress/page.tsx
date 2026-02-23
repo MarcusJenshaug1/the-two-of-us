@@ -539,7 +539,7 @@ export default function ProgressPage() {
                                             router.push(`/app/inbox/${dateKey}`)
                                         }
                                     }}
-                                    disabled={!isTappable || (isFuture && !special)}
+                                    disabled={!isTappable || (isFuture && !special && badges.length === 0)}
                                     className={`aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all relative ${statusClass} ${specialRing} ${hoverClass} ${todayRing}`}
                                 >
                                     {special ? (
