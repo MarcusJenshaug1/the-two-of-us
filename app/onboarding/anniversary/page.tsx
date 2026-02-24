@@ -7,24 +7,29 @@ import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { CalendarHeart, ChevronLeft, ChevronRight } from 'lucide-react'
 import { clsx } from 'clsx'
-
-const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-]
-const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
+import { useTranslations } from '@/lib/i18n'
 
 function getDaysInMonth(year: number, month: number) {
     return new Date(year, month + 1, 0).getDate()
 }
 
 function getFirstDayOfMonth(year: number, month: number) {
-    // 0=Sun, convert to Mon=0
     const day = new Date(year, month, 1).getDay()
     return day === 0 ? 6 : day - 1
 }
 
 export default function AnniversaryPage() {
+    const t = useTranslations()
+    const MONTH_NAMES = [
+        t('months.january'), t('months.february'), t('months.march'), t('months.april'),
+        t('months.may'), t('months.june'), t('months.july'), t('months.august'),
+        t('months.september'), t('months.october'), t('months.november'), t('months.december')
+    ]
+    const DAY_LABELS = [
+        t('days.mon'), t('days.tue'), t('days.wed'), t('days.thu'),
+        t('days.fri'), t('days.sat'), t('days.sun')
+    ]
+    const ot = useTranslations('onboarding')
     const today = new Date()
     const [viewYear, setViewYear] = useState(today.getFullYear())
     const [viewMonth, setViewMonth] = useState(today.getMonth())
@@ -106,9 +111,9 @@ export default function AnniversaryPage() {
                     <CalendarHeart className="h-8 w-8 text-rose-500" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">When did it all begin?</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">{ot('whenDidItBegin')}</h1>
                     <p className="text-sm text-zinc-400 mt-2">
-                        Set your anniversary date so we can celebrate milestones together.
+                        {ot('anniversaryDesc')}
                     </p>
                 </div>
             </div>
@@ -229,7 +234,7 @@ export default function AnniversaryPage() {
                 {/* Selected date display */}
                 {selectedDate && (
                     <div className="text-center pt-2 border-t border-zinc-800">
-                        <p className="text-xs text-zinc-500">Selected</p>
+                        <p className="text-xs text-zinc-500">{ot('selected')}</p>
                         <p className="text-sm font-semibold text-rose-400">{formatSelected(selectedDate)}</p>
                     </div>
                 )}
@@ -246,7 +251,7 @@ export default function AnniversaryPage() {
                     disabled={isLoading || !selectedDate}
                     onClick={handleSubmit}
                 >
-                    {isLoading ? 'Saving...' : 'Start using the app'}
+                    {isLoading ? ot('saving') : ot('startApp')}
                 </Button>
                 <Button
                     type="button"
@@ -255,7 +260,7 @@ export default function AnniversaryPage() {
                     onClick={() => router.push('/app/questions')}
                     disabled={isLoading}
                 >
-                    Skip for now
+                    {ot('skipForNow')}
                 </Button>
             </div>
         </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { X, Share2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from '@/lib/i18n'
 
 interface IosInstallGuideSheetProps {
     isOpen: boolean
@@ -10,6 +11,7 @@ interface IosInstallGuideSheetProps {
 }
 
 export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetProps) {
+    const t = useTranslations('settings')
     const dialogRef = useRef<HTMLDivElement>(null)
     const closeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -54,16 +56,16 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
                         </div>
                         <div>
                             <h2 id="ios-guide-title" className="text-lg font-semibold">
-                                Installer appen
+                                {t('iosInstallTitle')}
                             </h2>
-                            <p className="text-xs text-zinc-400">iPhone/iPad krever manuell installasjon</p>
+                            <p className="text-xs text-zinc-400">{t('iosInstallSubtitle')}</p>
                         </div>
                     </div>
                     <button
                         ref={closeButtonRef}
                         onClick={onClose}
                         className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-                        aria-label="Close install guide"
+                        aria-label={t('iosCloseGuide')}
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -71,7 +73,7 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
 
                 {/* Description */}
                 <p className="text-sm text-zinc-300">
-                    Legg til Two of Us på hjemskjermen for rask tilgang – det tar under ett minutt.
+                    {t('iosInstallDescription')}
                 </p>
 
                 {/* Steps */}
@@ -81,10 +83,10 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
                             1
                         </div>
                         <div className="space-y-1">
-                            <p className="text-sm font-medium">Trykk Del</p>
+                            <p className="text-sm font-medium">{t('iosStep1Title')}</p>
                             <div className="flex items-center gap-2 text-xs text-zinc-400">
                                 <Share2 className="w-4 h-4 text-blue-400" />
-                                Del-ikonet i Safari
+                                {t('iosStep1Desc')}
                             </div>
                         </div>
                     </div>
@@ -94,10 +96,10 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
                             2
                         </div>
                         <div className="space-y-1">
-                            <p className="text-sm font-medium">Velg “Legg til på Hjem-skjerm”</p>
+                            <p className="text-sm font-medium">{t('iosStep2Title')}</p>
                             <div className="flex items-center gap-2 text-xs text-zinc-400">
                                 <Plus className="w-4 h-4 text-zinc-300" />
-                                Legg til på Hjem-skjerm
+                                {t('iosStep2Desc')}
                             </div>
                         </div>
                     </div>
@@ -107,8 +109,8 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
                             3
                         </div>
                         <div className="space-y-1">
-                            <p className="text-sm font-medium">Trykk “Legg til”</p>
-                            <p className="text-xs text-zinc-400">Appen dukker opp på hjemskjermen din</p>
+                            <p className="text-sm font-medium">{t('iosStep3Title')}</p>
+                            <p className="text-xs text-zinc-400">{t('iosStep3Desc')}</p>
                         </div>
                     </div>
                 </div>
@@ -118,7 +120,7 @@ export function IosInstallGuideSheet({ isOpen, onClose }: IosInstallGuideSheetPr
                     onClick={onClose}
                     className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                 >
-                    Skjønner
+                    {t('iosGotIt')}
                 </Button>
             </div>
         </div>

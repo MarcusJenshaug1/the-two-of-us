@@ -8,19 +8,20 @@ import {
     CalendarDays, MoreHorizontal, X, ChevronRight, Star
 } from "lucide-react"
 import { clsx } from "clsx"
+import { useTranslations } from "@/lib/i18n"
 
 /* ── Tab definitions ── */
 const primaryTabs = [
-    { name: "Today", href: "/app/questions", icon: MessageSquare },
-    { name: "Inbox", href: "/app/inbox", icon: Inbox },
-    { name: "Planner", href: "/app/planner", icon: CalendarDays },
-    { name: "Love", href: "/app/nudge", icon: Heart },
+    { key: "today", href: "/app/questions", icon: MessageSquare },
+    { key: "inbox", href: "/app/inbox", icon: Inbox },
+    { key: "planner", href: "/app/planner", icon: CalendarDays },
+    { key: "love", href: "/app/nudge", icon: Heart },
 ]
 
 const moreTabs = [
-    { name: "Memories", href: "/app/memories", icon: Star },
-    { name: "Progress", href: "/app/progress", icon: Activity },
-    { name: "Settings", href: "/app/settings", icon: Settings },
+    { key: "memories", href: "/app/memories", icon: Star },
+    { key: "progress", href: "/app/progress", icon: Activity },
+    { key: "settings", href: "/app/settings", icon: Settings },
 ]
 
 const allTabs = [...primaryTabs, ...moreTabs]
@@ -32,6 +33,7 @@ export function BottomNav() {
     const pathname = usePathname()
     const [open, setOpen] = useState(false)
     const sheetRef = useRef<HTMLDivElement>(null)
+    const t = useTranslations('nav')
 
     // Is a "more" route currently active?
     const moreActive = moreTabs.some(t => pathname.startsWith(t.href))
@@ -72,7 +74,7 @@ export function BottomNav() {
                                 )}
                             >
                                 <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
-                                <span className="text-[10px] font-medium leading-none">{item.name}</span>
+                                <span className="text-[10px] font-medium leading-none">{t(item.key)}</span>
                             </Link>
                         )
                     })}
@@ -88,7 +90,7 @@ export function BottomNav() {
                         aria-label="More navigation"
                     >
                         <MoreHorizontal className="h-5 w-5" strokeWidth={open || moreActive ? 2.5 : 2} />
-                        <span className="text-[10px] font-medium leading-none">More</span>
+                        <span className="text-[10px] font-medium leading-none">{t('more')}</span>
                     </button>
                 </div>
             </nav>
@@ -136,7 +138,7 @@ export function BottomNav() {
                                         )}
                                     >
                                         <Icon className="h-5 w-5 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
-                                        <span className="font-medium text-sm flex-1">{item.name}</span>
+                                        <span className="font-medium text-sm flex-1">{t(item.key)}</span>
                                         <ChevronRight className="h-4 w-4 text-zinc-600" />
                                     </Link>
                                 )
@@ -154,6 +156,7 @@ export function BottomNav() {
    ═══════════════════════════════════════════ */
 export function SideNav() {
     const pathname = usePathname()
+    const t = useTranslations('nav')
 
     return (
         <nav className="hidden md:flex flex-col w-64 border-r border-zinc-800 bg-zinc-950 min-h-screen pt-8 px-4">
@@ -180,7 +183,7 @@ export function SideNav() {
                             )}
                         >
                             <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="font-medium text-sm">{item.name}</span>
+                            <span className="font-medium text-sm">{t(item.key)}</span>
                         </Link>
                     )
                 })}

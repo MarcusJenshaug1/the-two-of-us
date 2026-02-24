@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 import { Button } from '@/components/ui/button'
 import {
     CalendarDays, Plus, Check, Circle, Trash2, MapPin, Clock, Bell,
     X, ChevronDown, ChevronUp, Pencil, User, Heart, Lightbulb,
     Shuffle, Sparkles, Filter, DollarSign, Timer, Sun, CheckCircle2, Share2
 } from 'lucide-react'
-import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns'
+import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays, nextSaturday, nextSunday, isSaturday, isSunday, type Locale } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 
 const TIMEZONE = 'Europe/Oslo'
@@ -22,17 +24,17 @@ function getDateKey(date?: Date) {
     return formatInTimeZone(businessDate, TIMEZONE, 'yyyy-MM-dd')
 }
 
-function formatEventDate(startAt: string, allDay: boolean): string {
+function formatEventDate(startAt: string, allDay: boolean, dateLoc?: Locale): string {
     const d = parseISO(startAt)
-    if (allDay) return format(d, 'EEE, MMM d')
-    return format(d, 'EEE, MMM d · HH:mm')
+    if (allDay) return format(d, 'EEE, MMM d', { locale: dateLoc })
+    return format(d, 'EEE, MMM d · HH:mm', { locale: dateLoc })
 }
 
-function formatDateLabel(dateKey: string): string {
+function formatDateLabel(dateKey: string, todayLabel = 'Today', tomorrowLabel = 'Tomorrow', dateLoc?: Locale): string {
     const d = parseISO(dateKey)
-    if (isTodayFn(d)) return 'Today'
-    if (isTomorrow(d)) return 'Tomorrow'
-    return format(d, 'EEEE, MMM d')
+    if (isTodayFn(d)) return todayLabel
+    if (isTomorrow(d)) return tomorrowLabel
+    return format(d, 'EEEE, MMM d', { locale: dateLoc })
 }
 
 type SharedEvent = {
@@ -179,6 +181,9 @@ export default function PlannerPage() {
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
+    const t = useTranslations('planner')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
 
     // ─── Load Data ───
     const loadData = useCallback(async () => {
@@ -356,18 +361,18 @@ export default function PlannerPage() {
                     .update(updatePayload)
                     .eq('id', editingEvent.id)
                 if (error) throw error
-                toast('Event updated', 'success')
+                toast(t('toastEventUpdated'), 'success')
             } else {
                 const { error } = await supabase
                     .from('shared_events')
                     .insert(payload)
                 if (error) throw error
-                toast('Event created', 'success')
+                toast(t('toastEventCreated'), 'success')
             }
             resetEventForm()
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to save event', 'error')
+            toast(err.message || t('toastFailedSaveEvent'), 'error')
         } finally {
             setIsSavingEvent(false)
         }
@@ -375,8 +380,8 @@ export default function PlannerPage() {
 
     async function handleDeleteEvent(id: string) {
         const { error } = await supabase.from('shared_events').delete().eq('id', id)
-        if (error) { toast('Failed to delete', 'error'); return }
-        toast('Event deleted', 'success')
+        if (error) { toast(t('toastFailedDelete'), 'error'); return }
+        toast(t('toastEventDeleted'), 'success')
         loadData()
     }
 
@@ -394,7 +399,7 @@ export default function PlannerPage() {
             setNewTaskTitle('')
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to add task', 'error')
+            toast(err.message || t('toastFailedAddTask'), 'error')
         } finally {
             setIsAddingTask(false)
         }
@@ -409,13 +414,13 @@ export default function PlannerPage() {
                 completed_at: newDone ? new Date().toISOString() : null,
             })
             .eq('id', task.id)
-        if (error) { toast('Failed to update', 'error'); return }
+        if (error) { toast(t('toastFailedUpdate'), 'error'); return }
         loadData()
     }
 
     async function handleDeleteTask(id: string) {
         const { error } = await supabase.from('shared_tasks').delete().eq('id', id)
-        if (error) { toast('Failed to delete', 'error'); return }
+        if (error) { toast(t('toastFailedDelete'), 'error'); return }
         loadData()
     }
 
@@ -474,12 +479,12 @@ export default function PlannerPage() {
                 is_active: true,
             })
             if (error) throw error
-            toast('Published to public ideas', 'success')
+            toast(t('toastPublished'), 'success')
             setShowPublishIdea(false)
             setPublishIdea(null)
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to publish', 'error')
+            toast(err.message || t('toastFailedPublish'), 'error')
         } finally {
             setIsPublishing(false)
         }
@@ -529,10 +534,10 @@ export default function PlannerPage() {
             })
             if (cErr) throw cErr
 
-            toast('Planned for this weekend! 🎉', 'success')
+            toast(t('toastPlannedWeekend'), 'success')
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to plan', 'error')
+            toast(err.message || t('toastFailedPlan'), 'error')
         }
     }
 
@@ -541,8 +546,8 @@ export default function PlannerPage() {
             .from('date_completions')
             .update({ status: 'done', completed_at: new Date().toISOString() })
             .eq('id', completion.id)
-        if (error) { toast('Failed to update', 'error'); return }
-        toast('Marked as done! 🎉', 'success')
+        if (error) { toast(t('toastFailedUpdate'), 'error'); return }
+        toast(t('toastMarkedDone'), 'success')
         loadData()
     }
 
@@ -551,13 +556,13 @@ export default function PlannerPage() {
             .from('date_completions')
             .update({ status: 'skipped' })
             .eq('id', completion.id)
-        if (error) { toast('Failed to update', 'error'); return }
+        if (error) { toast(t('toastFailedUpdate'), 'error'); return }
         loadData()
     }
 
     async function handleDeleteCompletion(id: string) {
         const { error } = await supabase.from('date_completions').delete().eq('id', id)
-        if (error) { toast('Failed to delete', 'error'); return }
+        if (error) { toast(t('toastFailedDelete'), 'error'); return }
         loadData()
     }
 
@@ -585,12 +590,12 @@ export default function PlannerPage() {
                 time_of_day: newIdeaTime,
             })
             if (error) throw error
-            toast('Idea added!', 'success')
+            toast(t('toastIdeaAdded'), 'success')
             setShowAddIdea(false)
             setNewIdeaTitle(''); setNewIdeaDesc(''); setNewIdeaCat('food'); setNewIdeaPrice('free'); setNewIdeaDuration('90'); setNewIdeaTime('any')
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to add idea', 'error')
+            toast(err.message || t('toastFailedAddIdea'), 'error')
         } finally {
             setIsSavingIdea(false)
         }
@@ -598,14 +603,14 @@ export default function PlannerPage() {
 
     async function handleDeleteIdea(id: string) {
         const { error } = await supabase.from('date_ideas').delete().eq('id', id)
-        if (error) { toast('Failed to delete', 'error'); return }
-        toast('Idea deleted', 'success')
+        if (error) { toast(t('toastFailedDelete'), 'error'); return }
+        toast(t('toastIdeaDeleted'), 'success')
         loadData()
     }
 
     // ─── Derived data ───
-    const openTasks = tasks.filter(t => !t.is_done)
-    const doneTasks = tasks.filter(t => t.is_done)
+    const openTasks = tasks.filter(tk => !tk.is_done)
+    const doneTasks = tasks.filter(tk => tk.is_done)
 
     const baseIdeas = ideasTab === 'public'
         ? publicIdeas.filter((i) => !publicLang || i.language === publicLang)
@@ -655,8 +660,8 @@ export default function PlannerPage() {
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
             {/* Header */}
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Planner</h1>
-                <p className="text-sm text-zinc-400">Your shared plans &amp; tasks.</p>
+                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
             </div>
 
             {/* Tabs */}
@@ -671,7 +676,7 @@ export default function PlannerPage() {
                     aria-current={tab === 'events' ? 'page' : undefined}
                 >
                     <CalendarDays className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                    Events
+                    {t('tabEvents')}
                 </button>
                 <button
                     onClick={() => setTab('tasks')}
@@ -683,7 +688,7 @@ export default function PlannerPage() {
                     aria-current={tab === 'tasks' ? 'page' : undefined}
                 >
                     <Check className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                    Tasks ({openTasks.length})
+                    {t('tabTasks')} ({openTasks.length})
                 </button>
                 <button
                     onClick={() => setTab('ideas')}
@@ -695,7 +700,7 @@ export default function PlannerPage() {
                     aria-current={tab === 'ideas' ? 'page' : undefined}
                 >
                     <Lightbulb className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                    Ideas
+                    {t('tabIdeas')}
                 </button>
             </div>
 
@@ -706,19 +711,19 @@ export default function PlannerPage() {
                         onClick={() => { resetEventForm(); setShowEventForm(true) }}
                         className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                     >
-                        <Plus className="w-4 h-4 mr-2" /> Add event
+                        <Plus className="w-4 h-4 mr-2" /> {t('addEvent')}
                     </Button>
 
                     {eventGroups.length === 0 ? (
                         <div className="text-center py-16 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
                             <CalendarDays className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
-                            No upcoming plans yet.
+                            {t('noUpcomingPlans')}
                         </div>
                     ) : (
                         eventGroups.map(({ dateKey, items }) => (
                             <div key={dateKey} className="space-y-2">
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-950/90 backdrop-blur-sm py-1 z-10">
-                                    {formatDateLabel(dateKey)}
+                                    {formatDateLabel(dateKey, t('today'), t('tomorrow'), dateLoc)}
                                 </h3>
                                 {items.map(ev => (
                                     <div
@@ -730,7 +735,7 @@ export default function PlannerPage() {
                                                 <p className="font-medium text-sm leading-snug">{ev.title}</p>
                                                 <p className="text-xs text-zinc-500 flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
-                                                    {formatEventDate(ev.start_at, ev.all_day)}
+                                                    {formatEventDate(ev.start_at, ev.all_day, dateLoc)}
                                                     {ev.end_at && <> — {format(parseISO(ev.end_at), 'HH:mm')}</>}
                                                 </p>
                                                 {ev.location && (
@@ -780,7 +785,7 @@ export default function PlannerPage() {
                     >
                         <input
                             type="text"
-                            placeholder="Add a task..."
+                            placeholder={t('addTaskPlaceholder')}
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
                             className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -801,7 +806,7 @@ export default function PlannerPage() {
                     {openTasks.length === 0 && doneTasks.length === 0 ? (
                         <div className="text-center py-16 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
                             <Check className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
-                            No tasks — add your first one.
+                            {t('noTasks')}
                         </div>
                     ) : (
                         <div className="space-y-1.5">
@@ -822,7 +827,7 @@ export default function PlannerPage() {
                                         <span className={`text-[10px] shrink-0 ${
                                             isPast(parseISO(task.due_at)) ? 'text-red-400' : 'text-zinc-500'
                                         }`}>
-                                            {format(parseISO(task.due_at), 'MMM d')}
+                                            {format(parseISO(task.due_at), 'MMM d', { locale: dateLoc })}
                                         </span>
                                     )}
                                     <button
@@ -845,7 +850,7 @@ export default function PlannerPage() {
                                 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors w-full py-2"
                             >
                                 {showDoneTasks ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                Completed ({doneTasks.length})
+                                {t('completed')} ({doneTasks.length})
                             </button>
                             {showDoneTasks && (
                                 <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -889,7 +894,7 @@ export default function PlannerPage() {
                                 ideasTab === 'room' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                             }`}
                         >
-                            For oss
+                            {t('forUs')}
                         </button>
                         <button
                             onClick={() => setIdeasTab('public')}
@@ -897,7 +902,7 @@ export default function PlannerPage() {
                                 ideasTab === 'public' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                             }`}
                         >
-                            Public
+                            {t('public')}
                         </button>
 
                         {ideasTab === 'public' && (
@@ -916,8 +921,8 @@ export default function PlannerPage() {
                                     onChange={(e) => setPublicSort(e.target.value as 'trending' | 'newest')}
                                     className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-zinc-300 [color-scheme:dark]"
                                 >
-                                    <option value="trending">Trending</option>
-                                    <option value="newest">Newest</option>
+                                    <option value="trending">{t('trending')}</option>
+                                    <option value="newest">{t('newest')}</option>
                                 </select>
                             </div>
                         )}
@@ -925,16 +930,16 @@ export default function PlannerPage() {
                     {/* Planned dates section */}
                     {plannedCompletions.length > 0 && (
                         <div className="space-y-2">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Planned Dates</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('plannedDates')}</h3>
                             {plannedCompletions.map(c => (
                                 <div key={c.id} className="bg-zinc-900 border border-amber-500/30 rounded-2xl p-4 space-y-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0 space-y-1">
-                                            <p className="text-sm font-medium">{c.date_ideas?.title || 'Date idea'}</p>
+                                            <p className="text-sm font-medium">{c.date_ideas?.title || t('dateIdea')}</p>
                                             {c.planned_for && (
                                                 <p className="text-xs text-amber-400 flex items-center gap-1">
                                                     <CalendarDays className="w-3 h-3" />
-                                                    {format(parseISO(c.planned_for), 'EEE, MMM d')}
+                                                    {format(parseISO(c.planned_for), 'EEE, MMM d', { locale: dateLoc })}
                                                 </p>
                                             )}
                                         </div>
@@ -965,7 +970,7 @@ export default function PlannerPage() {
                         <div className="bg-gradient-to-br from-rose-500/10 via-purple-500/5 to-zinc-900 border border-rose-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-rose-400" />
-                                <span className="text-xs font-medium text-rose-400 uppercase tracking-wider">Suggestion</span>
+                                <span className="text-xs font-medium text-rose-400 uppercase tracking-wider">{t('suggestion')}</span>
                             </div>
                             <div className="space-y-1">
                                 <p className="font-medium">{randomIdea.title}</p>
@@ -973,7 +978,7 @@ export default function PlannerPage() {
                                     <p className="text-sm text-zinc-400">{randomIdea.description}</p>
                                 )}
                                 <div className="flex items-center gap-3 text-xs text-zinc-500 pt-1">
-                                    <span>{CATEGORIES.find(c => c.key === randomIdea.category)?.emoji} {randomIdea.category}</span>
+                                    <span>{CATEGORIES.find(c => c.key === randomIdea.category)?.emoji} {t('cat_' + randomIdea.category)}</span>
                                     <span className={PRICE_COLORS[randomIdea.price_level]}>{PRICE_LABELS[randomIdea.price_level]}</span>
                                     <span>{formatDuration(randomIdea.duration_minutes)}</span>
                                 </div>
@@ -983,7 +988,7 @@ export default function PlannerPage() {
                                     onClick={() => handlePlanIdea(randomIdea)}
                                     className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-sm"
                                 >
-                                    <CalendarDays className="w-4 h-4 mr-1.5" /> Plan this weekend
+                                    <CalendarDays className="w-4 h-4 mr-1.5" /> {t('planThisWeekend')}
                                 </Button>
                                 <button
                                     onClick={() => setRandomIdea(null)}
@@ -1002,7 +1007,7 @@ export default function PlannerPage() {
                             onClick={handleRandomSuggestion}
                             className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                         >
-                            <Shuffle className="w-4 h-4 mr-2" /> Surprise me
+                            <Shuffle className="w-4 h-4 mr-2" /> {t('surpriseMe')}
                         </Button>
                         {ideasTab === 'room' && (
                             <Button
@@ -1025,7 +1030,7 @@ export default function PlannerPage() {
                                     !catFilter ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                                 }`}
                             >
-                                All
+                                {t('all')}
                             </button>
                             {CATEGORIES.map(c => (
                                 <button
@@ -1035,7 +1040,7 @@ export default function PlannerPage() {
                                         catFilter === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                                     }`}
                                 >
-                                    {c.emoji} {c.key}
+                                    {c.emoji} {t('cat_' + c.key)}
                                 </button>
                             ))}
                         </div>
@@ -1063,7 +1068,7 @@ export default function PlannerPage() {
                                     }`}
                                     aria-label={showSavedOnly ? 'Show all ideas' : 'Show saved only'}
                                 >
-                                    <Heart className={`w-3 h-3 ${showSavedOnly ? 'fill-current' : ''}`} /> Saved
+                                    <Heart className={`w-3 h-3 ${showSavedOnly ? 'fill-current' : ''}`} /> {t('saved')}
                                 </button>
                             )}
                         </div>
@@ -1073,7 +1078,7 @@ export default function PlannerPage() {
                     {filteredIdeas.length === 0 ? (
                         <div className="text-center py-12 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
                             <Lightbulb className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
-                            {showSavedOnly ? 'No saved ideas yet.' : 'No ideas match your filters.'}
+                            {showSavedOnly ? t('noSavedIdeas') : t('noIdeasMatchFilter')}
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -1088,9 +1093,9 @@ export default function PlannerPage() {
                                                 <span className="text-sm">{CATEGORIES.find(c => c.key === idea.category)?.emoji}</span>
                                                 <p className="font-medium text-sm leading-snug">{idea.title}</p>
                                                 {idea.visibility === 'public' ? (
-                                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">public</span>
+                                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">{t('publicBadge')}</span>
                                                 ) : (
-                                                    <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">custom</span>
+                                                    <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">{t('customBadge')}</span>
                                                 )}
                                                 {idea.visibility === 'public' && idea.language && (
                                                     <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{LANG_LABEL[idea.language] || idea.language}</span>
@@ -1171,13 +1176,13 @@ export default function PlannerPage() {
                     {/* Done dates history */}
                     {doneCompletions.length > 0 && (
                         <div className="space-y-2">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-2">Completed Dates ✓</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-2">{t('completedDates')}</h3>
                             {doneCompletions.slice(0, 5).map(c => (
                                 <div key={c.id} className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-4 py-3">
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                    <span className="flex-1 text-sm text-zinc-400 truncate">{c.date_ideas?.title || 'Date'}</span>
+                                    <span className="flex-1 text-sm text-zinc-400 truncate">{c.date_ideas?.title || t('date')}</span>
                                     {c.completed_at && (
-                                        <span className="text-[10px] text-zinc-600">{format(parseISO(c.completed_at), 'MMM d')}</span>
+                                        <span className="text-[10px] text-zinc-600">{format(parseISO(c.completed_at), 'MMM d', { locale: dateLoc })}</span>
                                     )}
                                 </div>
                             ))}
@@ -1197,7 +1202,7 @@ export default function PlannerPage() {
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Publish idea</h3>
+                            <h3 className="text-lg font-semibold">{t('publishIdea')}</h3>
                             <button onClick={() => setShowPublishIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
@@ -1205,15 +1210,15 @@ export default function PlannerPage() {
 
                         <div className="space-y-2">
                             <p className="text-sm text-zinc-300">
-                                This will be visible to all users. Avoid personal or private info.
+                                {t('publishVisibilityWarning')}
                             </p>
                             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
-                                Public ideas are shared globally and cannot include private details.
+                                {t('publishPrivacyNotice')}
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Language</label>
+                            <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{t('language')}</label>
                             <select
                                 value={publishLang}
                                 onChange={(e) => setPublishLang(e.target.value)}
@@ -1230,7 +1235,7 @@ export default function PlannerPage() {
                             disabled={isPublishing}
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
                         >
-                            {isPublishing ? 'Publishing...' : 'Publish publicly'}
+                            {isPublishing ? t('publishing') : t('publishPublicly')}
                         </Button>
                     </div>
                 </div>
@@ -1247,7 +1252,7 @@ export default function PlannerPage() {
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Add custom idea</h3>
+                            <h3 className="text-lg font-semibold">{t('addCustomIdea')}</h3>
                             <button onClick={() => setShowAddIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
@@ -1256,7 +1261,7 @@ export default function PlannerPage() {
                         <div className="space-y-3">
                             <input
                                 type="text"
-                                placeholder="Idea title *"
+                                placeholder={t('ideaTitlePlaceholder')}
                                 value={newIdeaTitle}
                                 onChange={e => setNewIdeaTitle(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -1265,7 +1270,7 @@ export default function PlannerPage() {
                             />
 
                             <textarea
-                                placeholder="Description (optional)"
+                                placeholder={t('descriptionOptional')}
                                 value={newIdeaDesc}
                                 onChange={e => setNewIdeaDesc(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
@@ -1274,7 +1279,7 @@ export default function PlannerPage() {
 
                             {/* Category pills */}
                             <div>
-                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5 block">Category</label>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5 block">{t('category')}</label>
                                 <div className="flex gap-1.5 flex-wrap">
                                     {CATEGORIES.map(c => (
                                         <button
@@ -1284,7 +1289,7 @@ export default function PlannerPage() {
                                                 newIdeaCat === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-800 text-zinc-400'
                                             }`}
                                         >
-                                            {c.emoji} {c.key}
+                                            {c.emoji} {t('cat_' + c.key)}
                                         </button>
                                     ))}
                                 </div>
@@ -1293,45 +1298,45 @@ export default function PlannerPage() {
                             {/* Price + Duration + Time */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Price</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('price')}</label>
                                     <select
                                         value={newIdeaPrice}
                                         onChange={e => setNewIdeaPrice(e.target.value)}
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
-                                        <option value="free">Free</option>
-                                        <option value="low">$</option>
-                                        <option value="medium">$$</option>
-                                        <option value="high">$$$</option>
+                                        <option value="free">{t('priceFree')}</option>
+                                        <option value="low">{t('priceLow')}</option>
+                                        <option value="medium">{t('priceMedium')}</option>
+                                        <option value="high">{t('priceHigh')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Duration</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('duration')}</label>
                                     <select
                                         value={newIdeaDuration}
                                         onChange={e => setNewIdeaDuration(e.target.value)}
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
-                                        <option value="30">30 min</option>
-                                        <option value="60">1 hour</option>
-                                        <option value="90">1.5 h</option>
-                                        <option value="120">2 hours</option>
-                                        <option value="180">3 hours</option>
-                                        <option value="240">4 hours</option>
-                                        <option value="480">Full day</option>
+                                        <option value="30">{t('duration30min')}</option>
+                                        <option value="60">{t('duration1hour')}</option>
+                                        <option value="90">{t('duration1_5h')}</option>
+                                        <option value="120">{t('duration2hours')}</option>
+                                        <option value="180">{t('duration3hours')}</option>
+                                        <option value="240">{t('duration4hours')}</option>
+                                        <option value="480">{t('durationFullDay')}</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Time</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('time')}</label>
                                     <select
                                         value={newIdeaTime}
                                         onChange={e => setNewIdeaTime(e.target.value)}
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
-                                        <option value="any">Any time</option>
-                                        <option value="morning">Morning</option>
-                                        <option value="afternoon">Afternoon</option>
-                                        <option value="evening">Evening</option>
+                                        <option value="any">{t('anyTime')}</option>
+                                        <option value="morning">{t('morning')}</option>
+                                        <option value="afternoon">{t('afternoon')}</option>
+                                        <option value="evening">{t('evening')}</option>
                                     </select>
                                 </div>
                             </div>
@@ -1342,7 +1347,7 @@ export default function PlannerPage() {
                             disabled={!newIdeaTitle.trim() || isSavingIdea}
                             className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                         >
-                            {isSavingIdea ? 'Saving...' : 'Add idea'}
+                            {isSavingIdea ? t('saving') : t('addIdeaButton')}
                         </Button>
                     </div>
                 </div>
@@ -1360,7 +1365,7 @@ export default function PlannerPage() {
                     >
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">
-                                {editingEvent ? 'Edit event' : 'New event'}
+                                {editingEvent ? t('editEvent') : t('newEvent')}
                             </h3>
                             <button
                                 onClick={resetEventForm}
@@ -1374,7 +1379,7 @@ export default function PlannerPage() {
                         <div className="space-y-3">
                             <input
                                 type="text"
-                                placeholder="Event title *"
+                                placeholder={t('eventTitlePlaceholder')}
                                 value={eventTitle}
                                 onChange={e => setEventTitle(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -1383,7 +1388,7 @@ export default function PlannerPage() {
                             />
 
                             <textarea
-                                placeholder="Description (optional)"
+                                placeholder={t('descriptionOptional')}
                                 value={eventDesc}
                                 onChange={e => setEventDesc(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
@@ -1392,7 +1397,7 @@ export default function PlannerPage() {
 
                             <input
                                 type="text"
-                                placeholder="Location (optional)"
+                                placeholder={t('locationOptional')}
                                 value={eventLocation}
                                 onChange={e => setEventLocation(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -1408,14 +1413,14 @@ export default function PlannerPage() {
                                     className="sr-only peer"
                                 />
                                 <div className="w-9 h-5 bg-zinc-700 peer-checked:bg-rose-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
-                                <span className="text-sm text-zinc-300">All day</span>
+                                <span className="text-sm text-zinc-300">{t('allDay')}</span>
                             </label>
 
                             {/* Date/Time inputs */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">
-                                        {eventAllDay ? 'Date *' : 'Start *'}
+                                        {eventAllDay ? t('dateLabel') : t('startLabel')}
                                     </label>
                                     <input
                                         type={eventAllDay ? 'date' : 'datetime-local'}
@@ -1426,7 +1431,7 @@ export default function PlannerPage() {
                                 </div>
                                 {!eventAllDay && (
                                     <div>
-                                        <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">End</label>
+                                        <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('endLabel')}</label>
                                         <input
                                             type="datetime-local"
                                             value={eventEndAt}
@@ -1447,7 +1452,7 @@ export default function PlannerPage() {
                                 />
                                 <div className="w-9 h-5 bg-zinc-700 peer-checked:bg-amber-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
                                 <span className="text-sm text-zinc-300 flex items-center gap-1.5">
-                                    <Bell className="w-3.5 h-3.5" /> Remind 30 min before
+                                    <Bell className="w-3.5 h-3.5" /> {t('remind30min')}
                                 </span>
                             </label>
                         </div>
@@ -1457,7 +1462,7 @@ export default function PlannerPage() {
                             disabled={!eventTitle.trim() || !eventStartAt || isSavingEvent}
                             className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                         >
-                            {isSavingEvent ? 'Saving...' : (editingEvent ? 'Update event' : 'Create event')}
+                            {isSavingEvent ? t('saving') : (editingEvent ? t('updateEvent') : t('createEvent'))}
                         </Button>
                     </div>
                 </div>

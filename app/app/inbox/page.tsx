@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
-import { format, parseISO, isToday, isYesterday } from 'date-fns'
+import { format, parseISO, isToday, isYesterday, type Locale } from 'date-fns'
 import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 
 const PAGE_SIZE = 30
 
@@ -93,11 +95,11 @@ type DatePlanItem = {
 
 type FeedItem = QuestionItem | JournalItem | NudgeItem | EventItem | TaskItem | MemoryItem | MilestoneItem | DatePlanItem
 
-function formatDateLabel(dateKey: string): string {
+function formatDateLabel(dateKey: string, dateLoc?: Locale): { type: 'today' | 'yesterday' | 'date'; formatted: string } {
     const d = parseISO(dateKey)
-    if (isToday(d)) return 'Today'
-    if (isYesterday(d)) return 'Yesterday'
-    return format(d, 'EEEE, MMM d')
+    if (isToday(d)) return { type: 'today', formatted: '' }
+    if (isYesterday(d)) return { type: 'yesterday', formatted: '' }
+    return { type: 'date', formatted: format(d, 'EEEE, MMM d', { locale: dateLoc }) }
 }
 
 export default function InboxPage() {
@@ -110,6 +112,9 @@ export default function InboxPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const t = useTranslations('inbox')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
 
     const loadInbox = useCallback(async (pageNum: number, append = false) => {
         if (!user) return
@@ -431,15 +436,15 @@ export default function InboxPage() {
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
-                <p className="text-sm text-zinc-400">Your shared timeline.</p>
+                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
             </div>
 
             {/* YOUR TURN — unanswered questions where partner already answered */}
             {yourTurnItems.length > 0 && (
                 <div className="space-y-3">
                     <h2 className="text-xs font-bold uppercase tracking-widest text-rose-500">
-                        Your Turn ({yourTurnItems.length})
+                        {t('yourTurn')} ({yourTurnItems.length})
                     </h2>
                     {yourTurnItems.map((item) => (
                         <Link key={item.id} href={`/app/inbox/${item.date_key}`} className="block group">
@@ -455,7 +460,7 @@ export default function InboxPage() {
                                         {item.text}
                                     </p>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xs text-zinc-500">{format(parseISO(item.date_key), 'MMM d, yyyy')}</p>
+                                        <p className="text-xs text-zinc-500">{format(parseISO(item.date_key), 'MMM d, yyyy', { locale: dateLoc })}</p>
                                         {item.category && (
                                             <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
                                                 {item.category}
@@ -473,7 +478,7 @@ export default function InboxPage() {
             {/* TIMELINE — grouped by date */}
             {feed.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500 text-sm border border-zinc-800 border-dashed rounded-xl">
-                    No history yet. Start answering daily questions!
+                    {t('noHistory')}
                 </div>
             ) : (
                 <div className="space-y-6">
@@ -481,7 +486,12 @@ export default function InboxPage() {
                         <div key={dateKey} className="space-y-2">
                             {/* Date header */}
                             <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-950/90 backdrop-blur-sm py-1 z-10">
-                                {formatDateLabel(dateKey)}
+                                {(() => {
+                                    const label = formatDateLabel(dateKey, dateLoc)
+                                    if (label.type === 'today') return t('today')
+                                    if (label.type === 'yesterday') return t('yesterday')
+                                    return label.formatted
+                                })()}
                             </h3>
 
                             <div className="space-y-2">
@@ -507,7 +517,7 @@ export default function InboxPage() {
                                                         {q.lastMessage && (
                                                             <p className="text-xs text-zinc-500 truncate flex items-center gap-1">
                                                                 <MessageCircle className="w-3 h-3 shrink-0" />
-                                                                <span className="font-medium text-zinc-400">{q.isLastMessageMine ? 'You' : q.lastMessageBy}:</span>
+                                                                <span className="font-medium text-zinc-400">{q.isLastMessageMine ? t('you') : q.lastMessageBy}:</span>
                                                                 {q.lastMessage}
                                                             </p>
                                                         )}
@@ -518,7 +528,7 @@ export default function InboxPage() {
                                                                 </span>
                                                             )}
                                                             {q.status === 'waiting' && (
-                                                                <span className="text-[10px] text-amber-500">Waiting for partner</span>
+                                                                <span className="text-[10px] text-amber-500">{t('waitingForPartner')}</span>
                                                             )}
                                                             {q.messageCount > 0 && (
                                                                 <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
@@ -547,10 +557,10 @@ export default function InboxPage() {
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm truncate">
                                                             <span className={`font-medium ${j.isMe ? 'text-rose-400' : 'text-zinc-300'}`}>
-                                                                {j.isMe ? 'You' : j.userName}
+                                                                {j.isMe ? t('you') : j.userName}
                                                             </span>
                                                             <span className="text-zinc-500">
-                                                                {j.entryCount > 1 ? ` added ${j.entryCount} entries` : ' added an entry'}
+                                                                {j.entryCount > 1 ? ` ${t('addedEntries', { count: j.entryCount })}` : ` ${t('addedAnEntry')}`}
                                                             </span>
                                                         </p>
                                                         {j.text && (
@@ -586,9 +596,9 @@ export default function InboxPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm truncate">
                                                         <span className={`font-medium ${n.isMe ? 'text-rose-400' : 'text-zinc-300'}`}>
-                                                            {n.isMe ? 'You' : n.senderName}
+                                                            {n.isMe ? t('you') : n.senderName}
                                                         </span>
-                                                        <span className="text-zinc-500"> sent love</span>
+                                                        <span className="text-zinc-500"> {t('sentLove')}</span>
                                                     </p>
                                                     {n.message && (
                                                         <p className="text-xs text-zinc-500 truncate">{n.message}</p>
@@ -609,7 +619,7 @@ export default function InboxPage() {
                                                         <p className="text-sm font-medium truncate">{e.title}</p>
                                                         <p className="text-xs text-zinc-500 flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
-                                                            {e.all_day ? 'All day' : format(parseISO(e.start_at), 'HH:mm')}
+                                                            {e.all_day ? t('allDay') : format(parseISO(e.start_at), 'HH:mm')}
                                                             {e.location && <><MapPin className="w-3 h-3 ml-1" /> <span className="truncate">{e.location}</span></>}
                                                         </p>
                                                     </div>
@@ -670,7 +680,7 @@ export default function InboxPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium truncate">{dp.ideaTitle}</p>
                                                     <p className="text-[10px] text-zinc-500">
-                                                        {dp.status === 'done' ? 'Date completed ✓' : 'Date planned'}
+                                                        {dp.status === 'done' ? t('dateCompleted') : t('datePlanned')}
                                                     </p>
                                                 </div>
                                             </div>

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { format, parseISO, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -43,6 +45,9 @@ export default function YearRecapPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const t = useTranslations('recap')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
 
     const dateStart = `${year}-01-01`
     const dateEnd = `${year}-12-31`
@@ -209,14 +214,14 @@ export default function YearRecapPage() {
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
             <Link href="/app/progress" className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
-                <ArrowLeft className="w-4 h-4" /> Progress
+                <ArrowLeft className="w-4 h-4" /> {t('backToProgress')}
             </Link>
 
             {/* Hero */}
             <div className="bg-gradient-to-br from-rose-500/20 via-purple-500/10 to-zinc-900 border border-rose-500/20 rounded-3xl p-6 text-center space-y-2">
-                <p className="text-sm font-medium text-rose-400 uppercase tracking-widest">Year in Review</p>
+                <p className="text-sm font-medium text-rose-400 uppercase tracking-widest">{t('yearInReviewLabel')}</p>
                 <h1 className="text-4xl font-bold tracking-tight">{year}</h1>
-                <p className="text-sm text-zinc-400">Your year together, in numbers.</p>
+                <p className="text-sm text-zinc-400">{t('yearDesc')}</p>
             </div>
 
             {/* Stats grid */}
@@ -224,34 +229,34 @@ export default function YearRecapPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <MessageSquare className="w-5 h-5 text-rose-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.daysWithBothAnswers || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Days both answered</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('daysBothAnswered')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Heart className="w-5 h-5 text-pink-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.totalNudges || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Love nudges</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('loveNudges')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Star className="w-5 h-5 text-amber-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.totalMemories || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Memories saved</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('memoriesSaved')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Trophy className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.milestones.length || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Milestones</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('milestones')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Lightbulb className="w-5 h-5 text-purple-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.datesDone || 0}<span className="text-sm text-zinc-600">/{data?.datesPlanned || 0}</span></p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Dates done</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('datesDone')}</p>
                 </div>
             </div>
 
             {/* Mood summary */}
             {totalMoods > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Mood Overview</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('moodOverview')}</h3>
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
                         {Object.entries(data?.moodBreakdown || {})
                             .sort((a, b) => b[1] - a[1])
@@ -277,7 +282,7 @@ export default function YearRecapPage() {
             {/* Top tags */}
             {data && data.topTags.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Top Tags</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('topTags')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {data.topTags.map(({ tag, count }) => (
                             <span key={tag} className="flex items-center gap-1 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
@@ -291,7 +296,7 @@ export default function YearRecapPage() {
             {/* Highlights */}
             {data && data.highlights.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Highlights</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('highlights')}</h3>
                     <div className="space-y-2">
                         {data.highlights.map(mem => (
                             <Link
@@ -309,7 +314,7 @@ export default function YearRecapPage() {
                                 <div className="flex-1 min-w-0 space-y-0.5">
                                     <p className="text-sm font-medium truncate">{mem.title}</p>
                                     <p className="text-xs text-zinc-500">
-                                        {format(parseISO(mem.happened_at), 'MMM d')}
+                                        {format(parseISO(mem.happened_at), 'MMM d', { locale: dateLoc })}
                                         {mem.location && <> · {mem.location}</>}
                                     </p>
                                 </div>
@@ -323,7 +328,7 @@ export default function YearRecapPage() {
             {/* Milestones */}
             {data && data.milestones.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Milestones</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('milestones')}</h3>
                     <div className="space-y-2">
                         {data.milestones.map(ms => (
                             <div key={ms.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
@@ -332,7 +337,7 @@ export default function YearRecapPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">{ms.title}</p>
-                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy')}</p>
+                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
                                 </div>
                             </div>
                         ))}
@@ -343,7 +348,7 @@ export default function YearRecapPage() {
             {/* Date idea categories */}
             {data && data.topDateCategories.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Date Night Favorites</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('dateNightFavorites')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {data.topDateCategories.map(({ category, count }) => (
                             <span key={category} className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
@@ -356,7 +361,7 @@ export default function YearRecapPage() {
 
             {/* Month links */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Browse by Month</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('browseByMonth')}</h3>
                 <div className="grid grid-cols-3 gap-2">
                     {months.map(m => (
                         <Link
@@ -364,7 +369,7 @@ export default function YearRecapPage() {
                             href={`/app/recap/${year}/${format(m, 'MM')}`}
                             className="bg-zinc-900 border border-zinc-800 rounded-xl py-3 text-center text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
                         >
-                            {format(m, 'MMM')}
+                            {format(m, 'MMM', { locale: dateLoc })}
                         </Link>
                     ))}
                 </div>

@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { HeartHandshake } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n'
 
 export default function InviteClient({ code }: { code: string }) {
+    const t = useTranslations('invite')
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -63,12 +65,12 @@ export default function InviteClient({ code }: { code: string }) {
                     .rpc('lookup_room_by_invite_code', { p_invite_code: code.toUpperCase() })
 
                 if (lookupError || !lookupData || lookupData.length === 0) {
-                    throw new Error('Invalid or expired invite link.')
+                    throw new Error(t('invalidOrExpired'))
                 }
 
                 const room = lookupData[0]
                 if (room.is_full) {
-                    throw new Error('This room is already full.')
+                    throw new Error(t('roomFull'))
                 }
 
                 // 5. Join the room
@@ -80,7 +82,7 @@ export default function InviteClient({ code }: { code: string }) {
                     })
 
                 if (joinError) {
-                    throw new Error('Could not join room. It might be full.')
+                    throw new Error(t('couldNotJoin'))
                 }
 
                 // Clear saved code
@@ -103,7 +105,7 @@ export default function InviteClient({ code }: { code: string }) {
             <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-950">
                 <div className="animate-pulse flex flex-col items-center space-y-4">
                     <HeartHandshake className="h-8 w-8 text-rose-500 animate-bounce" />
-                    <p className="text-zinc-400">Accepting invitation...</p>
+                    <p className="text-zinc-400">{t('acceptingInvitation')}</p>
                 </div>
             </div>
         )
@@ -116,13 +118,13 @@ export default function InviteClient({ code }: { code: string }) {
                     <div className="rounded-full bg-red-500/10 p-4 mx-auto w-fit">
                         <HeartHandshake className="h-8 w-8 text-red-500" />
                     </div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Oops!</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">{t('oops')}</h1>
                     <p className="text-sm text-zinc-400">{error}</p>
                     <Button
                         className="w-full bg-zinc-800 text-zinc-50 hover:bg-zinc-700"
                         onClick={() => router.push('/onboarding/room')}
                     >
-                        Go to Room Setup
+                        {t('goToRoomSetup')}
                     </Button>
                 </div>
             </div>

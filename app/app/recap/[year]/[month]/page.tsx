@@ -10,6 +10,8 @@ import {
     MapPin, Tag, ChevronRight, Trophy, Lightbulb
 } from 'lucide-react'
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 
 const MOODS: Record<string, { emoji: string; label: string }> = {
     great: { emoji: '😄', label: 'Great' },
@@ -24,9 +26,11 @@ export default function MonthRecapPage() {
     const yearNum = parseInt(year, 10)
     const monthNum = parseInt(month, 10)
     const monthDate = new Date(yearNum, monthNum - 1, 1)
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
     const dateStart = format(startOfMonth(monthDate), 'yyyy-MM-dd')
     const dateEnd = format(endOfMonth(monthDate), 'yyyy-MM-dd')
-    const monthLabel = format(monthDate, 'MMMM yyyy')
+    const monthLabel = format(monthDate, 'MMMM yyyy', { locale: dateLoc })
 
     const [daysWithBothAnswers, setDaysWithBothAnswers] = useState(0)
     const [totalNudges, setTotalNudges] = useState(0)
@@ -42,6 +46,7 @@ export default function MonthRecapPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const t = useTranslations('recap')
 
     const loadRecap = useCallback(async () => {
         if (!user) return
@@ -184,12 +189,12 @@ export default function MonthRecapPage() {
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
             <Link href={`/app/recap/${year}`} className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
-                <ArrowLeft className="w-4 h-4" /> {year} Recap
+                <ArrowLeft className="w-4 h-4" /> {year} {t('recapLabel')}
             </Link>
 
             {/* Hero */}
             <div className="bg-gradient-to-br from-purple-500/20 via-rose-500/10 to-zinc-900 border border-purple-500/20 rounded-3xl p-6 text-center space-y-2">
-                <p className="text-sm font-medium text-purple-400 uppercase tracking-widest">Monthly Recap</p>
+                <p className="text-sm font-medium text-purple-400 uppercase tracking-widest">{t('monthlyRecap')}</p>
                 <h1 className="text-3xl font-bold tracking-tight">{monthLabel}</h1>
             </div>
 
@@ -198,34 +203,34 @@ export default function MonthRecapPage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <MessageSquare className="w-5 h-5 text-rose-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{daysWithBothAnswers}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Days both answered</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('daysBothAnswered')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Heart className="w-5 h-5 text-pink-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{totalNudges}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Love nudges</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('loveNudges')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Star className="w-5 h-5 text-amber-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{totalMemories}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Memories</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('memories')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Trophy className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{milestones.length}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Milestones</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('milestones')}</p>
                 </div>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
                     <Lightbulb className="w-5 h-5 text-purple-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{datesDone}<span className="text-sm text-zinc-600">/{datesPlanned}</span></p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Dates done</p>
+                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('datesDone')}</p>
                 </div>
             </div>
 
             {/* Mood summary */}
             {totalMoods > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Mood Overview</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('moodOverview')}</h3>
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
                         {Object.entries(moodBreakdown)
                             .sort((a, b) => b[1] - a[1])
@@ -251,7 +256,7 @@ export default function MonthRecapPage() {
             {/* Top tags */}
             {topTags.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Top Tags</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('topTags')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {topTags.map(({ tag, count }) => (
                             <span key={tag} className="flex items-center gap-1 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
@@ -265,7 +270,7 @@ export default function MonthRecapPage() {
             {/* Highlights */}
             {highlights.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Highlights</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('highlights')}</h3>
                     <div className="space-y-2">
                         {highlights.map((mem: any) => (
                             <Link
@@ -283,7 +288,7 @@ export default function MonthRecapPage() {
                                 <div className="flex-1 min-w-0 space-y-0.5">
                                     <p className="text-sm font-medium truncate">{mem.title}</p>
                                     <p className="text-xs text-zinc-500">
-                                        {format(parseISO(mem.happened_at), 'MMM d')}
+                                        {format(parseISO(mem.happened_at), 'MMM d', { locale: dateLoc })}
                                         {mem.location && <> · {mem.location}</>}
                                     </p>
                                 </div>
@@ -297,7 +302,7 @@ export default function MonthRecapPage() {
             {/* Date categories */}
             {topDateCategories.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Date Night Favorites</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('dateNightFavorites')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {topDateCategories.map(({ category, count }) => (
                             <span key={category} className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
@@ -311,7 +316,7 @@ export default function MonthRecapPage() {
             {/* Milestones */}
             {milestones.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Milestones</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('milestones')}</h3>
                     <div className="space-y-2">
                         {milestones.map((ms: any) => (
                             <div key={ms.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
@@ -320,7 +325,7 @@ export default function MonthRecapPage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">{ms.title}</p>
-                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy')}</p>
+                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
                                 </div>
                             </div>
                         ))}

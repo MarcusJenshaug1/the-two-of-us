@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/supabase/auth-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppUpdateNotifier } from "@/components/app-update-notifier";
+import { LocaleProvider } from "@/lib/i18n";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -59,12 +60,14 @@ export default function RootLayout({
     return (
         <html lang="en" className="dark">
             <body className={`${inter.className} bg-zinc-950 text-zinc-50 antialiased min-h-screen flex flex-col`}>
-                <AuthProvider>
-                    <ToastProvider>
-                        <AppUpdateNotifier />
-                        {children}
-                    </ToastProvider>
-                </AuthProvider>
+                <LocaleProvider>
+                    <AuthProvider>
+                        <ToastProvider>
+                            <AppUpdateNotifier />
+                            {children}
+                        </ToastProvider>
+                    </AuthProvider>
+                </LocaleProvider>
             </body>
         </html>
     );

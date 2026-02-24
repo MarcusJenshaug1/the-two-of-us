@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import { ArrowLeft, Send, Clock, CheckCircle2, User, Camera, X, MessageCircle, BookOpen, CalendarDays, MapPin, Trophy, Star, Lightbulb } from 'lucide-react'
 import Link from 'next/link'
@@ -78,6 +80,9 @@ export default function InboxDetailPage() {
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
+    const t = useTranslations('inbox')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
     const dateKey = params.dateKey as string
 
     const loadDetail = async () => {
@@ -301,7 +306,7 @@ export default function InboxDetailPage() {
             setDraft('')
             localStorage.removeItem(`draft_inbox_${data.id}`)
         } catch (err: any) {
-            toast(err.message || 'Failed to submit answer', 'error')
+            toast(err.message || t('failedToSubmit'), 'error')
         } finally {
             setIsSubmitting(false)
         }
@@ -396,11 +401,11 @@ export default function InboxDetailPage() {
                 tags: [],
             })
             if (error) throw error
-            toast('Saved as memory ✨', 'success')
+            toast(t('savedAsMemory'), 'success')
             setShowSaveMemory(false)
             loadDetail()
         } catch (err: any) {
-            toast(err.message || 'Failed to save', 'error')
+            toast(err.message || t('failedToSave'), 'error')
         } finally {
             setIsSavingMemory(false)
         }
@@ -423,9 +428,9 @@ export default function InboxDetailPage() {
 
     const formatDateHeading = (dk: string) => {
         const d = parseISO(dk)
-        if (isToday(d)) return 'Today'
-        if (isYesterday(d)) return 'Yesterday'
-        return format(d, 'EEEE, MMMM d')
+        if (isToday(d)) return t('today')
+        if (isYesterday(d)) return t('yesterday')
+        return format(d, 'EEEE, MMMM d', { locale: dateLoc })
     }
 
     if (isLoading) {
@@ -440,8 +445,8 @@ export default function InboxDetailPage() {
     if (error && !dayEvents.length && !dayTasks.length && !dayMemories.length && !dayMilestones.length && !dayDatePlans.length) {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
-                <p className="text-zinc-500">{error || 'No content found'}</p>
-                <Button variant="outline" onClick={() => router.push('/app/inbox')}>Go back</Button>
+                <p className="text-zinc-500">{error || t('noContentFound')}</p>
+                <Button variant="outline" onClick={() => router.push('/app/inbox')}>{t('goBack')}</Button>
             </div>
         )
     }
@@ -464,7 +469,7 @@ export default function InboxDetailPage() {
                     </button>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{formatDateHeading(dateKey)}</p>
-                        <p className="text-[11px] text-zinc-500">{format(parseISO(dateKey), 'MMMM d, yyyy')}</p>
+                        <p className="text-[11px] text-zinc-500">{format(parseISO(dateKey), 'MMMM d, yyyy', { locale: dateLoc })}</p>
                     </div>
                     {data?.category && (
                         <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full shrink-0">
@@ -482,7 +487,7 @@ export default function InboxDetailPage() {
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
                         {/* Question text */}
                         <div className="p-5 pb-4">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/70 mb-2">Daily Question</p>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400/70 mb-2">{t('dailyQuestion')}</p>
                             <h1 className="text-lg font-semibold leading-snug">{data.text}</h1>
                         </div>
 
@@ -494,7 +499,7 @@ export default function InboxDetailPage() {
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-2">
                                         <Avatar profile={myProfile} />
-                                        <span className="text-xs font-semibold text-rose-400">You</span>
+                                        <span className="text-xs font-semibold text-rose-400">{t('you')}</span>
                                         <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                                         {partnerReaction && (
                                             <span className="ml-auto text-sm">
@@ -510,12 +515,12 @@ export default function InboxDetailPage() {
                                 <form onSubmit={handleSubmitAnswer} className="space-y-3">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Avatar profile={myProfile} />
-                                        <span className="text-xs font-semibold text-rose-400">Your answer</span>
+                                        <span className="text-xs font-semibold text-rose-400">{t('yourAnswer')}</span>
                                     </div>
                                     <div className="relative">
                                         <textarea
                                             className="w-full min-h-[100px] resize-none rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
-                                            placeholder="Type your answer here..."
+                                            placeholder={t('answerPlaceholder')}
                                             value={draft}
                                             onChange={handleDraftChange}
                                             disabled={isSubmitting}
@@ -528,8 +533,8 @@ export default function InboxDetailPage() {
                                         className="w-full h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
                                         disabled={isSubmitting || draft.length < 10}
                                     >
-                                        {isSubmitting ? 'Sending...' : (
-                                            <span className="flex items-center gap-2"><Send className="w-4 h-4" /> Send answer</span>
+                                        {isSubmitting ? t('sending') : (
+                                            <span className="flex items-center gap-2"><Send className="w-4 h-4" /> {t('sendAnswer')}</span>
                                         )}
                                     </Button>
                                 </form>
@@ -553,7 +558,7 @@ export default function InboxDetailPage() {
                                                     onClick={() => handleReaction(activeReaction)}
                                                     disabled={isSubmittingReaction}
                                                     className="text-sm hover:opacity-70 transition-opacity active:scale-90"
-                                                    title="Remove reaction"
+                                                    title={t('removeReaction')}
                                                 >
                                                     {activeReaction === 'heart' ? '❤️' : activeReaction === 'smile' ? '😊' : '🔥'}
                                                 </button>
@@ -585,8 +590,8 @@ export default function InboxDetailPage() {
                                 <div className="flex items-center gap-3 py-2">
                                     <Avatar profile={partnerProfile} />
                                     <div>
-                                        <p className="text-sm font-medium text-amber-400">{partnerName} has answered!</p>
-                                        <p className="text-xs text-zinc-500">Answer above to reveal theirs.</p>
+                                        <p className="text-sm font-medium text-amber-400">{t('partnerHasAnswered', { name: partnerName })}</p>
+                                        <p className="text-xs text-zinc-500">{t('answerToReveal')}</p>
                                     </div>
                                 </div>
                             ) : myAnswer && !partnerAnswer ? (
@@ -594,7 +599,7 @@ export default function InboxDetailPage() {
                                     <Avatar profile={partnerProfile} />
                                     <div>
                                         <p className="text-sm text-zinc-400">{partnerName}</p>
-                                        <p className="text-xs text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> Waiting for answer...</p>
+                                        <p className="text-xs text-zinc-600 flex items-center gap-1"><Clock className="w-3 h-3" /> {t('waitingForAnswer')}</p>
                                     </div>
                                 </div>
                             ) : (
@@ -602,7 +607,7 @@ export default function InboxDetailPage() {
                                     <Avatar profile={partnerProfile} />
                                     <div>
                                         <p className="text-sm text-zinc-400">{partnerName}</p>
-                                        <p className="text-xs text-zinc-600">Hasn&apos;t answered yet</p>
+                                        <p className="text-xs text-zinc-600">{t('hasntAnsweredYet')}</p>
                                     </div>
                                 </div>
                             )}
@@ -616,7 +621,7 @@ export default function InboxDetailPage() {
                     <section>
                         <div className="flex items-center gap-2 mb-3">
                             <MessageCircle className="w-3.5 h-3.5 text-zinc-500" />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Chat</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('chat')}</h3>
                             {messages.length > 0 && (
                                 <span className="text-[10px] text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded-full">{messages.length}</span>
                             )}
@@ -649,7 +654,7 @@ export default function InboxDetailPage() {
                                     })
                                 ) : (
                                     <p className="text-xs text-zinc-600 text-center py-4">
-                                        Start a conversation about this question ✨
+                                        {t('startConversation')}
                                     </p>
                                 )}
                                 <div ref={chatEndRef} />
@@ -659,7 +664,7 @@ export default function InboxDetailPage() {
                             <div className="flex items-center gap-2 p-3 border-t border-zinc-800/50">
                                 <input
                                     type="text"
-                                    placeholder={`Message ${partnerName}...`}
+                                    placeholder={t('messagePlaceholder', { name: partnerName })}
                                     className="flex-1 bg-zinc-950 border border-zinc-800 rounded-full py-2 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
@@ -689,11 +694,11 @@ export default function InboxDetailPage() {
                     <section>
                         <div className="flex items-center gap-2 mb-3">
                             <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Journal</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('journal')}</h3>
                         </div>
 
                         <div className="space-y-3">
-                            {[{ logs: myLogs, profile: myProfile, name: 'You', isMe: true }, { logs: partnerLogs, profile: partnerProfile, name: partnerName, isMe: false }]
+                            {[{ logs: myLogs, profile: myProfile, name: t('you'), isMe: true }, { logs: partnerLogs, profile: partnerProfile, name: partnerName, isMe: false }]
                                 .filter((group) => group.logs.length > 0)
                                 .map((group) => (
                                     <div key={group.name} className="space-y-2">
@@ -704,7 +709,7 @@ export default function InboxDetailPage() {
                                                     <div className="flex items-center gap-2 px-4 pt-3 pb-2">
                                                         <Avatar profile={group.profile} />
                                                         <span className={`text-xs font-semibold ${group.isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{group.name}</span>
-                                                        <span className="text-[10px] text-zinc-600">Entry {idx + 1}</span>
+                                                        <span className="text-[10px] text-zinc-600">{t('entry', { number: idx + 1 })}</span>
                                                         {hasImages && (
                                                             <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
                                                                 <Camera className="w-3 h-3" /> {log.images.length}
@@ -743,7 +748,7 @@ export default function InboxDetailPage() {
                     <section>
                         <div className="flex items-center gap-2 mb-3">
                             <CalendarDays className="w-3.5 h-3.5 text-zinc-500" />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Planner</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('plannerHeading')}</h3>
                         </div>
                         <div className="space-y-2">
                             {dayEvents.map((ev: any) => (
@@ -752,7 +757,7 @@ export default function InboxDetailPage() {
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{ev.title}</p>
                                         <p className="text-xs text-zinc-500">
-                                            {ev.all_day ? 'All day' : format(parseISO(ev.start_at), 'HH:mm')}
+                                            {ev.all_day ? t('allDay') : format(parseISO(ev.start_at), 'HH:mm')}
                                             {ev.location && ` · ${ev.location}`}
                                         </p>
                                     </div>
@@ -776,7 +781,7 @@ export default function InboxDetailPage() {
                     <section>
                         <div className="flex items-center gap-2 mb-3">
                             <Star className="w-3.5 h-3.5 text-zinc-500" />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Memories</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('memoriesHeading')}</h3>
                         </div>
                         <div className="space-y-2">
                             {dayMemories.map((mem: any) => (
@@ -821,8 +826,8 @@ export default function InboxDetailPage() {
                                 <button key={dp.id} onClick={() => router.push('/app/planner')} className="w-full text-left flex items-center gap-3 p-3 bg-pink-500/5 border border-pink-500/10 rounded-xl hover:border-pink-500/30 hover:bg-pink-500/10 transition-colors">
                                     <Lightbulb className={`w-4 h-4 shrink-0 ${dp.status === 'done' ? 'text-emerald-400' : 'text-pink-400'}`} />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{dp.date_ideas?.title || 'Date idea'}</p>
-                                        <p className="text-[10px] text-zinc-500">{dp.status === 'done' ? 'Completed ✓' : 'Planned'}</p>
+                                        <p className="text-sm font-medium truncate">{dp.date_ideas?.title || t('dateIdeaFallback')}</p>
+                                        <p className="text-[10px] text-zinc-500">{dp.status === 'done' ? t('dateCompleted') : t('datePlanned')}</p>
                                     </div>
                                 </button>
                             ))}
@@ -838,14 +843,14 @@ export default function InboxDetailPage() {
                     return hasJournalContent && dayMemories.length === 0 && !showSaveMemory ? (
                         <button
                             onClick={() => {
-                                setMemTitle(`Memory from ${formatDateHeading(dateKey)}`)
+                                setMemTitle(t('memoryFrom', { date: formatDateHeading(dateKey) }))
                                 setMemDesc(latestLog?.text || '')
                                 setMemImages(latestLog?.images || [])
                                 setShowSaveMemory(true)
                             }}
                             className="w-full flex items-center justify-center gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-amber-400 text-sm font-medium hover:border-amber-500/40 transition-colors"
                         >
-                            <Star className="w-4 h-4" /> Save journal as memory
+                            <Star className="w-4 h-4" /> {t('saveJournalAsMemory')}
                         </button>
                     ) : null
                 })()}
@@ -862,7 +867,7 @@ export default function InboxDetailPage() {
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">Save as Memory</h3>
+                            <h3 className="text-lg font-semibold">{t('saveAsMemory')}</h3>
                             <button onClick={() => setShowSaveMemory(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
@@ -873,14 +878,14 @@ export default function InboxDetailPage() {
                                 value={memTitle}
                                 onChange={e => setMemTitle(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600"
-                                placeholder="Title *"
+                                placeholder={t('titlePlaceholder')}
                                 maxLength={120}
                             />
                             <textarea
                                 value={memDesc}
                                 onChange={e => setMemDesc(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600 resize-none min-h-[80px]"
-                                placeholder="Description"
+                                placeholder={t('descriptionPlaceholder')}
                                 maxLength={1000}
                             />
                             {memImages.length > 0 && (
@@ -896,7 +901,7 @@ export default function InboxDetailPage() {
                             disabled={!memTitle.trim() || isSavingMemory}
                             className="w-full bg-amber-600 hover:bg-amber-700 text-white"
                         >
-                            {isSavingMemory ? 'Saving...' : 'Save memory'}
+                            {isSavingMemory ? t('saving') : t('saveMemory')}
                         </Button>
                     </div>
                 </div>

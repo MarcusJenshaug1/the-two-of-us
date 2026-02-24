@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Heart, Mail, Lock, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useTranslations } from '@/lib/i18n'
 
 type AuthView = 'signIn' | 'signUp' | 'verifyEmail' | 'forgotPassword' | 'resetSent'
 
@@ -21,6 +22,7 @@ export default function SignInPage() {
 
     const router = useRouter()
     const supabase = createClient()
+    const t = useTranslations('signIn')
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -42,7 +44,7 @@ export default function SignInPage() {
                 })
                 if (error) throw error
                 setView('verifyEmail')
-                setMessage('We have sent a one-time code to your email. Please check your inbox.')
+                setMessage(t('otpSent'))
             } else if (view === 'signIn') {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
@@ -95,7 +97,7 @@ export default function SignInPage() {
                 email,
             })
             if (error) throw error
-            setMessage('New code sent!')
+            setMessage(t('newCodeSent'))
         } catch (err: any) {
             setError(err.message)
         } finally {
@@ -129,14 +131,14 @@ export default function SignInPage() {
                     </div>
                     <div className="space-y-1">
                         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-t from-zinc-400 to-zinc-50 bg-clip-text text-transparent">
-                            {view === 'verifyEmail' ? 'Verify Email' : view === 'forgotPassword' ? 'Reset Password' : view === 'resetSent' ? 'Check Your Email' : 'The Two of Us'}
+                            {view === 'verifyEmail' ? t('verifyEmail') : view === 'forgotPassword' ? t('resetPassword') : view === 'resetSent' ? t('checkYourEmail') : 'The Two of Us'}
                         </h1>
                         <p className="text-zinc-400 text-sm font-medium">
-                            {view === 'signIn' && 'Welcome back to your shared space.'}
-                            {view === 'signUp' && 'Start your digital journey together today.'}
-                            {view === 'verifyEmail' && `Enter the code we sent to ${email}`}
-                            {view === 'forgotPassword' && 'Enter your email to receive a reset link.'}
-                            {view === 'resetSent' && `We sent a reset link to ${email}`}
+                            {view === 'signIn' && t('welcomeBack')}
+                            {view === 'signUp' && t('startJourney')}
+                            {view === 'verifyEmail' && t('enterCode', { email })}
+                            {view === 'forgotPassword' && t('forgotPasswordDesc')}
+                            {view === 'resetSent' && t('resetSentDesc', { email })}
                         </p>
                     </div>
                 </div>
@@ -151,7 +153,7 @@ export default function SignInPage() {
                                     view === 'signIn' ? "bg-zinc-800 text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
-                                Sign In
+                                {t('signIn')}
                             </button>
                             <button
                                 onClick={() => { setView('signUp'); setError(null); }}
@@ -160,7 +162,7 @@ export default function SignInPage() {
                                     view === 'signUp' ? "bg-zinc-800 text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
-                                New User
+                                {t('newUser')}
                             </button>
                         </div>
 
@@ -170,7 +172,7 @@ export default function SignInPage() {
                                     <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
                                     <Input
                                         type="email"
-                                        placeholder="Email"
+                                        placeholder={t('email')}
                                         className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -182,7 +184,7 @@ export default function SignInPage() {
                                     <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
                                     <Input
                                         type="password"
-                                        placeholder="Password"
+                                        placeholder={t('password')}
                                         className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
@@ -198,7 +200,7 @@ export default function SignInPage() {
                                     onClick={() => { setView('forgotPassword'); setError(null); }}
                                     className="text-xs text-zinc-500 hover:text-rose-400 transition-colors w-full text-right -mt-2"
                                 >
-                                    Forgot password?
+                                    {t('forgotPassword')}
                                 </button>
                             )}
 
@@ -217,7 +219,7 @@ export default function SignInPage() {
                                     <RefreshCw className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <>
-                                        {view === 'signIn' ? 'Sign In' : 'Create Account'}
+                                        {view === 'signIn' ? t('signIn') : t('createAccount')}
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </>
                                 )}
@@ -230,7 +232,7 @@ export default function SignInPage() {
                             <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
                             <Input
                                 type="email"
-                                placeholder="Email"
+                                placeholder={t('email')}
                                 className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
@@ -250,7 +252,7 @@ export default function SignInPage() {
                             className="w-full h-11 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
                             disabled={isLoading}
                         >
-                            {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Send Reset Link'}
+                            {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : t('sendResetLink')}
                         </Button>
 
                         <button
@@ -258,7 +260,7 @@ export default function SignInPage() {
                             className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
                             onClick={() => { setView('signIn'); setError(null); }}
                         >
-                            <ArrowLeft className="h-3 w-3" /> Back to sign in
+                            <ArrowLeft className="h-3 w-3" /> {t('backToSignIn')}
                         </button>
                     </form>
                 ) : view === 'resetSent' ? (
@@ -266,13 +268,13 @@ export default function SignInPage() {
                         <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
                             <Mail className="h-6 w-6 text-emerald-400" />
                         </div>
-                        <p className="text-sm text-zinc-400">Click the link in the email to reset your password. You can close this page.</p>
+                        <p className="text-sm text-zinc-400">{t('resetSentInfo')}</p>
                         <button
                             type="button"
                             className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
                             onClick={() => { setView('signIn'); setError(null); }}
                         >
-                            <ArrowLeft className="h-3 w-3" /> Back to sign in
+                            <ArrowLeft className="h-3 w-3" /> {t('backToSignIn')}
                         </button>
                     </div>
                 ) : (
@@ -340,7 +342,7 @@ export default function SignInPage() {
                                 className="w-full h-12 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
                                 disabled={isLoading || otp.length !== 8}
                             >
-                                {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Verify Code'}
+                                {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : t('verifyCode')}
                             </Button>
 
                             <div className="flex flex-col space-y-2">
@@ -351,7 +353,7 @@ export default function SignInPage() {
                                     disabled={isLoading}
                                 >
                                     <RefreshCw className={clsx("h-3 w-3", isLoading && "animate-spin")} />
-                                    Resend code
+                                    {t('resendCode')}
                                 </button>
                                 <button
                                     type="button"
@@ -360,7 +362,7 @@ export default function SignInPage() {
                                     disabled={isLoading}
                                 >
                                     <ArrowLeft className="h-3 w-3" />
-                                    Go back
+                                    {t('goBack')}
                                 </button>
                             </div>
                         </div>
@@ -368,7 +370,7 @@ export default function SignInPage() {
                 )}
 
                 <p className="text-center text-xs text-zinc-600 px-8">
-                    By signing in, you agree to our terms of service for this private service.
+                    {t('termsNotice')}
                 </p>
             </div>
         </div>

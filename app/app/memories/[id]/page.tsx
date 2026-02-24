@@ -13,6 +13,8 @@ import {
 import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { SignedImage } from '@/components/signed-image'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 
 type Memory = {
     id: string
@@ -39,6 +41,9 @@ export default function MemoryDetailPage() {
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
+    const t = useTranslations('memories')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
 
     const loadData = useCallback(async () => {
         if (!user || !id) return
@@ -95,8 +100,8 @@ export default function MemoryDetailPage() {
     async function handleDelete() {
         if (!memory) return
         const { error } = await supabase.from('memories').delete().eq('id', memory.id)
-        if (error) { toast('Failed to delete', 'error'); return }
-        toast('Memory deleted', 'success')
+        if (error) { toast(t('failedToDelete'), 'error'); return }
+        toast(t('memoryDeleted'), 'success')
         router.push('/app/memories')
     }
 
@@ -111,8 +116,8 @@ export default function MemoryDetailPage() {
     if (!memory) {
         return (
             <div className="p-4 pt-8 text-center text-zinc-500">
-                <p>Memory not found.</p>
-                <Link href="/app/memories" className="text-rose-500 text-sm mt-4 inline-block">← Back to memories</Link>
+                <p>{t('notFound')}</p>
+                <Link href="/app/memories" className="text-rose-500 text-sm mt-4 inline-block">{t('backToMemories')}</Link>
             </div>
         )
     }
@@ -144,7 +149,7 @@ export default function MemoryDetailPage() {
                     <Link
                         href="/app/memories"
                         className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors"
-                        aria-label="Back to memories"
+                        aria-label={t('backToMemories')}
                     >
                         <ArrowLeft className="w-5 h-5 text-white" />
                     </Link>
@@ -152,7 +157,7 @@ export default function MemoryDetailPage() {
             ) : (
                 <div className="p-4 pt-8">
                     <Link href="/app/memories" className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
-                        <ArrowLeft className="w-4 h-4" /> Memories
+                        <ArrowLeft className="w-4 h-4" /> {t('title')}
                     </Link>
                 </div>
             )}
@@ -166,7 +171,7 @@ export default function MemoryDetailPage() {
                         <div className="flex items-center gap-3 text-xs text-zinc-500">
                             <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {format(parseISO(memory.happened_at), 'MMMM d, yyyy')}
+                                {format(parseISO(memory.happened_at), 'MMMM d, yyyy', { locale: dateLoc })}
                             </span>
                             {memory.location && (
                                 <span className="flex items-center gap-1">
@@ -179,14 +184,14 @@ export default function MemoryDetailPage() {
                         <button
                             onClick={toggleFav}
                             className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
-                            aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                            aria-label={isFav ? t('removeFromFavorites') : t('addToFavorites')}
                         >
                             <Heart className={`w-5 h-5 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-zinc-500'}`} />
                         </button>
                         <button
                             onClick={handleDelete}
                             className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
-                            aria-label="Delete memory"
+                            aria-label={t('deleteMemory')}
                         >
                             <Trash2 className="w-5 h-5 text-zinc-500" />
                         </button>
@@ -214,14 +219,14 @@ export default function MemoryDetailPage() {
                 {/* Photo grid (if no hero) */}
                 {memory.images.length === 0 && (
                     <div className="text-center py-8 text-zinc-600 text-sm">
-                        No photos for this memory.
+                        {t('noPhotos')}
                     </div>
                 )}
 
                 {/* Photo grid (below description for quick browse) */}
                 {memory.images.length > 0 && (
                     <div className="space-y-2">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Photos</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('photos')}</h3>
                         <div className="grid grid-cols-3 gap-1.5">
                             {memory.images.map((url, i) => (
                                 <button
@@ -246,7 +251,7 @@ export default function MemoryDetailPage() {
                     <button
                         className="absolute top-4 right-4 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
                         onClick={() => setViewerIndex(null)}
-                        aria-label="Close viewer"
+                        aria-label={t('closeViewer')}
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -256,7 +261,7 @@ export default function MemoryDetailPage() {
                         <button
                             className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
                             onClick={(e) => { e.stopPropagation(); setViewerIndex(viewerIndex - 1) }}
-                            aria-label="Previous photo"
+                            aria-label={t('previousPhoto')}
                         >
                             <ChevronLeft className="w-6 h-6" />
                         </button>
@@ -265,7 +270,7 @@ export default function MemoryDetailPage() {
                         <button
                             className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
                             onClick={(e) => { e.stopPropagation(); setViewerIndex(viewerIndex + 1) }}
-                            aria-label="Next photo"
+                            aria-label={t('nextPhoto')}
                         >
                             <ChevronRight className="w-6 h-6" />
                         </button>

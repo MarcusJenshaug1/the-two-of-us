@@ -10,6 +10,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
 import { resizeImage } from '@/lib/storage'
 import { SignedImage } from '@/components/signed-image'
+import { useTranslations } from '@/lib/i18n'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -21,15 +22,15 @@ function getDateKey() {
 }
 
 const QUICK_NUDGES = [
-    { emoji: '💕', message: 'Thinking of you' },
-    { emoji: '🫶', message: 'I love you' },
-    { emoji: '😘', message: 'Sending kisses' },
-    { emoji: '🤗', message: 'Wish you were here' },
-    { emoji: '✨', message: 'You make me happy' },
-    { emoji: '🌹', message: 'You are beautiful' },
-    { emoji: '💪', message: 'You got this today!' },
-    { emoji: '🏠', message: 'Can\'t wait to see you' },
-]
+    { emoji: '💕', key: 'thinkingOfYou' },
+    { emoji: '🫶', key: 'iLoveYou' },
+    { emoji: '😘', key: 'sendingKisses' },
+    { emoji: '🤗', key: 'wishYouWereHere' },
+    { emoji: '✨', key: 'youMakeMeHappy' },
+    { emoji: '🌹', key: 'youAreBeautiful' },
+    { emoji: '💪', key: 'youGotThis' },
+    { emoji: '🏠', key: 'cantWaitToSeeYou' },
+] as const
 
 type Nudge = {
     id: string
@@ -76,6 +77,7 @@ export default function LovePage() {
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
+    const t = useTranslations('nudge')
     const dateKey = getDateKey()
 
     const loadData = useCallback(async () => {
@@ -170,7 +172,7 @@ export default function LovePage() {
                 })
                 if (newNudge.sender_id !== user?.id) {
                     supabase.from('nudges').update({ seen_at: new Date().toISOString() }).eq('id', newNudge.id)
-                    toast(`${newNudge.emoji} ${partnerProfile?.name || 'Partner'}: ${newNudge.message}`, 'love')
+                    toast(`${newNudge.emoji} ${partnerProfile?.name || t('partner')}: ${newNudge.message}`, 'love')
                 }
             })
             .subscribe()
@@ -189,9 +191,9 @@ export default function LovePage() {
             if (error) throw error
             setShowSuccess(true)
             setTimeout(() => setShowSuccess(false), 2000)
-            toast(`${emoji} Sent!`, 'love')
+            toast(`${emoji} ${t('sent')}`, 'love')
         } catch (err: any) {
-            toast(err.message || 'Failed to send', 'error')
+            toast(err.message || t('failedToSend'), 'error')
         } finally {
             setIsSending(false)
         }
@@ -202,7 +204,7 @@ export default function LovePage() {
         const files = e.target.files
         if (!files || !user || !roomId) return
         if (logImages.length + files.length > 6) {
-            toast('Maximum 6 photos per entry', 'error')
+            toast(t('maxPhotos'), 'error')
             return
         }
         setIsUploadingImage(true)
@@ -218,9 +220,9 @@ export default function LovePage() {
                 newPaths.push(filename)
             }
             setLogImages(prev => [...prev, ...newPaths])
-            toast(`${newPaths.length} photo${newPaths.length > 1 ? 's' : ''} added 📸`, 'success')
+            toast(t('photosAdded', { count: newPaths.length }), 'success')
         } catch (err: any) {
-            toast(err.message || 'Failed to upload image', 'error')
+            toast(err.message || t('failedToUpload'), 'error')
         } finally {
             setIsUploadingImage(false)
             if (imageInputRef.current) imageInputRef.current.value = ''
@@ -234,7 +236,7 @@ export default function LovePage() {
     const saveLog = async () => {
         if (!roomId || !user) return
         if (!editingLog && myLogs.length >= 4) {
-            toast('Max 4 journal entries per day', 'error')
+            toast(t('maxJournalEntries'), 'error')
             return
         }
         setIsSavingLog(true)
@@ -263,10 +265,10 @@ export default function LovePage() {
             setEditingLog(null)
             setLogText('')
             setLogImages([])
-            toast('Saved! Your partner can see it now 💕', 'love')
+            toast(t('savedSuccess'), 'love')
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to save', 'error')
+            toast(err.message || t('failedToSave'), 'error')
         } finally {
             setIsSavingLog(false)
         }
@@ -281,7 +283,7 @@ export default function LovePage() {
     const handleDeleteLog = async (id: string) => {
         const { error } = await supabase.from('daily_logs').delete().eq('id', id)
         if (error) {
-            toast('Failed to delete', 'error')
+            toast(t('failedToDelete'), 'error')
             return
         }
         if (editingLog?.id === id) {
@@ -292,7 +294,7 @@ export default function LovePage() {
         loadData()
     }
 
-    const partnerName = partnerProfile?.name || 'Partner'
+    const partnerName = partnerProfile?.name || t('partner')
     const canAddLog = myLogs.length < 4
 
     if (isLoading) {
@@ -309,10 +311,10 @@ export default function LovePage() {
             <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-rose-400" />
-                    Love
+                    {t('title')}
                 </h1>
                 <p className="text-sm text-zinc-400">
-                    Stay connected with {partnerName} throughout the day.
+                    {t('subtitle', { name: partnerName })}
                 </p>
             </div>
 
@@ -327,7 +329,7 @@ export default function LovePage() {
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                        <Camera className="w-3.5 h-3.5" /> Today&apos;s Journal
+                        <Camera className="w-3.5 h-3.5" /> {t('todaysJournal')}
                     </h3>
                     <span className="text-[10px] text-zinc-600">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</span>
                 </div>
@@ -343,34 +345,34 @@ export default function LovePage() {
                                     <User className="h-3 w-3 text-zinc-500" />
                                 )}
                             </div>
-                            <span className="text-xs font-semibold text-rose-400">You</span>
+                            <span className="text-xs font-semibold text-rose-400">{t('you')}</span>
                         </div>
-                        <span className="text-[10px] text-zinc-600">{myLogs.length}/4 entries</span>
+                        <span className="text-[10px] text-zinc-600">{myLogs.length}/4</span>
                     </div>
 
                     <div className="px-4 pb-4 space-y-3">
                         {myLogs.length === 0 && (
-                            <p className="text-xs text-zinc-500">No entries yet — add one below.</p>
+                            <p className="text-xs text-zinc-500">{t('noEntriesYet')}</p>
                         )}
 
                         {myLogs.map((log, idx) => (
                             <div key={log.id} className="border border-zinc-800 rounded-xl p-3 space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] text-zinc-500">Entry {idx + 1}</span>
+                                    <span className="text-[10px] text-zinc-500">{t('entryNumber', { number: idx + 1 })}</span>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleEditLog(log)}
                                             className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
-                                            aria-label="Edit journal entry"
+                                            aria-label={t('edit')}
                                         >
-                                            <Pencil className="w-3 h-3" /> Edit
+                                            <Pencil className="w-3 h-3" /> {t('edit')}
                                         </button>
                                         <button
                                             onClick={() => handleDeleteLog(log.id)}
                                             className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
-                                            aria-label="Delete journal entry"
+                                            aria-label={t('delete')}
                                         >
-                                            <X className="w-3 h-3" /> Delete
+                                            <X className="w-3 h-3" /> {t('delete')}
                                         </button>
                                     </div>
                                 </div>
@@ -395,17 +397,17 @@ export default function LovePage() {
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-3 pb-2">
                         <span className="text-xs font-semibold text-zinc-300">
-                            {editingLog ? 'Edit entry' : 'Add entry'}
+                            {editingLog ? t('editEntry') : t('addEntry')}
                         </span>
                         {!canAddLog && !editingLog && (
-                            <span className="text-[10px] text-zinc-500">Max 4 entries</span>
+                            <span className="text-[10px] text-zinc-500">{t('maxEntries')}</span>
                         )}
                     </div>
 
                     <div className="px-4 pb-4 space-y-3">
                         <textarea
                             className="w-full min-h-[80px] resize-none bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
-                            placeholder="What did you do today? ✨"
+                            placeholder={t('journalPlaceholder')}
                             value={logText}
                             onChange={(e) => setLogText(e.target.value)}
                             maxLength={1000}
@@ -458,9 +460,9 @@ export default function LovePage() {
                                 disabled={isSavingLog || (!logText.trim() && logImages.length === 0) || (!canAddLog && !editingLog)}
                                 className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
                             >
-                                {isSavingLog ? 'Saving...' : (
+                                {isSavingLog ? t('saving') : (
                                     <span className="flex items-center gap-2">
-                                        <Check className="w-4 h-4" /> Save
+                                        <Check className="w-4 h-4" /> {t('save')}
                                     </span>
                                 )}
                             </Button>
@@ -474,11 +476,11 @@ export default function LovePage() {
                                     }}
                                     className="h-10 text-sm"
                                 >
-                                    Cancel
+                                    {t('cancel')}
                                 </Button>
                             )}
                         </div>
-                        <p className="text-[10px] text-zinc-600 text-center">{logText.length}/1000 · Max 6 photos</p>
+                        <p className="text-[10px] text-zinc-600 text-center">{logText.length}/1000 · {t('maxPhotosShort')}</p>
                     </div>
                 </div>
 
@@ -496,7 +498,7 @@ export default function LovePage() {
                                 </div>
                                 <span className="text-xs font-semibold text-zinc-400">{partnerName}</span>
                             </div>
-                            <span className="text-[10px] text-zinc-600">{partnerLogs.length} entries</span>
+                            <span className="text-[10px] text-zinc-600">{partnerLogs.length}</span>
                         </div>
 
                         <div className="px-4 pb-4 space-y-3">
@@ -521,7 +523,7 @@ export default function LovePage() {
                     </div>
                 ) : (
                     <div className="text-center py-3 text-xs text-zinc-600">
-                        {partnerName} hasn&apos;t shared their day yet
+                        {t('partnerNoEntries', { name: partnerName })}
                     </div>
                 )}
             </div>
@@ -529,18 +531,18 @@ export default function LovePage() {
             {/* ===== QUICK NUDGES ===== */}
             <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                    <Send className="w-3.5 h-3.5" /> Quick Love
+                    <Send className="w-3.5 h-3.5" /> {t('quickLove')}
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5">
-                    {QUICK_NUDGES.map(({ emoji, message }) => (
+                    {QUICK_NUDGES.map(({ emoji, key }) => (
                         <button
-                            key={message}
-                            onClick={() => sendNudge(emoji, message)}
+                            key={key}
+                            onClick={() => sendNudge(emoji, t(key))}
                             disabled={isSending}
                             className="flex items-center gap-3 p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-rose-500/30 hover:bg-rose-500/5 transition-all active:scale-95 disabled:opacity-50 text-left"
                         >
                             <span className="text-xl">{emoji}</span>
-                            <span className="text-sm font-medium text-zinc-300">{message}</span>
+                            <span className="text-sm font-medium text-zinc-300">{t(key)}</span>
                         </button>
                     ))}
                 </div>
@@ -549,7 +551,7 @@ export default function LovePage() {
             {/* Recent nudges */}
             {nudges.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Recent</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('recent')}</h3>
                     <div className="space-y-2">
                         {nudges.map(nudge => {
                             const isMe = nudge.sender_id === user?.id
@@ -562,7 +564,7 @@ export default function LovePage() {
                                 >
                                     <span className="text-xl">{nudge.emoji}</span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">{isMe ? 'You' : partnerName}</p>
+                                        <p className="text-sm font-medium truncate">{isMe ? t('you') : partnerName}</p>
                                         <p className="text-xs text-zinc-500 truncate">{nudge.message || ''}</p>
                                     </div>
                                     <span className="text-[10px] text-zinc-600">

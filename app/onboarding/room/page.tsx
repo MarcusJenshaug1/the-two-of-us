@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Home, Users } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n'
 
 export default function RoomPage() {
     const [joinCode, setJoinCode] = useState('')
@@ -17,6 +18,7 @@ export default function RoomPage() {
     const router = useRouter()
     const supabase = createClient()
     const { user } = useAuth()
+    const t = useTranslations('onboarding')
 
     // Auto-fill invite code from sessionStorage (from invite link)
     useEffect(() => {
@@ -124,9 +126,9 @@ export default function RoomPage() {
                         <Users className="h-8 w-8 text-zinc-400" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">Join your partner</h1>
+                        <h1 className="text-2xl font-semibold tracking-tight">{t('joinPartner')}</h1>
                         <p className="text-sm text-zinc-400 mt-2">
-                            Enter the 6-character code your partner shared with you.
+                            {t('joinPartnerDesc')}
                         </p>
                     </div>
                 </div>
@@ -151,7 +153,7 @@ export default function RoomPage() {
 
                     <div className="pt-4 space-y-3">
                         <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50" disabled={isLoading || joinCode.length < 6}>
-                            {isLoading ? 'Joining...' : 'Join Room'}
+                            {isLoading ? t('joining') : t('joinRoom')}
                         </Button>
                         <Button
                             type="button"
@@ -160,7 +162,7 @@ export default function RoomPage() {
                             onClick={() => setMode('choose')}
                             disabled={isLoading}
                         >
-                            Back
+                            {t('back')}
                         </Button>
                     </div>
                 </form>
@@ -175,9 +177,9 @@ export default function RoomPage() {
                     <Home className="h-8 w-8 text-rose-500" />
                 </div>
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Set up your space</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">{t('setupSpace')}</h1>
                     <p className="text-sm text-zinc-400 mt-2">
-                        Create a new space for you and your partner, or join an existing one if they already created it.
+                        {t('setupSpaceDesc')}
                     </p>
                 </div>
             </div>
@@ -192,14 +194,14 @@ export default function RoomPage() {
                     onClick={handleCreateRoom}
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Creating...' : 'Create new space'}
+                    {isLoading ? t('creating') : t('createNewSpace')}
                 </Button>
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t border-zinc-800" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-zinc-950 px-2 text-zinc-500">Or</span>
+                        <span className="bg-zinc-950 px-2 text-zinc-500">{t('or')}</span>
                     </div>
                 </div>
                 <Button
@@ -208,7 +210,7 @@ export default function RoomPage() {
                     onClick={() => setMode('join')}
                     disabled={isLoading}
                 >
-                    Join existing space
+                    {t('joinExistingSpace')}
                 </Button>
             </div>
         </div>

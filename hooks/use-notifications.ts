@@ -57,8 +57,9 @@ export function useNotifications() {
     // Service worker is registered by next-pwa automatically
     // We just need to wait for it to be ready
 
-    const subscribe = useCallback(async () => {
-        if (!user || !VAPID_PUBLIC_KEY) return false
+    const subscribe = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+        if (!user) return { ok: false, reason: 'no-user' }
+        if (!VAPID_PUBLIC_KEY) return { ok: false, reason: 'no-vapid-key' }
         setIsSubscribing(true)
 
         try {
@@ -66,11 +67,16 @@ export function useNotifications() {
             const permission = await Notification.requestPermission()
             if (permission !== 'granted') {
                 setStatus('denied')
-                return false
+                return { ok: false, reason: 'permission-denied' }
             }
 
             // Get service worker registration
-            const registration = await navigator.serviceWorker.ready
+            const registration = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Service worker not ready (timeout)')), 8000)
+                ),
+            ])
 
             // Subscribe to push
             const subscription = await registration.pushManager.subscribe({
@@ -93,10 +99,11 @@ export function useNotifications() {
             if (error) throw error
 
             setStatus('subscribed')
-            return true
+            return { ok: true }
         } catch (err) {
             console.error('Failed to subscribe:', err)
-            return false
+            const msg = err instanceof Error ? err.message : 'Unknown error'
+            return { ok: false, reason: msg }
         } finally {
             setIsSubscribing(false)
         }

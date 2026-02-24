@@ -8,6 +8,17 @@ export async function middleware(request: NextRequest) {
         },
     })
 
+    // ── Locale cookie (set once based on domain) ──
+    if (!request.cookies.get('locale')) {
+        const host = request.headers.get('host') || ''
+        const locale = host.endsWith('.no') ? 'no' : 'en'
+        response.cookies.set('locale', locale, {
+            path: '/',
+            maxAge: 365 * 24 * 60 * 60,
+            sameSite: 'lax',
+        })
+    }
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -93,5 +104,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/app/:path*', '/onboarding/:path*', '/sign-in'],
+    matcher: ['/', '/app/:path*', '/onboarding/:path*', '/sign-in', '/invite/:path*'],
 }

@@ -8,6 +8,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, Clock, Send, AlertTriangle, User } from 'lucide-react'
 import Link from 'next/link'
+import { useTranslations } from '@/lib/i18n'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -35,6 +36,7 @@ export default function QuestionsPage() {
     const { user } = useAuth()
     const { toast } = useToast()
     const dateKey = getDateKey()
+    const t = useTranslations('questions')
 
     const loadData = useCallback(async () => {
         if (!user) return
@@ -284,10 +286,10 @@ export default function QuestionsPage() {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
                 <AlertTriangle className="h-12 w-12 text-amber-500" />
-                <h2 className="text-xl font-semibold">Setup Required</h2>
+                <h2 className="text-xl font-semibold">{t('setupRequired')}</h2>
                 <p className="text-sm text-zinc-400 max-w-sm">{errorMsg}</p>
                 <Button onClick={() => window.location.reload()} variant="outline">
-                    Reload Page
+                    {t('reloadPage')}
                 </Button>
             </div>
         )
@@ -297,12 +299,12 @@ export default function QuestionsPage() {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
                 <Clock className="h-12 w-12 text-zinc-500" />
-                <h2 className="text-xl font-semibold">No question yet</h2>
+                <h2 className="text-xl font-semibold">{t('noQuestionYet')}</h2>
                 <p className="text-sm text-zinc-400">
-                    Check back later today. New questions appear at 06:00 Oslo time.
+                    {t('noQuestionDesc')}
                 </p>
                 <Button onClick={() => window.location.reload()} variant="outline" size="sm">
-                    Try Again
+                    {t('tryAgain')}
                 </Button>
             </div>
         )
@@ -314,7 +316,7 @@ export default function QuestionsPage() {
         <div className="p-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 md:pt-12">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">Today&apos;s Question</h1>
+                    <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">{t('todaysQuestion')}</h1>
                     {dailyQuestion.category && (
                         <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
                             {dailyQuestion.category}
@@ -331,12 +333,12 @@ export default function QuestionsPage() {
                         <CheckCircle2 className="h-6 w-6 text-rose-500" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-medium">Day Completed</h3>
-                        <p className="text-sm text-zinc-400 mt-1">Both of you have answered today&apos;s question.</p>
+                        <h3 className="text-lg font-medium">{t('dayCompleted')}</h3>
+                        <p className="text-sm text-zinc-400 mt-1">{t('bothAnswered')}</p>
                     </div>
                     <Link href={`/app/inbox/${dateKey}`} className="block">
                         <Button className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50 mt-4">
-                            View Answers
+                            {t('viewAnswers')}
                         </Button>
                     </Link>
                 </div>
@@ -344,7 +346,7 @@ export default function QuestionsPage() {
                 <div className="rounded-2xl bg-zinc-900/50 border border-zinc-800 p-6 space-y-4">
                     <div className="flex items-center space-x-3 text-zinc-300">
                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                        <span className="font-medium text-sm">You answered</span>
+                        <span className="font-medium text-sm">{t('youAnswered')}</span>
                     </div>
                     <div className="text-sm text-zinc-400 bg-zinc-950 p-4 rounded-lg border border-zinc-800/50 whitespace-pre-wrap">
                         {myAnswer.answer_text}
@@ -358,16 +360,16 @@ export default function QuestionsPage() {
                                 <User className="h-3.5 w-3.5 text-zinc-500" />
                             )}
                         </div>
-                        <span className="text-sm">Waiting for {partnerName}...</span>
+                        <span className="text-sm">{t('waitingFor', { name: partnerName })}</span>
                     </div>
-                    <p className="text-xs text-zinc-600">Their answer stays hidden until they submit.</p>
+                    <p className="text-xs text-zinc-600">{t('answerHidden')}</p>
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
                         <textarea
                             className="w-full min-h-[160px] resize-none rounded-2xl bg-zinc-900 border border-zinc-800 p-4 text-base focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 placeholder:text-zinc-600 transition-all"
-                            placeholder="Type your answer here..."
+                            placeholder={t('placeholder')}
                             value={draft}
                             onChange={handleDraftChange}
                             disabled={isSubmitting}
@@ -383,14 +385,14 @@ export default function QuestionsPage() {
                         className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-zinc-50 transition-colors"
                         disabled={isSubmitting || draft.length < 10}
                     >
-                        {isSubmitting ? 'Sending...' : (
+                        {isSubmitting ? t('sending') : (
                             <span className="flex items-center">
-                                Send answer <Send className="w-4 h-4 ml-2" />
+                                {t('sendAnswer')} <Send className="w-4 h-4 ml-2" />
                             </span>
                         )}
                     </Button>
                     <p className="text-xs text-center text-zinc-500">
-                        Min 10 characters. Saved locally as draft.
+                        {t('minChars')}
                     </p>
                 </form>
             )}

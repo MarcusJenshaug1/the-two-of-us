@@ -6,11 +6,12 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera, Bell, BellOff, BellRing } from 'lucide-react'
+import { LogOut, User, Users, Heart, Download, Share, PlusSquare, CheckCircle2, Camera, Bell, BellOff, BellRing, Globe } from 'lucide-react'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useToast } from '@/components/ui/toast'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { IosInstallGuideSheet } from '@/components/pwa/IosInstallGuideSheet'
+import { useLocale, useTranslations } from '@/lib/i18n'
 
 // Resize image before upload (max 400x400)
 function resizeImage(file: File, maxSize = 400): Promise<Blob> {
@@ -57,6 +58,8 @@ export default function SettingsPage() {
     const { user, signOut } = useAuth()
     const router = useRouter()
     const { toast } = useToast()
+    const t = useTranslations('settings')
+    const { locale, setLocale } = useLocale()
 
     useEffect(() => {
         if (!user) return
@@ -121,7 +124,7 @@ export default function SettingsPage() {
             setProfile((p: any) => ({ ...p, name }))
         } catch (err) {
             console.error(err)
-            toast('Failed to update profile', 'error')
+            toast(t('profileFailed'), 'error')
         } finally {
             setIsSaving(false)
         }
@@ -164,7 +167,7 @@ export default function SettingsPage() {
             setProfile((p: any) => ({ ...p, avatar_url: urlWithCacheBust }))
         } catch (err: any) {
             console.error(err)
-            toast(err.message || 'Failed to upload avatar', 'error')
+            toast(err.message || t('avatarFailed'), 'error')
         } finally {
             setIsUploadingAvatar(false)
         }
@@ -182,10 +185,10 @@ export default function SettingsPage() {
                 user_id: user?.id,
                 action: 'set_anniversary'
             })
-            toast('Relationship details updated', 'success')
+            toast(t('relationshipUpdated'), 'success')
         } catch (err) {
             console.error(err)
-            toast('Failed to update relationship details', 'error')
+            toast(t('relationshipFailed'), 'error')
         } finally {
             setIsSaving(false)
         }
@@ -199,9 +202,9 @@ export default function SettingsPage() {
 
         const result = await pwaInstall.promptInstall()
         if (result === 'unavailable') {
-            toast("Your browser doesn't support auto-install. Use your browser menu → Add to Home Screen.", 'info')
+            toast(t('browserNoAutoInstall'), 'info')
         } else if (result === 'accepted') {
-            toast('App installing...', 'success')
+            toast(t('appInstalling'), 'success')
         }
     }
 
@@ -213,14 +216,14 @@ export default function SettingsPage() {
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24 max-w-lg mx-auto">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-                <p className="text-sm text-zinc-400">Manage your account and preferences.</p>
+                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
             </div>
 
             {/* Profile Section */}
             <section className="space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
-                    <User className="w-4 h-4 mr-2" /> Profile
+                    <User className="w-4 h-4 mr-2" /> {t('profile')}
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
                     {/* Avatar */}
@@ -255,15 +258,15 @@ export default function SettingsPage() {
                             onChange={handleAvatarUpload}
                         />
                         <div className="space-y-0.5">
-                            <p className="font-medium text-sm">{profile?.name || 'No name set'}</p>
+                            <p className="font-medium text-sm">{profile?.name || t('noName')}</p>
                             <p className="text-xs text-zinc-500">{user?.email}</p>
-                            <p className="text-[10px] text-zinc-600">Tap photo to change</p>
+                            <p className="text-[10px] text-zinc-600">{t('tapPhoto')}</p>
                         </div>
                     </div>
 
                     {/* Name */}
                     <div className="space-y-2 pt-2 border-t border-zinc-800">
-                        <label className="text-sm font-medium">Display Name</label>
+                        <label className="text-sm font-medium">{t('displayName')}</label>
                         <div className="flex space-x-2">
                             <Input
                                 value={name}
@@ -271,7 +274,7 @@ export default function SettingsPage() {
                                 className="flex-1"
                             />
                             <Button onClick={handleSaveProfile} disabled={isSaving || name === profile?.name}>
-                                Save
+                                {t('save')}
                             </Button>
                         </div>
                     </div>
@@ -281,14 +284,14 @@ export default function SettingsPage() {
             {/* Relationship Section */}
             <section className="space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
-                    <Heart className="w-4 h-4 mr-2" /> Relationship
+                    <Heart className="w-4 h-4 mr-2" /> {t('relationship')}
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
                     {/* Partner or Invite */}
                     {memberCount >= 2 && partner ? (
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center">
-                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> Your Partner
+                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> {t('yourPartner')}
                             </label>
                             <div className="flex items-center space-x-3 bg-zinc-950 p-3 rounded-xl border border-zinc-800/50">
                                 <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
@@ -299,8 +302,8 @@ export default function SettingsPage() {
                                     )}
                                 </div>
                                 <div>
-                                    <p className="font-medium text-sm">{partner.name || 'No name'}</p>
-                                    <p className="text-[10px] text-zinc-500">Connected</p>
+                                    <p className="font-medium text-sm">{partner.name || t('noName')}</p>
+                                    <p className="text-[10px] text-zinc-500">{t('partnerConnected')}</p>
                                 </div>
                                 <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-auto shrink-0" />
                             </div>
@@ -308,7 +311,7 @@ export default function SettingsPage() {
                     ) : (
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center">
-                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> Invite Your Partner
+                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> {t('inviteYourPartner')}
                             </label>
                             {room ? (
                                 <div className="flex space-x-2">
@@ -321,24 +324,24 @@ export default function SettingsPage() {
                                         variant="outline"
                                         onClick={() => {
                                             navigator.clipboard.writeText(`${window.location.origin}/invite/${room?.invite_code}`)
-                                            toast('Copied to clipboard!', 'success')
+                                            toast(t('copiedClipboard'), 'success')
                                         }}
                                     >
-                                        Copy
+                                        {t('copyBtn')}
                                     </Button>
                                 </div>
                             ) : (
-                                <p className="text-sm text-zinc-500">Not in a room yet.</p>
+                                <p className="text-sm text-zinc-500">{t('notInRoomYet')}</p>
                             )}
                             <p className="text-xs text-zinc-500">
-                                Share this link with your partner to connect.
+                                {t('shareThisLink')}
                             </p>
                         </div>
                     )}
 
                     {/* Anniversary */}
                     <div className="pt-4 border-t border-zinc-800 space-y-2">
-                        <label className="text-sm font-medium">Anniversary Date</label>
+                        <label className="text-sm font-medium">{t('anniversaryDate')}</label>
                         <div className="flex space-x-2">
                             <Input
                                 type="date"
@@ -347,7 +350,7 @@ export default function SettingsPage() {
                                 className="flex-1"
                             />
                             <Button onClick={handleSaveRoom} disabled={isSaving || anniversary === room?.anniversary_date}>
-                                Save
+                                {t('save')}
                             </Button>
                         </div>
                     </div>
@@ -357,7 +360,7 @@ export default function SettingsPage() {
             {/* App Section */}
             <section className="space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
-                    <Download className="w-4 h-4 mr-2" /> App
+                    <Download className="w-4 h-4 mr-2" /> {t('app')}
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
                     {pwaInstall.isInstalled ? (
@@ -365,30 +368,30 @@ export default function SettingsPage() {
                         <div className="flex items-center space-x-3 text-emerald-400">
                             <CheckCircle2 className="w-5 h-5 shrink-0" />
                             <div>
-                                <p className="font-medium text-sm">App Installed</p>
-                                <p className="text-xs text-zinc-500">You&apos;re using the app from your home screen.</p>
+                                <p className="font-medium text-sm">{t('appInstalled')}</p>
+                                <p className="text-xs text-zinc-500">{t('appInstalledDesc')}</p>
                             </div>
                         </div>
                     ) : pwaInstall.isInstallable && pwaInstall.platform === 'ios' ? (
                         /* iOS guide button */
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="font-medium text-sm">Install on iPhone</p>
-                                <p className="text-xs text-zinc-400">Add the app to your home screen.</p>
+                                <p className="font-medium text-sm">{t('installOnIphone')}</p>
+                                <p className="text-xs text-zinc-400">{t('installOnIphoneDesc')}</p>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleInstallClick}>
-                                Install
+                                {t('install')}
                             </Button>
                         </div>
                     ) : pwaInstall.isInstallable && pwaInstall.platform === 'supported' ? (
                         /* Android / Desktop – native install prompt */
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="font-medium text-sm">Install App</p>
-                                <p className="text-xs text-zinc-400">Add to your home screen for quick access.</p>
+                                <p className="font-medium text-sm">{t('installApp')}</p>
+                                <p className="text-xs text-zinc-400">{t('installAppDesc')}</p>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleInstallClick}>
-                                Install
+                                {t('install')}
                             </Button>
                         </div>
                     ) : null}
@@ -404,23 +407,23 @@ export default function SettingsPage() {
             {/* Notifications Section */}
             <section className="space-y-4">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
-                    <Bell className="w-4 h-4 mr-2" /> Notifications
+                    <Bell className="w-4 h-4 mr-2" /> {t('notifications')}
                 </h2>
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
                     {notifStatus === 'unsupported' ? (
                         <div className="flex items-center space-x-3 text-zinc-500">
                             <BellOff className="w-5 h-5 shrink-0" />
                             <div>
-                                <p className="font-medium text-sm">Not Available</p>
-                                <p className="text-xs text-zinc-500">Your browser doesn&apos;t support push notifications. Try installing the app first.</p>
+                                <p className="font-medium text-sm">{t('notifsNotAvailable')}</p>
+                                <p className="text-xs text-zinc-500">{t('notifsNotAvailableDesc')}</p>
                             </div>
                         </div>
                     ) : notifStatus === 'denied' ? (
                         <div className="flex items-center space-x-3 text-amber-400">
                             <BellOff className="w-5 h-5 shrink-0" />
                             <div>
-                                <p className="font-medium text-sm">Blocked</p>
-                                <p className="text-xs text-zinc-400">Notifications are blocked. Go to your browser/phone settings to allow them for this site.</p>
+                                <p className="font-medium text-sm">{t('notifsBlocked')}</p>
+                                <p className="text-xs text-zinc-400">{t('notifsBlockedDesc')}</p>
                             </div>
                         </div>
                     ) : notifStatus === 'subscribed' ? (
@@ -428,30 +431,73 @@ export default function SettingsPage() {
                             <div className="flex items-center space-x-3 text-emerald-400">
                                 <BellRing className="w-5 h-5 shrink-0" />
                                 <div>
-                                    <p className="font-medium text-sm">Notifications On</p>
-                                    <p className="text-xs text-zinc-400">You&apos;ll get notified when your partner answers.</p>
+                                    <p className="font-medium text-sm">{t('notifsOn')}</p>
+                                    <p className="text-xs text-zinc-400">{t('notifsOnDesc')}</p>
                                 </div>
                             </div>
                             <Button variant="outline" size="sm" onClick={unsubscribeNotifs}>
-                                Turn Off
+                                {t('turnOff')}
                             </Button>
                         </div>
                     ) : (
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="font-medium text-sm">Enable Notifications</p>
-                                <p className="text-xs text-zinc-400">Get notified when your partner answers or reacts.</p>
+                                <p className="font-medium text-sm">{t('enableNotifications')}</p>
+                                <p className="text-xs text-zinc-400">{t('enableNotifsDesc')}</p>
                             </div>
                             <Button
                                 size="sm"
                                 className="bg-rose-600 hover:bg-rose-700 text-white"
-                                onClick={subscribeNotifs}
+                                onClick={async () => {
+                                    const result = await subscribeNotifs()
+                                    if (!result.ok) {
+                                        if (result.reason === 'permission-denied') {
+                                            toast(t('notifsBlocked'), 'error')
+                                        } else if (result.reason?.includes('Service worker')) {
+                                            toast(t('notifsSWError'), 'error')
+                                        } else {
+                                            toast(t('notifsFailedActivate'), 'error')
+                                        }
+                                    }
+                                }}
                                 disabled={isSubscribing || notifStatus === 'loading'}
                             >
-                                {isSubscribing ? 'Enabling...' : 'Enable'}
+                                {isSubscribing ? t('enabling') : t('enable')}
                             </Button>
                         </div>
                     )}
+                </div>
+            </section>
+
+            {/* Language Section */}
+            <section className="space-y-4">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                    <Globe className="w-4 h-4 mr-2" /> {t('language')}
+                </h2>
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                    <p className="text-xs text-zinc-400">{t('languageDesc')}</p>
+                    <div className="flex space-x-2">
+                        <button
+                            onClick={() => setLocale('en')}
+                            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors border ${
+                                locale === 'en'
+                                    ? 'bg-white text-black border-white'
+                                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                            }`}
+                        >
+                            {t('english')}
+                        </button>
+                        <button
+                            onClick={() => setLocale('no')}
+                            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors border ${
+                                locale === 'no'
+                                    ? 'bg-white text-black border-white'
+                                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                            }`}
+                        >
+                            {t('norwegian')}
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -462,7 +508,7 @@ export default function SettingsPage() {
                     onClick={handleLogout}
                 >
                     <LogOut className="w-5 h-5" />
-                    <span>Sign Out</span>
+                    <span>{t('signOut')}</span>
                 </Button>
             </section>
         </div>

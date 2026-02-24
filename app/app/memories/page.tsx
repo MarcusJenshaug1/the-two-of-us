@@ -13,6 +13,8 @@ import {
 import { format, parseISO } from 'date-fns'
 import { resizeImage } from '@/lib/storage'
 import { SignedImage } from '@/components/signed-image'
+import { useTranslations, useLocale } from '@/lib/i18n'
+import { getDateLocale } from '@/lib/i18n/date-locale'
 
 type Memory = {
     id: string
@@ -56,6 +58,9 @@ export default function MemoriesPage() {
     const supabase = createClient()
     const { user } = useAuth()
     const { toast } = useToast()
+    const t = useTranslations('memories')
+    const { locale } = useLocale()
+    const dateLoc = getDateLocale(locale)
 
     const loadData = useCallback(async () => {
         if (!user) return
@@ -152,11 +157,11 @@ export default function MemoriesPage() {
                 images: formImages,
             })
             if (error) throw error
-            toast('Memory saved 💕', 'love')
+            toast(t('memorySaved'), 'love')
             resetForm()
             loadData()
         } catch (err: any) {
-            toast(err.message || 'Failed to save', 'error')
+            toast(err.message || t('failedToSave'), 'error')
         } finally {
             setIsSaving(false)
         }
@@ -175,8 +180,8 @@ export default function MemoriesPage() {
     // ─── Delete memory ───
     async function handleDelete(id: string) {
         const { error } = await supabase.from('memories').delete().eq('id', id)
-        if (error) { toast('Failed to delete', 'error'); return }
-        toast('Memory deleted', 'success')
+        if (error) { toast(t('failedToDelete'), 'error'); return }
+        toast(t('memoryDeleted'), 'success')
         loadData()
     }
 
@@ -206,8 +211,8 @@ export default function MemoriesPage() {
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
             {/* Header */}
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Memories</h1>
-                <p className="text-sm text-zinc-400">Your shared moments together.</p>
+                <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
+                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
             </div>
 
             {/* Actions */}
@@ -215,7 +220,7 @@ export default function MemoriesPage() {
                 onClick={() => { resetForm(); setShowForm(true) }}
                 className="w-full bg-rose-600 hover:bg-rose-700 text-white"
             >
-                <Plus className="w-4 h-4 mr-2" /> Add memory
+                <Plus className="w-4 h-4 mr-2" /> {t('addMemory')}
             </Button>
 
             {/* Filters */}
@@ -225,7 +230,7 @@ export default function MemoriesPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                     <input
                         type="text"
-                        placeholder="Search memories..."
+                        placeholder={t('searchPlaceholder')}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -245,7 +250,7 @@ export default function MemoriesPage() {
                             showFavsOnly ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                         }`}
                     >
-                        <Heart className="w-3 h-3" fill={showFavsOnly ? 'currentColor' : 'none'} /> Favorites
+                        <Heart className="w-3 h-3" fill={showFavsOnly ? 'currentColor' : 'none'} /> {t('favorites')}
                     </button>
                     {allTags.map(tag => (
                         <button
@@ -265,7 +270,7 @@ export default function MemoriesPage() {
             {filtered.length === 0 ? (
                 <div className="text-center py-16 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
                     <Star className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
-                    {memories.length === 0 ? 'No memories yet — add your first!' : 'No matches.'}
+                    {memories.length === 0 ? t('noMemoriesYet') : t('noMatches')}
                 </div>
             ) : (
                 <div className="space-y-3">
@@ -295,7 +300,7 @@ export default function MemoriesPage() {
                                     <div className="flex-1 min-w-0 space-y-1">
                                         <p className="font-medium text-sm leading-snug">{mem.title}</p>
                                         <p className="text-xs text-zinc-500">
-                                            {format(parseISO(mem.happened_at), 'MMM d, yyyy')}
+                                            {format(parseISO(mem.happened_at), 'MMM d, yyyy', { locale: dateLoc })}
                                             {mem.location && <> · <MapPin className="w-3 h-3 inline -mt-0.5" /> {mem.location}</>}
                                         </p>
                                     </div>
@@ -303,7 +308,7 @@ export default function MemoriesPage() {
                                         <button
                                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFav(mem.id) }}
                                             className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-                                            aria-label={favorites.has(mem.id) ? 'Remove from favorites' : 'Add to favorites'}
+                                            aria-label={favorites.has(mem.id) ? t('removeFromFavorites') : t('addToFavorites')}
                                         >
                                             <Heart
                                                 className={`w-4 h-4 transition-colors ${favorites.has(mem.id) ? 'text-rose-500 fill-rose-500' : 'text-zinc-600'}`}
@@ -336,7 +341,7 @@ export default function MemoriesPage() {
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">New Memory</h3>
+                            <h3 className="text-lg font-semibold">{t('newMemory')}</h3>
                             <button onClick={resetForm} className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
@@ -345,7 +350,7 @@ export default function MemoriesPage() {
                         <div className="space-y-3">
                             <input
                                 type="text"
-                                placeholder="Title *"
+                                placeholder={`${t('formTitle')} *`}
                                 value={formTitle}
                                 onChange={e => setFormTitle(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -353,7 +358,7 @@ export default function MemoriesPage() {
                                 autoFocus
                             />
                             <textarea
-                                placeholder="What happened? (optional)"
+                                placeholder={t('formDescriptionPlaceholder')}
                                 value={formDesc}
                                 onChange={e => setFormDesc(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[80px]"
@@ -361,7 +366,7 @@ export default function MemoriesPage() {
                             />
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Date *</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('formDate')} *</label>
                                     <input
                                         type="date"
                                         value={formDate}
@@ -370,10 +375,10 @@ export default function MemoriesPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">Location</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('formLocation')}</label>
                                     <input
                                         type="text"
-                                        placeholder="Where?"
+                                        placeholder={t('formLocationPlaceholder')}
                                         value={formLocation}
                                         onChange={e => setFormLocation(e.target.value)}
                                         className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -383,7 +388,7 @@ export default function MemoriesPage() {
                             </div>
                             <input
                                 type="text"
-                                placeholder="Tags (comma separated)"
+                                placeholder={t('formTagsPlaceholder')}
                                 value={formTags}
                                 onChange={e => setFormTags(e.target.value)}
                                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
@@ -399,7 +404,7 @@ export default function MemoriesPage() {
                                         className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs font-medium text-zinc-300 transition-colors disabled:opacity-40"
                                     >
                                         <Camera className="w-4 h-4" />
-                                        {uploadingImages ? 'Uploading...' : `Add photos (${formImages.length}/6)`}
+                                        {uploadingImages ? t('uploading') : `${t('addPhotos')} (${formImages.length}/6)`}
                                     </button>
                                     <input
                                         ref={fileRef}
@@ -418,7 +423,7 @@ export default function MemoriesPage() {
                                                 <button
                                                     onClick={() => setFormImages(prev => prev.filter((_, j) => j !== i))}
                                                     className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5"
-                                                    aria-label="Remove photo"
+                                                    aria-label={t('removePhoto')}
                                                 >
                                                     <X className="w-3 h-3 text-white" />
                                                 </button>
@@ -434,7 +439,7 @@ export default function MemoriesPage() {
                             disabled={!formTitle.trim() || !formDate || isSaving}
                             className="w-full bg-rose-600 hover:bg-rose-700 text-white"
                         >
-                            {isSaving ? 'Saving...' : 'Save memory'}
+                            {isSaving ? t('saving') : t('saveMemory')}
                         </Button>
                     </div>
                 </div>

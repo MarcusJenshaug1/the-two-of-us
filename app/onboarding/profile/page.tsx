@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { User, Camera } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n'
 
 // Resize image before upload (max 400x400)
 function resizeImage(file: File, maxSize = 400): Promise<Blob> {
@@ -43,6 +44,7 @@ export default function ProfilePage() {
     const router = useRouter()
     const supabase = createClient()
     const { user } = useAuth()
+    const t = useTranslations('onboarding')
 
     const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -139,19 +141,19 @@ export default function ProfilePage() {
                 />
 
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Set up your profile</h1>
+                    <h1 className="text-2xl font-semibold tracking-tight">{t('setupProfile')}</h1>
                     <p className="text-sm text-zinc-400 mt-2">
-                        Add a photo and name so your partner knows it&apos;s you.
+                        {t('setupProfileDesc')}
                     </p>
                 </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Your name</label>
+                    <label className="text-sm font-medium">{t('yourName')}</label>
                     <Input
                         type="text"
-                        placeholder="What should we call you?"
+                        placeholder={t('namePlaceholder')}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
@@ -166,7 +168,7 @@ export default function ProfilePage() {
                 )}
 
                 <Button type="submit" className="w-full" disabled={isLoading || name.trim().length < 2}>
-                    {isLoading ? 'Saving...' : 'Continue'}
+                    {isLoading ? t('saving') : t('continue')}
                 </Button>
             </form>
         </div>

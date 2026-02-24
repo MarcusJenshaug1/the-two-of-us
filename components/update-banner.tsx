@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { RefreshCw, X } from 'lucide-react'
+import { useTranslations } from '@/lib/i18n'
 
 interface UpdateBannerProps {
     onUpdate: () => void
@@ -9,9 +10,10 @@ interface UpdateBannerProps {
 }
 
 export function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
+    const t = useTranslations('updateBanner')
     const updateRef = useRef<HTMLButtonElement>(null)
 
-    // Focus the "Oppdater" button on mount for a11y
+    // Focus the update button on mount for a11y
     useEffect(() => {
         updateRef.current?.focus()
     }, [])
@@ -42,9 +44,9 @@ export function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
 
                     {/* Text */}
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-100">Ny versjon tilgjengelig</p>
+                        <p className="text-sm font-medium text-zinc-100">{t('newVersion')}</p>
                         <p className="text-xs text-zinc-400 mt-0.5">
-                            Trykk Oppdater for å få nyeste versjon.
+                            {t('tapToUpdate')}
                         </p>
                     </div>
 
@@ -52,7 +54,7 @@ export function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
                     <button
                         onClick={onDismiss}
                         className="flex-shrink-0 p-1 rounded-lg hover:bg-zinc-800 transition-colors"
-                        aria-label="Lukk oppdateringsmelding"
+                        aria-label={t('closeAriaLabel')}
                     >
                         <X className="w-4 h-4 text-zinc-500" />
                     </button>
@@ -65,13 +67,13 @@ export function UpdateBanner({ onUpdate, onDismiss }: UpdateBannerProps) {
                         onClick={onUpdate}
                         className="flex-1 py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
                     >
-                        Oppdater
+                        {t('update')}
                     </button>
                     <button
                         onClick={onDismiss}
                         className="py-2 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-900"
                     >
-                        Senere
+                        {t('dismiss')}
                     </button>
                 </div>
             </div>
