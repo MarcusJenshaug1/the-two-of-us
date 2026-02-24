@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
     CalendarDays, Plus, Check, Circle, Trash2, MapPin, Clock, Bell,
     X, ChevronDown, ChevronUp, Pencil, User, Heart, Lightbulb,
-    Shuffle, Sparkles, Filter, DollarSign, Timer, Sun, CheckCircle2
+    Shuffle, Sparkles, Filter, DollarSign, Timer, Sun, CheckCircle2, Share2
 } from 'lucide-react'
 import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -75,6 +75,11 @@ type DateIdea = {
     duration_minutes: number
     time_of_day: string
     is_active: boolean
+    visibility?: 'room' | 'public'
+    language?: string
+    published_at?: string | null
+    like_count?: number
+    created_at?: string
 }
 
 type DateCompletion = {
@@ -137,7 +142,9 @@ export default function PlannerPage() {
     const [showDoneTasks, setShowDoneTasks] = useState(false)
 
     // Ideas state
-    const [ideas, setIdeas] = useState<DateIdea[]>([])
+    const [roomIdeas, setRoomIdeas] = useState<DateIdea[]>([])
+    const [publicIdeas, setPublicIdeas] = useState<DateIdea[]>([])
+    const [likedIds, setLikedIds] = useState<Set<string>>(new Set())
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
     const [completions, setCompletions] = useState<DateCompletion[]>([])
     const [catFilter, setCatFilter] = useState<string | null>(null)
@@ -152,6 +159,13 @@ export default function PlannerPage() {
     const [newIdeaDuration, setNewIdeaDuration] = useState('90')
     const [newIdeaTime, setNewIdeaTime] = useState('any')
     const [isSavingIdea, setIsSavingIdea] = useState(false)
+    const [ideasTab, setIdeasTab] = useState<'room' | 'public'>('room')
+    const [publicSort, setPublicSort] = useState<'trending' | 'newest'>('trending')
+    const [publicLang, setPublicLang] = useState('nb')
+    const [showPublishIdea, setShowPublishIdea] = useState(false)
+    const [publishIdea, setPublishIdea] = useState<DateIdea | null>(null)
+    const [publishLang, setPublishLang] = useState('nb')
+    const [isPublishing, setIsPublishing] = useState(false)
 
     const supabase = createClient()
     const { user } = useAuth()
@@ -170,7 +184,7 @@ export default function PlannerPage() {
             if (!member) return
             setRoomId(member.room_id)
 
-            const [eventsRes, tasksRes, ideasGlobalRes, ideasRoomRes, savedRes, completionsRes] = await Promise.all([
+            const [eventsRes, tasksRes, publicIdeasRes, roomIdeasRes, savedRes, completionsRes, likesRes] = await Promise.all([
                 supabase
                     .from('shared_events')
                     .select('*')
@@ -187,9 +201,9 @@ export default function PlannerPage() {
                 supabase
                     .from('date_ideas')
                     .select('*')
-                    .is('room_id', null)
+                    .eq('visibility', 'public')
                     .eq('is_active', true)
-                    .order('category'),
+                    .order('like_count', { ascending: false }),
                 supabase
                     .from('date_ideas')
                     .select('*')
@@ -207,13 +221,19 @@ export default function PlannerPage() {
                     .eq('room_id', member.room_id)
                     .order('created_at', { ascending: false })
                     .limit(50),
+                supabase
+                    .from('date_idea_likes')
+                    .select('date_idea_id')
+                    .eq('user_id', user.id),
             ])
 
             setEvents(eventsRes.data || [])
             setTasks(tasksRes.data || [])
-            setIdeas([...(ideasGlobalRes.data || []), ...(ideasRoomRes.data || [])])
+            setPublicIdeas(publicIdeasRes.data || [])
+            setRoomIdeas(roomIdeasRes.data || [])
             setSavedIds(new Set((savedRes.data || []).map((s: any) => s.date_idea_id)))
             setCompletions(completionsRes.data || [])
+            setLikedIds(new Set((likesRes.data || []).map((l: any) => l.date_idea_id)))
         } catch (err) {
             console.error('Error loading planner', err)
         } finally {
@@ -222,6 +242,12 @@ export default function PlannerPage() {
     }, [user, supabase])
 
     useEffect(() => { loadData() }, [loadData])
+
+    useEffect(() => {
+        if (ideasTab === 'public' && showSavedOnly) {
+            setShowSavedOnly(false)
+        }
+    }, [ideasTab, showSavedOnly])
 
     // ─── Realtime ───
     useEffect(() => {
@@ -396,6 +422,60 @@ export default function PlannerPage() {
         }
     }
 
+    async function handleToggleLike(idea: DateIdea) {
+        if (!user) return
+        if (likedIds.has(idea.id)) {
+            await supabase
+                .from('date_idea_likes')
+                .delete()
+                .eq('date_idea_id', idea.id)
+                .eq('user_id', user.id)
+            setLikedIds(prev => { const n = new Set(prev); n.delete(idea.id); return n })
+        } else {
+            await supabase
+                .from('date_idea_likes')
+                .insert({ date_idea_id: idea.id, user_id: user.id })
+            setLikedIds(prev => new Set(prev).add(idea.id))
+        }
+        loadData()
+    }
+
+    function openPublishIdea(idea: DateIdea) {
+        setPublishIdea(idea)
+        setPublishLang('nb')
+        setShowPublishIdea(true)
+    }
+
+    async function handlePublishIdea() {
+        if (!user || !publishIdea) return
+        setIsPublishing(true)
+        try {
+            const { error } = await supabase.from('date_ideas').insert({
+                room_id: null,
+                created_by: user.id,
+                title: publishIdea.title,
+                description: publishIdea.description,
+                category: publishIdea.category,
+                price_level: publishIdea.price_level,
+                duration_minutes: publishIdea.duration_minutes,
+                time_of_day: publishIdea.time_of_day,
+                visibility: 'public',
+                language: publishLang,
+                published_at: new Date().toISOString(),
+                is_active: true,
+            })
+            if (error) throw error
+            toast('Published to public ideas', 'success')
+            setShowPublishIdea(false)
+            setPublishIdea(null)
+            loadData()
+        } catch (err: any) {
+            toast(err.message || 'Failed to publish', 'error')
+        } finally {
+            setIsPublishing(false)
+        }
+    }
+
     async function handlePlanIdea(idea: DateIdea) {
         if (!roomId || !user) return
         const now = new Date()
@@ -473,7 +553,9 @@ export default function PlannerPage() {
     }
 
     function handleRandomSuggestion() {
-        const pool = filteredIdeas.length > 0 ? filteredIdeas : ideas
+        const pool = filteredIdeas.length > 0
+            ? filteredIdeas
+            : (ideasTab === 'public' ? sortedPublicIdeas : roomIdeas)
         if (pool.length === 0) return
         const pick = pool[Math.floor(Math.random() * pool.length)]
         setRandomIdea(pick)
@@ -516,11 +598,24 @@ export default function PlannerPage() {
     const openTasks = tasks.filter(t => !t.is_done)
     const doneTasks = tasks.filter(t => t.is_done)
 
+    const baseIdeas = ideasTab === 'public'
+        ? publicIdeas.filter((i) => !publicLang || i.language === publicLang)
+        : roomIdeas
+
+    const sortedPublicIdeas = ideasTab === 'public'
+        ? [...baseIdeas].sort((a, b) => {
+            if (publicSort === 'newest') {
+                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+            }
+            return (b.like_count || 0) - (a.like_count || 0)
+        })
+        : baseIdeas
+
     // Filtered ideas
-    const filteredIdeas = ideas.filter(idea => {
+    const filteredIdeas = sortedPublicIdeas.filter(idea => {
         if (catFilter && idea.category !== catFilter) return false
         if (priceFilter && idea.price_level !== priceFilter) return false
-        if (showSavedOnly && !savedIds.has(idea.id)) return false
+        if (showSavedOnly && ideasTab === 'room' && !savedIds.has(idea.id)) return false
         return true
     })
 
@@ -777,6 +872,49 @@ export default function PlannerPage() {
             {/* ═══ IDEAS TAB ═══ */}
             {tab === 'ideas' && (
                 <div className="space-y-4">
+                    {/* Room/Public toggle */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIdeasTab('room')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                                ideasTab === 'room' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                            }`}
+                        >
+                            For oss
+                        </button>
+                        <button
+                            onClick={() => setIdeasTab('public')}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                                ideasTab === 'public' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                            }`}
+                        >
+                            Public
+                        </button>
+
+                        {ideasTab === 'public' && (
+                            <div className="ml-auto flex items-center gap-2">
+                                <select
+                                    value={publicLang}
+                                    onChange={(e) => setPublicLang(e.target.value)}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-zinc-300 [color-scheme:dark]"
+                                >
+                                    <option value="nb">NB</option>
+                                    <option value="nn">NN</option>
+                                    <option value="en">EN</option>
+                                    <option value="sv">SV</option>
+                                    <option value="da">DA</option>
+                                </select>
+                                <select
+                                    value={publicSort}
+                                    onChange={(e) => setPublicSort(e.target.value as 'trending' | 'newest')}
+                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-zinc-300 [color-scheme:dark]"
+                                >
+                                    <option value="trending">Trending</option>
+                                    <option value="newest">Newest</option>
+                                </select>
+                            </div>
+                        )}
+                    </div>
                     {/* Planned dates section */}
                     {plannedCompletions.length > 0 && (
                         <div className="space-y-2">
@@ -859,13 +997,15 @@ export default function PlannerPage() {
                         >
                             <Shuffle className="w-4 h-4 mr-2" /> Surprise me
                         </Button>
-                        <Button
-                            onClick={() => setShowAddIdea(true)}
-                            className="bg-zinc-800 hover:bg-zinc-700 text-white px-4"
-                            aria-label="Add custom idea"
-                        >
-                            <Plus className="w-4 h-4" />
-                        </Button>
+                        {ideasTab === 'room' && (
+                            <Button
+                                onClick={() => setShowAddIdea(true)}
+                                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4"
+                                aria-label="Add custom idea"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </Button>
+                        )}
                     </div>
 
                     {/* Filters */}
@@ -908,15 +1048,17 @@ export default function PlannerPage() {
                                     </button>
                                 ))}
                             </div>
-                            <button
-                                onClick={() => setShowSavedOnly(!showSavedOnly)}
-                                className={`ml-auto px-3 py-1 rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 ${
-                                    showSavedOnly ? 'bg-pink-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
-                                }`}
-                                aria-label={showSavedOnly ? 'Show all ideas' : 'Show saved only'}
-                            >
-                                <Heart className={`w-3 h-3 ${showSavedOnly ? 'fill-current' : ''}`} /> Saved
-                            </button>
+                            {ideasTab === 'room' && (
+                                <button
+                                    onClick={() => setShowSavedOnly(!showSavedOnly)}
+                                    className={`ml-auto px-3 py-1 rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 ${
+                                        showSavedOnly ? 'bg-pink-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                                    }`}
+                                    aria-label={showSavedOnly ? 'Show all ideas' : 'Show saved only'}
+                                >
+                                    <Heart className={`w-3 h-3 ${showSavedOnly ? 'fill-current' : ''}`} /> Saved
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -938,8 +1080,13 @@ export default function PlannerPage() {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm">{CATEGORIES.find(c => c.key === idea.category)?.emoji}</span>
                                                 <p className="font-medium text-sm leading-snug">{idea.title}</p>
-                                                {idea.room_id && (
+                                                {idea.visibility === 'public' ? (
+                                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">public</span>
+                                                ) : (
                                                     <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">custom</span>
+                                                )}
+                                                {idea.visibility === 'public' && idea.language && (
+                                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{idea.language.toUpperCase()}</span>
                                                 )}
                                             </div>
                                             {idea.description && (
@@ -951,18 +1098,37 @@ export default function PlannerPage() {
                                                 {idea.time_of_day !== 'any' && (
                                                     <span className="flex items-center gap-0.5"><Sun className="w-3 h-3" /> {idea.time_of_day}</span>
                                                 )}
+                                                {idea.visibility === 'public' && (
+                                                    <span className="flex items-center gap-0.5 text-zinc-400">
+                                                        <Heart className={`w-3 h-3 ${likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-500'}`} />
+                                                        {idea.like_count || 0}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">
-                                            <button
-                                                onClick={() => handleToggleSaveIdea(idea.id)}
-                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
-                                                aria-label={savedIds.has(idea.id) ? 'Remove from saved' : 'Save idea'}
-                                            >
-                                                <Heart className={`w-4 h-4 transition-colors ${
-                                                    savedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
-                                                }`} />
-                                            </button>
+                                            {idea.visibility !== 'public' && (
+                                                <button
+                                                    onClick={() => handleToggleSaveIdea(idea.id)}
+                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    aria-label={savedIds.has(idea.id) ? 'Remove from saved' : 'Save idea'}
+                                                >
+                                                    <Heart className={`w-4 h-4 transition-colors ${
+                                                        savedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
+                                                    }`} />
+                                                </button>
+                                            )}
+                                            {idea.visibility === 'public' && (
+                                                <button
+                                                    onClick={() => handleToggleLike(idea)}
+                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    aria-label={likedIds.has(idea.id) ? 'Unlike idea' : 'Like idea'}
+                                                >
+                                                    <Heart className={`w-4 h-4 transition-colors ${
+                                                        likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
+                                                    }`} />
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={() => handlePlanIdea(idea)}
                                                 className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
@@ -970,14 +1136,23 @@ export default function PlannerPage() {
                                             >
                                                 <CalendarDays className="w-4 h-4 text-zinc-600 hover:text-amber-400" />
                                             </button>
-                                            {idea.room_id && (
-                                                <button
-                                                    onClick={() => handleDeleteIdea(idea.id)}
-                                                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
-                                                    aria-label="Delete idea"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
-                                                </button>
+                                            {idea.visibility !== 'public' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => openPublishIdea(idea)}
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
+                                                        aria-label="Publish idea publicly"
+                                                    >
+                                                        <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteIdea(idea.id)}
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
+                                                        aria-label="Delete idea"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                                    </button>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -1001,6 +1176,58 @@ export default function PlannerPage() {
                             ))}
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* ═══ PUBLISH IDEA MODAL ═══ */}
+            {showPublishIdea && publishIdea && (
+                <div
+                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    onClick={() => setShowPublishIdea(false)}
+                >
+                    <div
+                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Publish idea</h3>
+                            <button onClick={() => setShowPublishIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <p className="text-sm text-zinc-300">
+                                This will be visible to all users. Avoid personal or private info.
+                            </p>
+                            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+                                Public ideas are shared globally and cannot include private details.
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Language</label>
+                            <select
+                                value={publishLang}
+                                onChange={(e) => setPublishLang(e.target.value)}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                            >
+                                <option value="nb">Norwegian (NB)</option>
+                                <option value="nn">Norwegian (NN)</option>
+                                <option value="en">English</option>
+                                <option value="sv">Swedish</option>
+                                <option value="da">Danish</option>
+                            </select>
+                        </div>
+
+                        <Button
+                            onClick={handlePublishIdea}
+                            disabled={isPublishing}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                        >
+                            {isPublishing ? 'Publishing...' : 'Publish publicly'}
+                        </Button>
+                    </div>
                 </div>
             )}
 

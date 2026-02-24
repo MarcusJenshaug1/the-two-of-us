@@ -9,7 +9,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
 import { resizeImage } from '@/lib/storage'
-import { SignedImage, useSignedUrl } from '@/components/signed-image'
+import { SignedImage } from '@/components/signed-image'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -47,6 +47,7 @@ type DailyLog = {
     images: string[]
     date_key: string
     created_at: string
+    entry_no?: number
 }
 
 export default function LovePage() {
@@ -56,11 +57,11 @@ export default function LovePage() {
     const [showSuccess, setShowSuccess] = useState(false)
 
     // Daily log state
-    const [myLog, setMyLog] = useState<DailyLog | null>(null)
-    const [partnerLog, setPartnerLog] = useState<DailyLog | null>(null)
+    const [myLogs, setMyLogs] = useState<DailyLog[]>([])
+    const [partnerLogs, setPartnerLogs] = useState<DailyLog[]>([])
     const [logText, setLogText] = useState('')
     const [logImages, setLogImages] = useState<string[]>([])
-    const [isEditingLog, setIsEditingLog] = useState(false)
+    const [editingLog, setEditingLog] = useState<DailyLog | null>(null)
     const [isSavingLog, setIsSavingLog] = useState(false)
     const [isUploadingImage, setIsUploadingImage] = useState(false)
     const [previewImage, setPreviewImage] = useState<string | null>(null)
@@ -127,21 +128,27 @@ export default function LovePage() {
                 .eq('date_key', dateKey)
 
             if (logData) {
-                const mine = logData.find((l: any) => l.user_id === user.id) as DailyLog | undefined
-                const theirs = logData.find((l: any) => l.user_id !== user.id) as DailyLog | undefined
-                if (mine) {
-                    setMyLog(mine)
-                    setLogText(mine.text || '')
-                    setLogImages(mine.images || [])
+                const mine = (logData as DailyLog[])
+                    .filter((l) => l.user_id === user.id)
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                const theirs = (logData as DailyLog[])
+                    .filter((l) => l.user_id !== user.id)
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+                setMyLogs(mine)
+                setPartnerLogs(theirs)
+
+                if (!editingLog) {
+                    setLogText('')
+                    setLogImages([])
                 }
-                if (theirs) setPartnerLog(theirs)
             }
         } catch (err) {
             console.error('Error loading data', err)
         } finally {
             setIsLoading(false)
         }
-    }, [user, supabase, dateKey])
+    }, [user, supabase, dateKey, editingLog])
 
     useEffect(() => { loadData() }, [loadData])
 
@@ -195,7 +202,7 @@ export default function LovePage() {
         const files = e.target.files
         if (!files || !user || !roomId) return
         if (logImages.length + files.length > 6) {
-            toast('Maximum 6 photos per day', 'error')
+            toast('Maximum 6 photos per entry', 'error')
             return
         }
         setIsUploadingImage(true)
@@ -225,9 +232,9 @@ export default function LovePage() {
     }
 
     const saveLog = async () => {
-        if (!user || !roomId) return
-        if (!logText.trim() && logImages.length === 0) {
-            toast('Write something or add a photo!', 'info')
+        if (!roomId || !user) return
+        if (!editingLog && myLogs.length >= 4) {
+            toast('Max 4 journal entries per day', 'error')
             return
         }
         setIsSavingLog(true)
@@ -240,24 +247,24 @@ export default function LovePage() {
                 date_key: dateKey,
             }
 
-            if (myLog) {
+            if (editingLog) {
                 const { error } = await supabase
                     .from('daily_logs')
                     .update({ text: payload.text, images: payload.images, updated_at: new Date().toISOString() })
-                    .eq('id', myLog.id)
+                    .eq('id', editingLog.id)
                 if (error) throw error
-                setMyLog({ ...myLog, ...payload })
             } else {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from('daily_logs')
                     .insert(payload)
-                    .select()
-                    .single()
                 if (error) throw error
-                setMyLog(data)
             }
-            setIsEditingLog(false)
+
+            setEditingLog(null)
+            setLogText('')
+            setLogImages([])
             toast('Saved! Your partner can see it now 💕', 'love')
+            loadData()
         } catch (err: any) {
             toast(err.message || 'Failed to save', 'error')
         } finally {
@@ -265,7 +272,28 @@ export default function LovePage() {
         }
     }
 
+    const handleEditLog = (log: DailyLog) => {
+        setEditingLog(log)
+        setLogText(log.text || '')
+        setLogImages(log.images || [])
+    }
+
+    const handleDeleteLog = async (id: string) => {
+        const { error } = await supabase.from('daily_logs').delete().eq('id', id)
+        if (error) {
+            toast('Failed to delete', 'error')
+            return
+        }
+        if (editingLog?.id === id) {
+            setEditingLog(null)
+            setLogText('')
+            setLogImages([])
+        }
+        loadData()
+    }
+
     const partnerName = partnerProfile?.name || 'Partner'
+    const canAddLog = myLogs.length < 4
 
     if (isLoading) {
         return (
@@ -274,8 +302,6 @@ export default function LovePage() {
             </div>
         )
     }
-
-    const hasExistingLog = myLog && (myLog.text || (myLog.images && myLog.images.length > 0))
 
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24 animate-in fade-in">
@@ -306,7 +332,7 @@ export default function LovePage() {
                     <span className="text-[10px] text-zinc-600">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</span>
                 </div>
 
-                {/* My log */}
+                {/* My logs */}
                 <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-3 pb-2">
                         <div className="flex items-center gap-2">
@@ -319,144 +345,181 @@ export default function LovePage() {
                             </div>
                             <span className="text-xs font-semibold text-rose-400">You</span>
                         </div>
-                        {hasExistingLog && !isEditingLog && (
-                            <button
-                                onClick={() => setIsEditingLog(true)}
-                                className="text-xs text-zinc-500 hover:text-zinc-300 flex items-center gap-1 transition-colors"
-                            >
-                                <Pencil className="w-3 h-3" /> Edit
-                            </button>
+                        <span className="text-[10px] text-zinc-600">{myLogs.length}/4 entries</span>
+                    </div>
+
+                    <div className="px-4 pb-4 space-y-3">
+                        {myLogs.length === 0 && (
+                            <p className="text-xs text-zinc-500">No entries yet — add one below.</p>
+                        )}
+
+                        {myLogs.map((log, idx) => (
+                            <div key={log.id} className="border border-zinc-800 rounded-xl p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-zinc-500">Entry {idx + 1}</span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => handleEditLog(log)}
+                                            className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
+                                            aria-label="Edit journal entry"
+                                        >
+                                            <Pencil className="w-3 h-3" /> Edit
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteLog(log.id)}
+                                            className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
+                                            aria-label="Delete journal entry"
+                                        >
+                                            <X className="w-3 h-3" /> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                {log.text && (
+                                    <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log.text}</p>
+                                )}
+                                {log.images && log.images.length > 0 && (
+                                    <div className={`grid gap-1.5 ${log.images.length === 1 ? 'grid-cols-1' : log.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                        {log.images.map((url, i) => (
+                                            <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
+                                                <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Add / edit entry */}
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                        <span className="text-xs font-semibold text-zinc-300">
+                            {editingLog ? 'Edit entry' : 'Add entry'}
+                        </span>
+                        {!canAddLog && !editingLog && (
+                            <span className="text-[10px] text-zinc-500">Max 4 entries</span>
                         )}
                     </div>
 
-                    {hasExistingLog && !isEditingLog ? (
-                        <div className="px-4 pb-4 space-y-3">
-                            {myLog.text && (
-                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{myLog.text}</p>
-                            )}
-                            {myLog.images && myLog.images.length > 0 && (
-                                <div className={`grid gap-1.5 ${myLog.images.length === 1 ? 'grid-cols-1' : myLog.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                    {myLog.images.map((url, i) => (
-                                        <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
-                                            <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="px-4 pb-4 space-y-3">
-                            <textarea
-                                className="w-full min-h-[80px] resize-none bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
-                                placeholder="What did you do today? ✨"
-                                value={logText}
-                                onChange={(e) => setLogText(e.target.value)}
-                                maxLength={1000}
-                                disabled={isSavingLog}
-                            />
+                    <div className="px-4 pb-4 space-y-3">
+                        <textarea
+                            className="w-full min-h-[80px] resize-none bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
+                            placeholder="What did you do today? ✨"
+                            value={logText}
+                            onChange={(e) => setLogText(e.target.value)}
+                            maxLength={1000}
+                            disabled={isSavingLog || (!canAddLog && !editingLog)}
+                        />
 
-                            <div className="flex flex-wrap gap-2">
-                                {logImages.map((url, i) => (
-                                    <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-zinc-800 group">
-                                        <SignedImage path={url} alt="" className="h-full w-full object-cover" />
-                                        <button
-                                            onClick={() => removeImage(i)}
-                                            className="absolute top-1 right-1 p-0.5 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="w-3 h-3 text-white" />
-                                        </button>
-                                    </div>
-                                ))}
-
-                                {logImages.length < 6 && (
+                        <div className="flex flex-wrap gap-2">
+                            {logImages.map((url, i) => (
+                                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-zinc-800 group">
+                                    <SignedImage path={url} alt="" className="h-full w-full object-cover" />
                                     <button
-                                        onClick={() => imageInputRef.current?.click()}
-                                        disabled={isUploadingImage}
-                                        className="w-20 h-20 rounded-xl border-2 border-dashed border-zinc-700 hover:border-rose-500/30 flex flex-col items-center justify-center gap-1 transition-colors"
+                                        onClick={() => removeImage(i)}
+                                        className="absolute top-1 right-1 p-0.5 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
-                                        {isUploadingImage ? (
-                                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
-                                        ) : (
-                                            <>
-                                                <ImagePlus className="w-4 h-4 text-zinc-500" />
-                                                <span className="text-[10px] text-zinc-600">{logImages.length}/6</span>
-                                            </>
-                                        )}
+                                        <X className="w-3 h-3 text-white" />
                                     </button>
-                                )}
-                            </div>
+                                </div>
+                            ))}
 
-                            <input
-                                ref={imageInputRef}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                className="hidden"
-                                onChange={handleImageUpload}
-                            />
-
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    onClick={saveLog}
-                                    disabled={isSavingLog || (!logText.trim() && logImages.length === 0)}
-                                    className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                            {logImages.length < 6 && (
+                                <button
+                                    onClick={() => imageInputRef.current?.click()}
+                                    disabled={isUploadingImage || (!canAddLog && !editingLog)}
+                                    className="w-20 h-20 rounded-xl border-2 border-dashed border-zinc-700 hover:border-rose-500/30 flex flex-col items-center justify-center gap-1 transition-colors"
                                 >
-                                    {isSavingLog ? 'Saving...' : (
-                                        <span className="flex items-center gap-2">
-                                            <Check className="w-4 h-4" /> Save
-                                        </span>
+                                    {isUploadingImage ? (
+                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
+                                    ) : (
+                                        <>
+                                            <ImagePlus className="w-4 h-4 text-zinc-500" />
+                                            <span className="text-[10px] text-zinc-600">{logImages.length}/6</span>
+                                        </>
                                     )}
-                                </Button>
-                                {isEditingLog && (
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setIsEditingLog(false)
-                                            setLogText(myLog?.text || '')
-                                            setLogImages(myLog?.images || [])
-                                        }}
-                                        className="h-10 text-sm"
-                                    >
-                                        Cancel
-                                    </Button>
-                                )}
-                            </div>
-                            <p className="text-[10px] text-zinc-600 text-center">{logText.length}/1000 · Max 6 photos</p>
+                                </button>
+                            )}
                         </div>
-                    )}
+
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={handleImageUpload}
+                        />
+
+                        <div className="flex items-center gap-2">
+                            <Button
+                                onClick={saveLog}
+                                disabled={isSavingLog || (!logText.trim() && logImages.length === 0) || (!canAddLog && !editingLog)}
+                                className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                            >
+                                {isSavingLog ? 'Saving...' : (
+                                    <span className="flex items-center gap-2">
+                                        <Check className="w-4 h-4" /> Save
+                                    </span>
+                                )}
+                            </Button>
+                            {editingLog && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setEditingLog(null)
+                                        setLogText('')
+                                        setLogImages([])
+                                    }}
+                                    className="h-10 text-sm"
+                                >
+                                    Cancel
+                                </Button>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-zinc-600 text-center">{logText.length}/1000 · Max 6 photos</p>
+                    </div>
                 </div>
 
-                {/* Partner's log */}
-                {partnerLog && (partnerLog.text || (partnerLog.images && partnerLog.images.length > 0)) && (
+                {/* Partner logs */}
+                {partnerLogs.length > 0 ? (
                     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                            <div className="h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
-                                {partnerProfile?.avatar_url ? (
-                                    <img src={partnerProfile.avatar_url} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                    <User className="h-3 w-3 text-zinc-500" />
-                                )}
-                            </div>
-                            <span className="text-xs font-semibold text-zinc-400">{partnerName}</span>
-                        </div>
-                        <div className="px-4 pb-4 space-y-3">
-                            {partnerLog.text && (
-                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{partnerLog.text}</p>
-                            )}
-                            {partnerLog.images && partnerLog.images.length > 0 && (
-                                <div className={`grid gap-1.5 ${partnerLog.images.length === 1 ? 'grid-cols-1' : partnerLog.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                    {partnerLog.images.map((url, i) => (
-                                        <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
-                                            <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
-                                        </button>
-                                    ))}
+                        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                            <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                                    {partnerProfile?.avatar_url ? (
+                                        <img src={partnerProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <User className="h-3 w-3 text-zinc-500" />
+                                    )}
                                 </div>
-                            )}
+                                <span className="text-xs font-semibold text-zinc-400">{partnerName}</span>
+                            </div>
+                            <span className="text-[10px] text-zinc-600">{partnerLogs.length} entries</span>
+                        </div>
+
+                        <div className="px-4 pb-4 space-y-3">
+                            {partnerLogs.map((log, idx) => (
+                                <div key={log.id} className="border border-zinc-800 rounded-xl p-3 space-y-2">
+                                    <span className="text-[10px] text-zinc-500">Entry {idx + 1}</span>
+                                    {log.text && (
+                                        <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log.text}</p>
+                                    )}
+                                    {log.images && log.images.length > 0 && (
+                                        <div className={`grid gap-1.5 ${log.images.length === 1 ? 'grid-cols-1' : log.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                            {log.images.map((url, i) => (
+                                                <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
+                                                    <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
-                )}
-
-                {!partnerLog && (
+                ) : (
                     <div className="text-center py-3 text-xs text-zinc-600">
                         {partnerName} hasn&apos;t shared their day yet
                     </div>
@@ -499,12 +562,10 @@ export default function LovePage() {
                                 >
                                     <span className="text-xl">{nudge.emoji}</span>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium truncate">
-                                            {isMe ? `You → ${partnerName}` : `${partnerName} → You`}
-                                        </p>
-                                        <p className="text-xs text-zinc-500 truncate">{nudge.message}</p>
+                                        <p className="text-sm font-medium truncate">{isMe ? 'You' : partnerName}</p>
+                                        <p className="text-xs text-zinc-500 truncate">{nudge.message || ''}</p>
                                     </div>
-                                    <span className="text-[10px] text-zinc-600 shrink-0">
+                                    <span className="text-[10px] text-zinc-600">
                                         {formatDistanceToNow(parseISO(nudge.created_at), { addSuffix: true })}
                                     </span>
                                 </div>

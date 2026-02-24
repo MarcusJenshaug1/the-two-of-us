@@ -31,6 +31,7 @@ type JournalItem = {
     avatarUrl: string | null
     text: string | null
     imageCount: number
+    entryCount: number
     isMe: boolean
 }
 
@@ -159,7 +160,7 @@ export default function InboxPage() {
             // 2. Load journal entries for these dates
             const { data: logData } = await supabase
                 .from('daily_logs')
-                .select('id, date_key, user_id, text, images')
+                .select('id, date_key, user_id, text, images, created_at')
                 .eq('room_id', member.room_id)
                 .in('date_key', dateKeys)
 
@@ -255,18 +256,52 @@ export default function InboxPage() {
             })
 
             // Build journal items
-            const journalItems: JournalItem[] = (logData || [])
-                .filter((l: any) => l.text || (l.images && l.images.length > 0))
-                .map((l: any) => ({
-                    type: 'journal' as const,
-                    id: `log_${l.id}`,
-                    date_key: l.date_key,
-                    userName: profileMap[l.user_id]?.name || 'Someone',
-                    avatarUrl: profileMap[l.user_id]?.avatar_url || null,
-                    text: l.text,
-                    imageCount: l.images?.length || 0,
-                    isMe: l.user_id === user.id,
-                }))
+            const journalGroupMap = new Map<string, {
+                date_key: string
+                user_id: string
+                entryCount: number
+                imageCount: number
+                latestText: string | null
+                latestCreatedAt: string | null
+            }>()
+
+            for (const l of (logData || []) as any[]) {
+                if (!l.text && (!l.images || l.images.length === 0)) continue
+                const key = `${l.date_key}_${l.user_id}`
+                const existing = journalGroupMap.get(key)
+                const createdAt = l.created_at || null
+                if (!existing) {
+                    journalGroupMap.set(key, {
+                        date_key: l.date_key,
+                        user_id: l.user_id,
+                        entryCount: 1,
+                        imageCount: l.images?.length || 0,
+                        latestText: l.text || null,
+                        latestCreatedAt: createdAt,
+                    })
+                } else {
+                    existing.entryCount += 1
+                    existing.imageCount += l.images?.length || 0
+                    if (createdAt && (!existing.latestCreatedAt || createdAt > existing.latestCreatedAt)) {
+                        existing.latestCreatedAt = createdAt
+                        existing.latestText = l.text || existing.latestText
+                    } else if (!existing.latestText && l.text) {
+                        existing.latestText = l.text
+                    }
+                }
+            }
+
+            const journalItems: JournalItem[] = Array.from(journalGroupMap.values()).map((j) => ({
+                type: 'journal' as const,
+                id: `log_${j.date_key}_${j.user_id}`,
+                date_key: j.date_key,
+                userName: profileMap[j.user_id]?.name || 'Someone',
+                avatarUrl: profileMap[j.user_id]?.avatar_url || null,
+                text: j.latestText,
+                imageCount: j.imageCount,
+                entryCount: j.entryCount,
+                isMe: j.user_id === user.id,
+            }))
 
             // Build nudge items (extract date_key from created_at)
             const nudgeItems: NudgeItem[] = (nudgeData || []).map((n: any) => ({
@@ -514,13 +549,18 @@ export default function InboxPage() {
                                                             <span className={`font-medium ${j.isMe ? 'text-rose-400' : 'text-zinc-300'}`}>
                                                                 {j.isMe ? 'You' : j.userName}
                                                             </span>
-                                                            <span className="text-zinc-500"> wrote in journal</span>
+                                                            <span className="text-zinc-500">
+                                                                {j.entryCount > 1 ? ` added ${j.entryCount} entries` : ' added an entry'}
+                                                            </span>
                                                         </p>
                                                         {j.text && (
                                                             <p className="text-xs text-zinc-500 truncate">{j.text}</p>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-1.5 shrink-0">
+                                                        {j.entryCount > 1 && (
+                                                            <span className="text-[10px] text-zinc-500">{j.entryCount}×</span>
+                                                        )}
                                                         {j.imageCount > 0 && (
                                                             <span className="flex items-center gap-0.5 text-[10px] text-rose-400">
                                                                 <Camera className="w-3 h-3" /> {j.imageCount}

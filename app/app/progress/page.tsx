@@ -11,7 +11,7 @@ import {
     subMonths, addMonths, isAfter, getMonth, getDate
 } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
-import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles, Plus, X, Star, BookOpen, Lightbulb } from 'lucide-react'
+import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronRight, Sparkles, Plus, X, Star, BookOpen, Lightbulb, Pencil } from 'lucide-react'
 import confetti from 'canvas-confetti'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -40,10 +40,12 @@ export default function ProgressPage() {
     const [roomId, setRoomId] = useState<string | null>(null)
     const confettiFired = useRef(false)
     const [dayBadges, setDayBadges] = useState<Record<string, string[]>>({})
+    const [journalCounts, setJournalCounts] = useState<Record<string, number>>({})
 
     // Milestones
     const [userMilestones, setUserMilestones] = useState<any[]>([])
     const [showMilestoneForm, setShowMilestoneForm] = useState(false)
+    const [editingMilestone, setEditingMilestone] = useState<any | null>(null)
     const [msKind, setMsKind] = useState('custom')
     const [msTitle, setMsTitle] = useState('')
     const [msDate, setMsDate] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -177,6 +179,7 @@ export default function ProgressPage() {
             ])
 
             const badges: Record<string, string[]> = {}
+            const jCounts: Record<string, number> = {}
             const add = (dk: string, type: string) => {
                 if (!badges[dk]) badges[dk] = []
                 if (!badges[dk].includes(type)) badges[dk].push(type)
@@ -186,7 +189,10 @@ export default function ProgressPage() {
             for (const t of tkR.data || []) if (t.due_date_key) add(t.due_date_key, 'task')
             for (const m of memR.data || []) add(m.date_key, 'memory')
             for (const d of dpR.data || []) if (d.planned_for) add(d.planned_for, 'dateplan')
-            for (const l of logR.data || []) add(l.date_key, 'journal')
+            for (const l of logR.data || []) {
+                add(l.date_key, 'journal')
+                jCounts[l.date_key] = (jCounts[l.date_key] || 0) + 1
+            }
 
             for (const ms of userMilestones) {
                 if (ms.happened_at >= mStart && ms.happened_at <= mEnd) {
@@ -195,6 +201,7 @@ export default function ProgressPage() {
             }
 
             setDayBadges(badges)
+            setJournalCounts(jCounts)
         }
 
         loadBadges()
@@ -326,22 +333,43 @@ export default function ProgressPage() {
     const reversedActivity = [...activityMap].reverse()
 
     // Milestone save
+    const openEditMilestone = (ms: any) => {
+        setEditingMilestone(ms)
+        setMsKind(ms.kind)
+        setMsTitle(ms.title)
+        setMsDate(ms.happened_at)
+        setMsNote(ms.note || '')
+        setShowMilestoneForm(true)
+    }
+
     const handleSaveMilestone = async () => {
         if (!user || !roomId || !msTitle.trim() || !msDate) return
         setIsSavingMs(true)
         try {
-            const { error } = await supabase.from('milestones').insert({
-                room_id: roomId,
-                created_by: user.id,
-                kind: msKind,
-                title: msTitle.trim(),
-                happened_at: msDate,
-                note: msNote.trim() || null,
-                images: [],
-            })
-            if (error) throw error
-            toast('Milestone added 🏆', 'love')
+            if (editingMilestone) {
+                const { error } = await supabase.from('milestones').update({
+                    kind: msKind,
+                    title: msTitle.trim(),
+                    happened_at: msDate,
+                    note: msNote.trim() || null,
+                }).eq('id', editingMilestone.id)
+                if (error) throw error
+                toast('Milestone updated 🏆', 'love')
+            } else {
+                const { error } = await supabase.from('milestones').insert({
+                    room_id: roomId,
+                    created_by: user.id,
+                    kind: msKind,
+                    title: msTitle.trim(),
+                    happened_at: msDate,
+                    note: msNote.trim() || null,
+                    images: [],
+                })
+                if (error) throw error
+                toast('Milestone added 🏆', 'love')
+            }
             setShowMilestoneForm(false)
+            setEditingMilestone(null)
             setMsKind('custom'); setMsTitle(''); setMsDate(format(new Date(), 'yyyy-MM-dd')); setMsNote('')
             // Reload milestones
             const { data: msData } = await supabase
@@ -571,6 +599,11 @@ export default function ProgressPage() {
                                             {badges.length > 3 && <span className="text-[5px] text-zinc-500 leading-none">+</span>}
                                         </div>
                                     )}
+                                    {journalCounts[dateKey] > 1 && !special && (
+                                        <span className="absolute bottom-0.5 right-0.5 text-[8px] text-cyan-300">
+                                            {journalCounts[dateKey]}
+                                        </span>
+                                    )}
                                 </button>
                             )
                         })}
@@ -596,6 +629,8 @@ export default function ProgressPage() {
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1" /> Event</div>
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1" /> Task</div>
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1" /> Memory</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-purple-400 mr-1" /> Milestone</div>
+                        <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-pink-400 mr-1" /> Date plan</div>
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-cyan-400 mr-1" /> Journal</div>
                     </div>
                 </div>
@@ -665,7 +700,14 @@ export default function ProgressPage() {
                         <Trophy className="w-5 h-5 text-amber-500" /> Milestones
                     </h3>
                     <button
-                        onClick={() => setShowMilestoneForm(true)}
+                        onClick={() => {
+                            setEditingMilestone(null)
+                            setMsKind('custom')
+                            setMsTitle('')
+                            setMsDate(format(new Date(), 'yyyy-MM-dd'))
+                            setMsNote('')
+                            setShowMilestoneForm(true)
+                        }}
                         className="flex items-center gap-1 text-xs font-medium text-rose-400 hover:text-rose-300 transition-colors"
                     >
                         <Plus className="w-3.5 h-3.5" /> Add
@@ -689,13 +731,22 @@ export default function ProgressPage() {
                                     <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy')}</p>
                                     {ms.note && <p className="text-xs text-zinc-400 mt-1">{ms.note}</p>}
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteMilestone(ms.id)}
-                                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all shrink-0"
-                                    aria-label="Delete milestone"
-                                >
-                                    <X className="w-3.5 h-3.5 text-zinc-500" />
-                                </button>
+                                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                        onClick={() => openEditMilestone(ms)}
+                                        className="p-1.5 rounded-lg hover:bg-zinc-800"
+                                        aria-label="Edit milestone"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5 text-zinc-500" />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteMilestone(ms.id)}
+                                        className="p-1.5 rounded-lg hover:bg-zinc-800"
+                                        aria-label="Delete milestone"
+                                    >
+                                        <X className="w-3.5 h-3.5 text-zinc-500" />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -721,15 +772,15 @@ export default function ProgressPage() {
             {showMilestoneForm && (
                 <div
                     className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
-                    onClick={() => setShowMilestoneForm(false)}
+                    onClick={() => { setShowMilestoneForm(false); setEditingMilestone(null) }}
                 >
                     <div
                         className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold">New Milestone</h3>
-                            <button onClick={() => setShowMilestoneForm(false)} className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors" aria-label="Close">
+                            <h3 className="text-lg font-semibold">{editingMilestone ? 'Edit Milestone' : 'New Milestone'}</h3>
+                            <button onClick={() => { setShowMilestoneForm(false); setEditingMilestone(null) }} className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>

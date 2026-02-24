@@ -29,6 +29,8 @@ type DailyLog = {
     text: string | null
     images: string[]
     date_key: string
+    created_at?: string
+    entry_no?: number
 }
 
 export default function InboxDetailPage() {
@@ -50,8 +52,8 @@ export default function InboxDetailPage() {
     const chatEndRef = useRef<HTMLDivElement>(null)
 
     // Journal state
-    const [myLog, setMyLog] = useState<DailyLog | null>(null)
-    const [partnerLog, setPartnerLog] = useState<DailyLog | null>(null)
+    const [myLogs, setMyLogs] = useState<DailyLog[]>([])
+    const [partnerLogs, setPartnerLogs] = useState<DailyLog[]>([])
     const [previewImage, setPreviewImage] = useState<string | null>(null)
 
     // Unified day content
@@ -175,10 +177,15 @@ export default function InboxDetailPage() {
                 .eq('date_key', dateKey)
 
             if (logData) {
-                const myEntry = logData.find((l: any) => l.user_id === user.id) as DailyLog | undefined
-                const partnerEntry = logData.find((l: any) => l.user_id !== user.id) as DailyLog | undefined
-                if (myEntry) setMyLog(myEntry)
-                if (partnerEntry) setPartnerLog(partnerEntry)
+                const mine = (logData as DailyLog[])
+                    .filter((l) => l.user_id === user.id)
+                    .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+                const theirs = (logData as DailyLog[])
+                    .filter((l) => l.user_id !== user.id)
+                    .sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime())
+
+                setMyLogs(mine)
+                setPartnerLogs(theirs)
             }
 
             // 6. Load planner events for this date
@@ -441,7 +448,7 @@ export default function InboxDetailPage() {
 
     const bothAnswered = myAnswer && partnerAnswer
     const partnerName = partnerProfile?.name || 'Partner'
-    const hasJournal = myLog || partnerLog
+    const hasJournal = myLogs.length > 0 || partnerLogs.length > 0
     const hasChat = bothAnswered
 
     return (
@@ -686,43 +693,47 @@ export default function InboxDetailPage() {
                         </div>
 
                         <div className="space-y-3">
-                            {[myLog, partnerLog].filter(Boolean).map((log) => {
-                                const isMe = log!.user_id === user!.id
-                                const profile = isMe ? myProfile : partnerProfile
-                                const name = isMe ? 'You' : partnerName
-                                const hasImages = log!.images && log!.images.length > 0
-                                return (
-                                    <div key={log!.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                                        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
-                                            <Avatar profile={profile} />
-                                            <span className={`text-xs font-semibold ${isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{name}</span>
-                                            {hasImages && (
-                                                <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
-                                                    <Camera className="w-3 h-3" /> {log!.images.length}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="px-4 pb-4 space-y-3">
-                                            {log!.text && (
-                                                <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log!.text}</p>
-                                            )}
-                                            {hasImages && (
-                                                <div className={`grid gap-1.5 ${log!.images.length === 1 ? 'grid-cols-1' : log!.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                                                    {log!.images.map((url, i) => (
-                                                        <button
-                                                            key={i}
-                                                            onClick={() => setPreviewImage(url)}
-                                                            className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
-                                                        >
-                                                            <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
-                                                        </button>
-                                                    ))}
+                            {[{ logs: myLogs, profile: myProfile, name: 'You', isMe: true }, { logs: partnerLogs, profile: partnerProfile, name: partnerName, isMe: false }]
+                                .filter((group) => group.logs.length > 0)
+                                .map((group) => (
+                                    <div key={group.name} className="space-y-2">
+                                        {group.logs.map((log, idx) => {
+                                            const hasImages = log.images && log.images.length > 0
+                                            return (
+                                                <div key={log.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                                                    <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+                                                        <Avatar profile={group.profile} />
+                                                        <span className={`text-xs font-semibold ${group.isMe ? 'text-rose-400' : 'text-zinc-400'}`}>{group.name}</span>
+                                                        <span className="text-[10px] text-zinc-600">Entry {idx + 1}</span>
+                                                        {hasImages && (
+                                                            <span className="ml-auto flex items-center gap-0.5 text-[10px] text-zinc-600">
+                                                                <Camera className="w-3 h-3" /> {log.images.length}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="px-4 pb-4 space-y-3">
+                                                        {log.text && (
+                                                            <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log.text}</p>
+                                                        )}
+                                                        {hasImages && (
+                                                            <div className={`grid gap-1.5 ${log.images.length === 1 ? 'grid-cols-1' : log.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                                                {log.images.map((url, i) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        onClick={() => setPreviewImage(url)}
+                                                                        className="aspect-square rounded-xl overflow-hidden bg-zinc-800"
+                                                                    >
+                                                                        <img src={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
+                                            )
+                                        })}
                                     </div>
-                                )
-                            })}
+                                ))}
                         </div>
                     </section>
                 )}
@@ -821,14 +832,15 @@ export default function InboxDetailPage() {
 
                 {/* ─── SAVE AS MEMORY CTA ─── */}
                 {(() => {
-                    const hasJournalContent = (myLog?.text || (myLog?.images && myLog.images.length > 0)) || (partnerLog?.text || (partnerLog?.images && partnerLog.images.length > 0))
+                    const allLogs = [...myLogs, ...partnerLogs]
+                    const latestLog = allLogs.sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime()).pop()
+                    const hasJournalContent = !!latestLog && (latestLog.text || (latestLog.images && latestLog.images.length > 0))
                     return hasJournalContent && dayMemories.length === 0 && !showSaveMemory ? (
                         <button
                             onClick={() => {
-                                const journal = myLog || partnerLog
                                 setMemTitle(`Memory from ${formatDateHeading(dateKey)}`)
-                                setMemDesc(journal?.text || '')
-                                setMemImages(journal?.images || [])
+                                setMemDesc(latestLog?.text || '')
+                                setMemImages(latestLog?.images || [])
                                 setShowSaveMemory(true)
                             }}
                             className="w-full flex items-center justify-center gap-2 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-amber-400 text-sm font-medium hover:border-amber-500/40 transition-colors"
