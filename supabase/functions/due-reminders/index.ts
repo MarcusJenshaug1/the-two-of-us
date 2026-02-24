@@ -45,11 +45,19 @@ Deno.serve(async (_req) => {
 
             if (members) {
                 for (const m of members) {
+                    // Get user's preferred locale
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("locale")
+                        .eq("id", m.user_id)
+                        .single()
+                    const locale = profile?.locale || "en"
+
                     try {
                         await supabase.functions.invoke("send-push-notification", {
                             body: {
                                 user_id: m.user_id,
-                                title: "📅 Upcoming event",
+                                title: locale === "no" ? "📅 Kommende hendelse" : "📅 Upcoming event",
                                 body: ev.title,
                                 url: "/app/planner",
                                 tag: `event-${ev.id}`,
@@ -91,11 +99,18 @@ Deno.serve(async (_req) => {
 
             if (members) {
                 for (const m of members) {
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("locale")
+                        .eq("id", m.user_id)
+                        .single()
+                    const locale = profile?.locale || "en"
+
                     try {
                         await supabase.functions.invoke("send-push-notification", {
                             body: {
                                 user_id: m.user_id,
-                                title: "✅ Task reminder",
+                                title: locale === "no" ? "✅ Oppgavepåminnelse" : "✅ Task reminder",
                                 body: task.title,
                                 url: "/app/planner",
                                 tag: `task-${task.id}`,

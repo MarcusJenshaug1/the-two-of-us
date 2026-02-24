@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import en from './messages/en.json'
 import no from './messages/no.json'
 
@@ -53,16 +54,44 @@ function setLocaleCookie(locale: Locale) {
 export function LocaleProvider({ children }: { children: ReactNode }) {
     const [locale, setLocaleState] = useState<Locale>('en')
     const [mounted, setMounted] = useState(false)
+    const supabase = createClient()
+    const syncedRef = useRef(false)
 
     useEffect(() => {
-        setLocaleState(detectDefaultLocale())
+        const detected = detectDefaultLocale()
+        setLocaleState(detected)
         setMounted(true)
-    }, [])
+
+        // Sync locale to DB on first mount (fire-and-forget)
+        if (!syncedRef.current) {
+            syncedRef.current = true
+            supabase.auth.getUser().then(({ data }) => {
+                if (data.user) {
+                    supabase
+                        .from('profiles')
+                        .update({ locale: detected })
+                        .eq('id', data.user.id)
+                        .then(() => {})
+                }
+            })
+        }
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     const setLocale = useCallback((newLocale: Locale) => {
         setLocaleState(newLocale)
         setLocaleCookie(newLocale)
-    }, [])
+
+        // Sync to DB so push notifications use the right language
+        supabase.auth.getUser().then(({ data }) => {
+            if (data.user) {
+                supabase
+                    .from('profiles')
+                    .update({ locale: newLocale })
+                    .eq('id', data.user.id)
+                    .then(() => {})
+            }
+        })
+    }, [supabase])
 
     const t: TranslateFunction = useCallback((key: string, params?: Record<string, string | number>) => {
         const value = getNestedValue(messages[locale], key)

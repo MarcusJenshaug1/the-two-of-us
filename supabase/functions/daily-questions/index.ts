@@ -104,11 +104,21 @@ Deno.serve(async (req) => {
 
                         if (members) {
                             for (const member of members) {
+                                // Get user's preferred locale
+                                const { data: profile } = await supabase
+                                    .from("profiles")
+                                    .select("locale")
+                                    .eq("id", member.user_id)
+                                    .single()
+                                const locale = profile?.locale || "en"
+
                                 await supabase.functions.invoke("send-push-notification", {
                                     body: {
                                         user_id: member.user_id,
-                                        title: "💕 New Question!",
-                                        body: "Today's question is ready. Open the app to answer!",
+                                        title: locale === "no" ? "💕 Nytt spørsmål!" : "💕 New Question!",
+                                        body: locale === "no"
+                                            ? "Dagens spørsmål er klart. Åpne appen for å svare!"
+                                            : "Today's question is ready. Open the app to answer!",
                                         url: "/app/questions",
                                         tag: "daily-question",
                                         badge: 1,
