@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import Link from 'next/link'
 import { format, parseISO, isToday, isYesterday, type Locale } from 'date-fns'
-import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, Heart, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
+import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
 
@@ -604,7 +604,6 @@ export default function InboxPage() {
                                                         <p className="text-xs text-zinc-500 truncate">{n.message}</p>
                                                     )}
                                                 </div>
-                                                <Heart className="w-3.5 h-3.5 text-rose-500/40 shrink-0" />
                                             </div>
                                         )
                                     }
