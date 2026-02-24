@@ -1,0 +1,14 @@
+{
+  "decision": "B",
+  "reason": "Server features detected (middleware / API routes / server actions). Use SWA Hybrid (Preview).",
+  "nodeHint": null,
+  "signals": {
+    "hasStaticExport": false,
+    "hasMiddleware": true,
+    "hasApiRoutes": true,
+    "hasServerActions": false,
+    "hasDynamicRoutes": true
+  },
+  "nextVersion": "16.1.6",
+  "repo": "Two of Us"
+}
