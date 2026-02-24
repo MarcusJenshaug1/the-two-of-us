@@ -108,6 +108,15 @@ const CATEGORIES = [
 const PRICE_LABELS: Record<string, string> = { free: 'Free', low: '$', medium: '$$', high: '$$$' }
 const PRICE_COLORS: Record<string, string> = { free: 'text-emerald-400', low: 'text-zinc-400', medium: 'text-amber-400', high: 'text-rose-400' }
 
+const LANGUAGES: { code: string; label: string }[] = [
+    { code: 'nb', label: 'Norsk' },
+    { code: 'nn', label: 'Nynorsk' },
+    { code: 'en', label: 'English' },
+    { code: 'sv', label: 'Svenska' },
+    { code: 'da', label: 'Dansk' },
+]
+const LANG_LABEL: Record<string, string> = Object.fromEntries(LANGUAGES.map(l => [l.code, l.label]))
+
 function formatDuration(mins: number): string {
     if (mins < 60) return `${mins}m`
     const h = Math.floor(mins / 60)
@@ -896,13 +905,11 @@ export default function PlannerPage() {
                                 <select
                                     value={publicLang}
                                     onChange={(e) => setPublicLang(e.target.value)}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-zinc-300 [color-scheme:dark]"
+                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-[11px] text-zinc-300 appearance-none bg-[length:12px] bg-[right_6px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3%204.5l3%203%203-3%22/%3E%3C/svg%3E')] pr-5 [color-scheme:dark]"
                                 >
-                                    <option value="nb">NB</option>
-                                    <option value="nn">NN</option>
-                                    <option value="en">EN</option>
-                                    <option value="sv">SV</option>
-                                    <option value="da">DA</option>
+                                    {LANGUAGES.map(l => (
+                                        <option key={l.code} value={l.code}>{l.label}</option>
+                                    ))}
                                 </select>
                                 <select
                                     value={publicSort}
@@ -1086,7 +1093,7 @@ export default function PlannerPage() {
                                                     <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">custom</span>
                                                 )}
                                                 {idea.visibility === 'public' && idea.language && (
-                                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{idea.language.toUpperCase()}</span>
+                                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{LANG_LABEL[idea.language] || idea.language}</span>
                                                 )}
                                             </div>
                                             {idea.description && (
@@ -1210,13 +1217,11 @@ export default function PlannerPage() {
                             <select
                                 value={publishLang}
                                 onChange={(e) => setPublishLang(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M4%206l4%204%204-4%22/%3E%3C/svg%3E')] pr-8 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                             >
-                                <option value="nb">Norwegian (NB)</option>
-                                <option value="nn">Norwegian (NN)</option>
-                                <option value="en">English</option>
-                                <option value="sv">Swedish</option>
-                                <option value="da">Danish</option>
+                                {LANGUAGES.map(l => (
+                                    <option key={l.code} value={l.code}>{l.label}</option>
+                                ))}
                             </select>
                         </div>
 
@@ -1292,7 +1297,7 @@ export default function PlannerPage() {
                                     <select
                                         value={newIdeaPrice}
                                         onChange={e => setNewIdeaPrice(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="free">Free</option>
                                         <option value="low">$</option>
@@ -1305,11 +1310,11 @@ export default function PlannerPage() {
                                     <select
                                         value={newIdeaDuration}
                                         onChange={e => setNewIdeaDuration(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="30">30 min</option>
                                         <option value="60">1 hour</option>
-                                        <option value="90">1.5 hours</option>
+                                        <option value="90">1.5 h</option>
                                         <option value="120">2 hours</option>
                                         <option value="180">3 hours</option>
                                         <option value="240">4 hours</option>
@@ -1321,7 +1326,7 @@ export default function PlannerPage() {
                                     <select
                                         value={newIdeaTime}
                                         onChange={e => setNewIdeaTime(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="any">Any time</option>
                                         <option value="morning">Morning</option>
