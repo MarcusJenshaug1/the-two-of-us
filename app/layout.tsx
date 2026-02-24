@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/supabase/auth-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppUpdateNotifier } from "@/components/app-update-notifier";
+import { ServiceWorkerRegister } from "@/components/sw-register";
 import { LocaleProvider } from "@/lib/i18n";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -63,6 +64,7 @@ export default function RootLayout({
                 <LocaleProvider>
                     <AuthProvider>
                         <ToastProvider>
+                            <ServiceWorkerRegister />
                             <AppUpdateNotifier />
                             {children}
                         </ToastProvider>

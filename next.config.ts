@@ -1,14 +1,5 @@
 import type { NextConfig } from 'next';
 
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: false, // Let user control when to activate new SW via update banner
-  buildExcludes: [/middleware-manifest\.json$/],
-  customWorkerSrc: 'worker',
-});
-
 const nextConfig: NextConfig = {
   /* config options here */
   turbopack: {},
@@ -21,4 +12,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

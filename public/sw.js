@@ -2,14 +2,23 @@
 
 const CACHE_NAME = 'two-of-us-v1'
 
-// Install
+// Install — do NOT skipWaiting automatically so AppUpdateNotifier can control activation
 self.addEventListener('install', (event) => {
-    self.skipWaiting()
+    // New SW is installed but waits until told to activate
+    console.log('[SW] installed')
 })
 
 // Activate
 self.addEventListener('activate', (event) => {
     event.waitUntil(self.clients.claim())
+    console.log('[SW] activated')
+})
+
+// Listen for SKIP_WAITING message from AppUpdateNotifier
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting()
+    }
 })
 
 // Push notification received
