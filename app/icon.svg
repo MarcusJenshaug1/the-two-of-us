@@ -4,25 +4,25 @@
       <stop offset="0%" stop-color="#18181b"/>
       <stop offset="100%" stop-color="#09090b"/>
     </linearGradient>
-    <linearGradient id="heart1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#fb7185"/>
-      <stop offset="100%" stop-color="#e11d48"/>
-    </linearGradient>
-    <linearGradient id="heart2" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="h1" x1="0" y1="0" x2="0.5" y2="1">
       <stop offset="0%" stop-color="#fda4af"/>
       <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+    <linearGradient id="h2" x1="0.5" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
     </linearGradient>
   </defs>
   <!-- Rounded background -->
   <rect width="512" height="512" rx="108" ry="108" fill="url(#bg)"/>
-  <!-- Heart 1 (left, slightly behind) -->
-  <g transform="translate(230, 260) scale(0.52)" opacity="0.85">
-    <path d="M0-200 C-70-200 -200-160 -200-40 C-200 80 0 200 0 200 C0 200 200 80 200-40 C200-160 70-200 0-200Z" 
-          fill="url(#heart2)" transform="rotate(-12)"/>
+
+  <!-- Heart left — slightly tilted right, behind -->
+  <g transform="translate(218, 244) scale(12.5) translate(-12, -12) rotate(-15, 12, 12)" opacity="0.7">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#h1)"/>
   </g>
-  <!-- Heart 2 (right, in front) -->
-  <g transform="translate(282, 250) scale(0.52)">
-    <path d="M0-200 C-70-200 -200-160 -200-40 C-200 80 0 200 0 200 C0 200 200 80 200-40 C200-160 70-200 0-200Z" 
-          fill="url(#heart1)" transform="rotate(8)"/>
+
+  <!-- Heart right — slightly tilted left, in front -->
+  <g transform="translate(294, 244) scale(12.5) translate(-12, -12) rotate(15, 12, 12)">
+    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="url(#h2)"/>
   </g>
 </svg>
