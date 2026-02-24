@@ -610,5 +610,12 @@
     "fr": "Fr",
     "sa": "Lø",
     "su": "Sø"
+  },
+  "notifPrompt": {
+    "title": "Hold kontakten 💕",
+    "body": "Få et lite varsel når partneren din svarer eller sender deg kjærlighet. Du går aldri glipp av noe.",
+    "enable": "Skru på varsler",
+    "enabling": "Skrur på...",
+    "later": "Kanskje senere"
   }
 }

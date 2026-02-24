@@ -610,5 +610,12 @@
     "fr": "Fr",
     "sa": "Sa",
     "su": "Su"
+  },
+  "notifPrompt": {
+    "title": "Stay Connected 💕",
+    "body": "Get a gentle nudge when your partner answers or sends you love. You'll never miss a moment.",
+    "enable": "Turn On Notifications",
+    "enabling": "Turning on...",
+    "later": "Maybe Later"
   }
 }
