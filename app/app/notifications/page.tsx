@@ -89,10 +89,17 @@ export default function NotificationsPage() {
         fetchNotifications().then(async () => {
             // Mark all unread as read after a short delay
             setTimeout(async () => {
-                await supabase
+                const { error } = await supabase
                     .from('notifications')
                     .update({ read: true })
                     .eq('read', false)
+
+                if (!error) {
+                    // Also update local state so UI reflects read status
+                    setNotifications(prev =>
+                        prev.map(n => n.read ? n : { ...n, read: true })
+                    )
+                }
             }, 800)
         })
 
@@ -114,6 +121,19 @@ export default function NotificationsPage() {
     }, [fetchNotifications])
 
     const unreadCount = notifications.filter(n => !n.read).length
+
+    // Mark a single notification as read when tapped
+    const markAsRead = useCallback(async (id: string) => {
+        const supabase = createClient()
+        // Optimistic local update
+        setNotifications(prev =>
+            prev.map(n => n.id === id ? { ...n, read: true } : n)
+        )
+        await supabase
+            .from('notifications')
+            .update({ read: true })
+            .eq('id', id)
+    }, [])
 
     return (
         <div className="min-h-screen">
@@ -157,6 +177,7 @@ export default function NotificationsPage() {
                             <Link
                                 key={notif.id}
                                 href={notif.url}
+                                onClick={() => { if (!notif.read) markAsRead(notif.id) }}
                                 className={clsx(
                                     "flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-zinc-900/50 active:bg-zinc-900",
                                     !notif.read && "bg-zinc-900/30"
