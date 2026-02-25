@@ -503,7 +503,16 @@ export default function SettingsPage() {
 
             {/* Version */}
             <div className="text-center text-xs text-zinc-600 pt-4">
-                <p>v {process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</p>
+                <p>
+                    {process.env.NEXT_PUBLIC_BUILD_TIME
+                        ? new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleDateString('nb-NO')
+                        : 'dev'
+                    }
+                    {process.env.NEXT_PUBLIC_APP_VERSION && !process.env.NEXT_PUBLIC_APP_VERSION.startsWith('dev')
+                        ? ` · ${process.env.NEXT_PUBLIC_APP_VERSION}`
+                        : ''
+                    }
+                </p>
             </div>
 
             <section className="pt-8">
