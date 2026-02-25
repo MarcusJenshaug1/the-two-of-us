@@ -155,9 +155,9 @@
     "reloadPage": "Last siden på nytt",
     "tryAgain": "Prøv igjen",
     "sending": "Sender...",
-    "nudgePartner": "Dytt {name} til å svare 👋",
-    "nudgeSent": "Dytt sendt! 👋",
-    "nudgeAlreadySent": "Dytt sendt — venter på svar ✨"
+    "nudgePartner": "Påminn {name} om å svare 👋",
+    "nudgeSent": "Påminnelse sendt! 👋",
+    "nudgeAlreadySent": "Påminnelse sendt — venter på svar ✨"
   },
   "settings": {
     "title": "Innstillinger",
