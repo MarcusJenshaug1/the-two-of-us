@@ -1,81 +1,133 @@
 // Edge Function: send-push-notification
-// Triggered by the daily-questions function or database webhooks
-// Sends Web Push notifications to a user's subscribed devices
+// Sends Web Push notifications with proper VAPID auth + RFC 8291 encryption
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
 
-const VAPID_SUBJECT = "mailto:hello@thetwoofus.app"
+const VAPID_SUBJECT = "mailto:hello@us2.one"
 const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") || ""
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") || ""
 
-// Web Push crypto - sign JWT for VAPID
-async function createVapidAuthHeader(endpoint: string): Promise<{ authorization: string; cryptoKey: string }> {
-    const audience = new URL(endpoint).origin
+// ─── Base64url utilities ───
+function b64urlToBytes(b64url: string): Uint8Array {
+    const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/")
+    const pad = (4 - (b64.length % 4)) % 4
+    const padded = b64 + "=".repeat(pad)
+    const binary = atob(padded)
+    return Uint8Array.from(binary, (c) => c.charCodeAt(0))
+}
 
-    // Create JWT header and payload
-    const header = { typ: "JWT", alg: "ES256" }
-    const payload = {
-        aud: audience,
-        exp: Math.floor(Date.now() / 1000) + 12 * 3600,
-        sub: VAPID_SUBJECT,
-    }
+function bytesToB64url(bytes: Uint8Array): string {
+    const b64 = btoa(String.fromCharCode(...bytes))
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+}
 
-    // Base64url encode
-    const b64url = (data: Uint8Array) => {
-        const b64 = btoa(String.fromCharCode(...data))
-        return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
-    }
-    const b64urlStr = (str: string) => b64url(new TextEncoder().encode(str))
+// ─── VAPID JWT (ES256) ───
+async function createVapidJwt(audience: string): Promise<string> {
+    const pubBytes = b64urlToBytes(VAPID_PUBLIC_KEY)
+    const x = bytesToB64url(pubBytes.slice(1, 33))
+    const y = bytesToB64url(pubBytes.slice(33, 65))
 
-    const unsignedToken = `${b64urlStr(JSON.stringify(header))}.${b64urlStr(JSON.stringify(payload))}`
-
-    // Import private key
-    const privateKeyBytes = Uint8Array.from(atob(VAPID_PRIVATE_KEY.replace(/-/g, "+").replace(/_/g, "/") + "=="), c => c.charCodeAt(0))
-
-    const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        privateKeyBytes,
+    const key = await crypto.subtle.importKey(
+        "jwk",
+        { kty: "EC", crv: "P-256", x, y, d: VAPID_PRIVATE_KEY },
         { name: "ECDSA", namedCurve: "P-256" },
         false,
         ["sign"]
     )
 
-    // Sign
-    const signature = new Uint8Array(
-        await crypto.subtle.sign(
-            { name: "ECDSA", hash: "SHA-256" },
-            cryptoKey,
-            new TextEncoder().encode(unsignedToken)
+    const header = bytesToB64url(new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "ES256" })))
+    const payload = bytesToB64url(
+        new TextEncoder().encode(
+            JSON.stringify({
+                aud: audience,
+                exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+                sub: VAPID_SUBJECT,
+            })
         )
     )
 
-    const token = `${unsignedToken}.${b64url(signature)}`
-
-    return {
-        authorization: `vapid t=${token}, k=${VAPID_PUBLIC_KEY}`,
-        cryptoKey: `p256ecdsa=${VAPID_PUBLIC_KEY}`,
-    }
+    const unsigned = `${header}.${payload}`
+    const sig = new Uint8Array(
+        await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(unsigned))
+    )
+    return `${unsigned}.${bytesToB64url(sig)}`
 }
 
-// Encrypt payload for push
+// ─── HKDF helpers ───
+async function hkdfExtract(salt: Uint8Array, ikm: Uint8Array): Promise<Uint8Array> {
+    const key = await crypto.subtle.importKey("raw", salt, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+    return new Uint8Array(await crypto.subtle.sign("HMAC", key, ikm))
+}
+
+async function hkdfExpand(prk: Uint8Array, info: Uint8Array, len: number): Promise<Uint8Array> {
+    const key = await crypto.subtle.importKey("raw", prk, { name: "HMAC", hash: "SHA-256" }, false, ["sign"])
+    const input = new Uint8Array(info.length + 1)
+    input.set(info)
+    input[info.length] = 1
+    const result = new Uint8Array(await crypto.subtle.sign("HMAC", key, input))
+    return result.slice(0, len)
+}
+
+// ─── RFC 8291 Web Push Encryption (aes128gcm) ───
 async function encryptPayload(
-    payload: string,
-    p256dhKey: string,
-    authSecret: string
-): Promise<{ encrypted: Uint8Array; salt: Uint8Array; localPublicKey: Uint8Array }> {
-    // For simplicity, we send the notification with minimal encryption
-    // The push service handles the content when encryption isn't complex
-    const encoder = new TextEncoder()
-    return {
-        encrypted: encoder.encode(payload),
-        salt: crypto.getRandomValues(new Uint8Array(16)),
-        localPublicKey: new Uint8Array(65),
-    }
+    payloadText: string,
+    subscriberPubB64: string,
+    subscriberAuthB64: string
+): Promise<Uint8Array> {
+    const subscriberPub = b64urlToBytes(subscriberPubB64)
+    const subscriberAuth = b64urlToBytes(subscriberAuthB64)
+
+    // 1. Ephemeral ECDH keypair
+    const localKp = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"])
+    const localPubRaw = new Uint8Array(await crypto.subtle.exportKey("raw", localKp.publicKey))
+
+    // 2. ECDH shared secret
+    const subKey = await crypto.subtle.importKey("raw", subscriberPub, { name: "ECDH", namedCurve: "P-256" }, false, [])
+    const sharedSecret = new Uint8Array(
+        await crypto.subtle.deriveBits({ name: "ECDH", public: subKey }, localKp.privateKey, 256)
+    )
+
+    // 3. Derive IKM
+    const prk1 = await hkdfExtract(subscriberAuth, sharedSecret)
+    const infoPrefix = new TextEncoder().encode("WebPush: info\0")
+    const ikmInfo = new Uint8Array(infoPrefix.length + subscriberPub.length + localPubRaw.length)
+    ikmInfo.set(infoPrefix)
+    ikmInfo.set(subscriberPub, infoPrefix.length)
+    ikmInfo.set(localPubRaw, infoPrefix.length + subscriberPub.length)
+    const ikm = await hkdfExpand(prk1, ikmInfo, 32)
+
+    // 4. Salt + derive CEK and nonce
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const prk2 = await hkdfExtract(salt, ikm)
+    const cek = await hkdfExpand(prk2, new TextEncoder().encode("Content-Encoding: aes128gcm\0"), 16)
+    const nonce = await hkdfExpand(prk2, new TextEncoder().encode("Content-Encoding: nonce\0"), 12)
+
+    // 5. Pad + encrypt
+    const payloadBytes = new TextEncoder().encode(payloadText)
+    const padded = new Uint8Array(payloadBytes.length + 1)
+    padded.set(payloadBytes)
+    padded[payloadBytes.length] = 2
+
+    const aesKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"])
+    const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, padded))
+
+    // 6. Build aes128gcm body: salt(16) || rs(4) || idLen(1) || keyId(65) || ciphertext
+    const rs = new Uint8Array(4)
+    new DataView(rs.buffer).setUint32(0, 4096)
+
+    const body = new Uint8Array(16 + 4 + 1 + localPubRaw.length + ciphertext.length)
+    body.set(salt, 0)
+    body.set(rs, 16)
+    body[20] = localPubRaw.length
+    body.set(localPubRaw, 21)
+    body.set(ciphertext, 21 + localPubRaw.length)
+
+    return body
 }
 
+// ─── Main handler ───
 Deno.serve(async (req) => {
     try {
-        // Parse request
         const { user_id, title, body, url, tag, badge } = await req.json()
 
         if (!user_id || !title || !body) {
@@ -85,33 +137,31 @@ Deno.serve(async (req) => {
             })
         }
 
-        // Get Supabase client
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        const supabase = createClient(supabaseUrl, supabaseKey)
+        const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!)
 
-        // Get user's push subscriptions
         const { data: subscriptions, error } = await supabase
             .from("push_subscriptions")
             .select("*")
             .eq("user_id", user_id)
 
         if (error) throw error
-        if (!subscriptions || subscriptions.length === 0) {
+        if (!subscriptions?.length) {
             return new Response(JSON.stringify({ sent: 0, message: "No subscriptions" }), {
                 headers: { "Content-Type": "application/json" },
             })
         }
 
         const notifPayload = JSON.stringify({ title, body, url, tag, badge })
-
         let sent = 0
         let failed = 0
         const staleEndpoints: string[] = []
+        const debugErrors: string[] = []
 
         for (const sub of subscriptions) {
             try {
-                const vapidHeaders = await createVapidAuthHeader(sub.endpoint)
+                const audience = new URL(sub.endpoint).origin
+                const jwt = await createVapidJwt(audience)
+                const encrypted = await encryptPayload(notifPayload, sub.p256dh, sub.auth)
 
                 const response = await fetch(sub.endpoint, {
                     method: "POST",
@@ -120,29 +170,29 @@ Deno.serve(async (req) => {
                         "Content-Encoding": "aes128gcm",
                         TTL: "86400",
                         Urgency: "high",
-                        Authorization: vapidHeaders.authorization,
-                        "Crypto-Key": vapidHeaders.cryptoKey,
+                        Authorization: `vapid t=${jwt}, k=${VAPID_PUBLIC_KEY}`,
                     },
-                    body: notifPayload,
+                    body: encrypted,
                 })
 
                 if (response.status === 201 || response.status === 200) {
                     sent++
                 } else if (response.status === 404 || response.status === 410) {
-                    // Subscription expired / invalid - mark for cleanup
                     staleEndpoints.push(sub.endpoint)
                     failed++
                 } else {
-                    console.error(`Push failed (${response.status}):`, await response.text())
+                    const text = await response.text()
+                    debugErrors.push(`HTTP ${response.status}: ${text}`)
+                    console.error(`Push failed (${response.status}):`, text)
                     failed++
                 }
             } catch (err) {
+                debugErrors.push(`Error: ${String(err)}`)
                 console.error("Push error:", err)
                 failed++
             }
         }
 
-        // Clean up stale subscriptions
         if (staleEndpoints.length > 0) {
             await supabase
                 .from("push_subscriptions")
@@ -151,13 +201,9 @@ Deno.serve(async (req) => {
                 .in("endpoint", staleEndpoints)
         }
 
-        // Set app badge
-        // (Badge is handled client-side by the service worker)
-
-        return new Response(
-            JSON.stringify({ sent, failed, cleaned: staleEndpoints.length }),
-            { headers: { "Content-Type": "application/json" } }
-        )
+        return new Response(JSON.stringify({ sent, failed, cleaned: staleEndpoints.length, errors: debugErrors }), {
+            headers: { "Content-Type": "application/json" },
+        })
     } catch (err) {
         console.error("Error:", err)
         return new Response(JSON.stringify({ error: String(err) }), {
