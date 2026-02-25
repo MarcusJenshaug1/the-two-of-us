@@ -501,6 +501,11 @@ export default function SettingsPage() {
                 </div>
             </section>
 
+            {/* Version */}
+            <div className="text-center text-xs text-zinc-600 pt-4">
+                <p>v {process.env.NEXT_PUBLIC_APP_VERSION || 'dev'}</p>
+            </div>
+
             <section className="pt-8">
                 <Button
                     variant="destructive"

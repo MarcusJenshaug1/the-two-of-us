@@ -25,8 +25,8 @@ export function useNotifications() {
     const supabase = createClient()
     const { user } = useAuth()
 
-    // Check current state
-    useEffect(() => {
+    // Reusable check function
+    const checkStatus = useCallback(() => {
         if (!user) return
 
         if (!('Notification' in window) || !('serviceWorker' in navigator)) {
@@ -53,6 +53,25 @@ export function useNotifications() {
             setStatus('unsupported')
         })
     }, [user])
+
+    // Check current state on mount
+    useEffect(() => {
+        checkStatus()
+    }, [checkStatus])
+
+    // Re-check when tab becomes visible (catches changes from popup / other tab)
+    useEffect(() => {
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') checkStatus()
+        }
+        const onPushChange = () => checkStatus()
+        document.addEventListener('visibilitychange', onVisibilityChange)
+        window.addEventListener('push-subscription-change', onPushChange)
+        return () => {
+            document.removeEventListener('visibilitychange', onVisibilityChange)
+            window.removeEventListener('push-subscription-change', onPushChange)
+        }
+    }, [checkStatus])
 
     // Service worker is registered by next-pwa automatically
     // We just need to wait for it to be ready
@@ -99,6 +118,7 @@ export function useNotifications() {
             if (error) throw error
 
             setStatus('subscribed')
+            window.dispatchEvent(new Event('push-subscription-change'))
             return { ok: true }
         } catch (err) {
             console.error('Failed to subscribe:', err)
@@ -129,10 +149,11 @@ export function useNotifications() {
             }
 
             setStatus('unsubscribed')
+            window.dispatchEvent(new Event('push-subscription-change'))
         } catch (err) {
             console.error('Failed to unsubscribe:', err)
         }
     }, [user, supabase])
 
-    return { status, subscribe, unsubscribe, isSubscribing }
+    return { status, subscribe, unsubscribe, isSubscribing, recheck: checkStatus }
 }
