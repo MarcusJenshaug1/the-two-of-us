@@ -28,6 +28,7 @@
   "nav": {
     "today": "I dag",
     "inbox": "Innboks",
+    "notifications": "Varsler",
     "planner": "Planlegger",
     "love": "Kjærlighet",
     "memories": "Minner",
@@ -610,6 +611,10 @@
     "fr": "Fr",
     "sa": "Lø",
     "su": "Sø"
+  },
+  "notifCenter": {
+    "title": "Varsler",
+    "empty": "Ingen varsler ennå"
   },
   "notifPrompt": {
     "title": "Hold kontakten 💕",

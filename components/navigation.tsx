@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
     MessageSquare, Inbox, Activity, Settings, Heart,
-    CalendarDays, MoreHorizontal, X, ChevronRight, Star
+    CalendarDays, MoreHorizontal, X, ChevronRight, Star, Bell
 } from "lucide-react"
 import { clsx } from "clsx"
 import { useTranslations } from "@/lib/i18n"
@@ -13,16 +13,17 @@ import { useInboxBadge } from "@/hooks/use-inbox-badge"
 
 /* ── Tab definitions ── */
 const primaryTabs = [
-    { key: "today", href: "/app/questions", icon: MessageSquare },
-    { key: "inbox", href: "/app/inbox", icon: Inbox },
-    { key: "planner", href: "/app/planner", icon: CalendarDays },
-    { key: "love", href: "/app/nudge", icon: Heart },
+    { key: "today", href: "/app/questions", icon: MessageSquare, badge: false },
+    { key: "inbox", href: "/app/inbox", icon: Inbox, badge: false },
+    { key: "notifications", href: "/app/notifications", icon: Bell, badge: true },
+    { key: "love", href: "/app/nudge", icon: Heart, badge: false },
 ]
 
 const moreTabs = [
-    { key: "memories", href: "/app/memories", icon: Star },
-    { key: "progress", href: "/app/progress", icon: Activity },
-    { key: "settings", href: "/app/settings", icon: Settings },
+    { key: "planner", href: "/app/planner", icon: CalendarDays, badge: false },
+    { key: "memories", href: "/app/memories", icon: Star, badge: false },
+    { key: "progress", href: "/app/progress", icon: Activity, badge: false },
+    { key: "settings", href: "/app/settings", icon: Settings, badge: false },
 ]
 
 const allTabs = [...primaryTabs, ...moreTabs]
@@ -77,7 +78,7 @@ export function BottomNav() {
                             >
                                 <div className="relative">
                                     <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
-                                    {item.key === 'inbox' && badgeCount > 0 && (
+                                    {'badge' in item && item.badge && badgeCount > 0 && (
                                         <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
                                             {badgeCount > 9 ? '9+' : badgeCount}
                                         </span>
@@ -194,7 +195,7 @@ export function SideNav() {
                         >
                             <div className="relative">
                                 <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
-                                {item.key === 'inbox' && badgeCount > 0 && (
+                                {'badge' in item && item.badge && badgeCount > 0 && (
                                     <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
                                         {badgeCount > 9 ? '9+' : badgeCount}
                                     </span>

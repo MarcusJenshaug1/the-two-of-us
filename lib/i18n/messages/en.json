@@ -28,6 +28,7 @@
   "nav": {
     "today": "Today",
     "inbox": "Inbox",
+    "notifications": "Alerts",
     "planner": "Planner",
     "love": "Love",
     "memories": "Memories",
@@ -610,6 +611,10 @@
     "fr": "Fr",
     "sa": "Sa",
     "su": "Su"
+  },
+  "notifCenter": {
+    "title": "Notifications",
+    "empty": "No notifications yet"
   },
   "notifPrompt": {
     "title": "Stay Connected 💕",
