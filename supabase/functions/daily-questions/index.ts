@@ -112,18 +112,28 @@ Deno.serve(async (req) => {
                                     .single()
                                 const locale = profile?.locale || "en"
 
-                                await supabase.functions.invoke("send-push-notification", {
-                                    body: {
-                                        user_id: member.user_id,
-                                        title: locale === "no" ? "💕 Nytt spørsmål!" : "💕 New Question!",
-                                        body: locale === "no"
-                                            ? "Dagens spørsmål er klart. Åpne appen for å svare!"
-                                            : "Today's question is ready. Open the app to answer!",
-                                        url: "/app/questions",
-                                        tag: "daily-question",
-                                        badge: 1,
-                                    },
-                                })
+                                const pushRes = await fetch(
+                                    `${supabaseUrl}/functions/v1/send-push-notification`,
+                                    {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                            "Authorization": `Bearer ${supabaseServiceKey}`,
+                                        },
+                                        body: JSON.stringify({
+                                            user_id: member.user_id,
+                                            title: locale === "no" ? "💕 Nytt spørsmål!" : "💕 New Question!",
+                                            body: locale === "no"
+                                                ? "Dagens spørsmål er klart. Åpne appen for å svare!"
+                                                : "Today's question is ready. Open the app to answer!",
+                                            url: "/app/questions",
+                                            tag: "daily-question",
+                                            badge: 1,
+                                        }),
+                                    }
+                                )
+                                const pushData = await pushRes.text()
+                                console.log(`Push for ${member.user_id}: ${pushRes.status} ${pushData}`)
                             }
                         }
                     } catch (pushErr) {

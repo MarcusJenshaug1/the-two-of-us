@@ -5,6 +5,15 @@
 --             Daily Life, Gratitude, Childhood, Hypothetical,
 --             Values, Adventure, Communication, Memories, Growth
 
+-- Ensure unique constraint exists for ON CONFLICT to work
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'questions_text_unique'
+  ) THEN
+    ALTER TABLE questions ADD CONSTRAINT questions_text_unique UNIQUE (text);
+  END IF;
+END $$;
+
 INSERT INTO questions (text, category) VALUES
 
 -- ===== REFLECTION (30) =====

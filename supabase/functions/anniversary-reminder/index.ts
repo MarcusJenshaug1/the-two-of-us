@@ -15,14 +15,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4"
  */
 
 Deno.serve(async () => {
-    const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    )
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     const today = new Date()
-    const todayMonth = today.getMonth() + 1
-    const todayDay = today.getDate()
+    const todayMonth = today.getUTCMonth() + 1
+    const todayDay = today.getUTCDate()
 
     // Fetch all rooms with an anniversary_date
     const { data: rooms, error } = await supabase
@@ -39,20 +38,18 @@ Deno.serve(async () => {
 
     for (const room of rooms || []) {
         const annDate = new Date(room.anniversary_date + "T00:00:00Z")
-        const annMonth = annDate.getMonth() + 1
-        const annDay = annDate.getDate()
+        const annMonth = annDate.getUTCMonth() + 1
+        const annDay = annDate.getUTCDate()
 
-        // Calculate days until anniversary this year
-        const thisYearAnn = new Date(today.getFullYear(), annMonth - 1, annDay)
-        let diffDays = Math.round(
-            (thisYearAnn.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        )
+        // Use date-only comparison (no time component issues)
+        const todayDateOnly = Date.UTC(today.getUTCFullYear(), todayMonth - 1, todayDay)
+        const thisYearAnn = Date.UTC(today.getUTCFullYear(), annMonth - 1, annDay)
+        let diffDays = Math.round((thisYearAnn - todayDateOnly) / (1000 * 60 * 60 * 24))
+
         // If the anniversary already passed this year, look at next year
         if (diffDays < 0) {
-            const nextYearAnn = new Date(today.getFullYear() + 1, annMonth - 1, annDay)
-            diffDays = Math.round(
-                (nextYearAnn.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            )
+            const nextYearAnn = Date.UTC(today.getUTCFullYear() + 1, annMonth - 1, annDay)
+            diffDays = Math.round((nextYearAnn - todayDateOnly) / (1000 * 60 * 60 * 24))
         }
 
         // Determine which reminder to send
@@ -121,16 +118,26 @@ Deno.serve(async () => {
             }
 
             try {
-                await supabase.functions.invoke("send-push-notification", {
-                    body: {
-                        user_id: m.user_id,
-                        title,
-                        body,
-                        url: "/app/progress",
-                        tag,
-                        badge: 1,
-                    },
-                })
+                const pushRes = await fetch(
+                    `${supabaseUrl}/functions/v1/send-push-notification`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${supabaseServiceKey}`,
+                        },
+                        body: JSON.stringify({
+                            user_id: m.user_id,
+                            title,
+                            body,
+                            url: "/app/progress",
+                            tag,
+                            badge: 1,
+                        }),
+                    }
+                )
+                const pushData = await pushRes.text()
+                console.log(`Anniversary push for ${m.user_id}: ${pushRes.status} ${pushData}`)
                 sent++
             } catch (pushErr) {
                 console.error("Push failed for anniversary", room.id, pushErr)

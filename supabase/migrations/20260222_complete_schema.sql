@@ -236,35 +236,46 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- PROFILES
+DROP POLICY IF EXISTS "Users can view their own profile." ON profiles;
 CREATE POLICY "Users can view their own profile." ON profiles FOR SELECT USING (auth.uid() = id);
+DROP POLICY IF EXISTS "Users can update own profile." ON profiles;
 CREATE POLICY "Users can update own profile." ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- ROOMS
+DROP POLICY IF EXISTS "Users can view their rooms" ON rooms;
 CREATE POLICY "Users can view their rooms" ON rooms FOR SELECT USING (
   EXISTS (SELECT 1 FROM room_members WHERE room_id = rooms.id AND user_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Users can insert rooms" ON rooms;
 CREATE POLICY "Users can insert rooms" ON rooms FOR INSERT WITH CHECK (auth.uid() = created_by);
+DROP POLICY IF EXISTS "Users can update their rooms" ON rooms;
 CREATE POLICY "Users can update their rooms" ON rooms FOR UPDATE USING (
   EXISTS (SELECT 1 FROM room_members WHERE room_id = rooms.id AND user_id = auth.uid())
 );
 
 -- ROOM MEMBERS
+DROP POLICY IF EXISTS "Users can view members of their rooms" ON room_members;
 CREATE POLICY "Users can view members of their rooms" ON room_members FOR SELECT USING (
   room_id IN (SELECT room_id FROM room_members WHERE user_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Users can join a room" ON room_members;
 CREATE POLICY "Users can join a room" ON room_members FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can leave a room" ON room_members;
 CREATE POLICY "Users can leave a room" ON room_members FOR DELETE USING (auth.uid() = user_id);
 
 -- QUESTIONS (Read only for authenticated)
+DROP POLICY IF EXISTS "Anyone logged in can read questions" ON questions;
 CREATE POLICY "Anyone logged in can read questions" ON questions FOR SELECT USING (auth.role() = 'authenticated');
 
 -- DAILY QUESTIONS
+DROP POLICY IF EXISTS "Users can view daily questions in their room" ON daily_questions;
 CREATE POLICY "Users can view daily questions in their room" ON daily_questions FOR SELECT USING (
   EXISTS (SELECT 1 FROM room_members WHERE room_id = daily_questions.room_id AND user_id = auth.uid())
 );
 -- Note: Insert is done by Service Role (Edge Function). Service roles bypass RLS.
 
 -- ANSWERS
+DROP POLICY IF EXISTS "Users can view answers in their room" ON answers;
 CREATE POLICY "Users can view answers in their room" ON answers FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM daily_questions dq
@@ -272,10 +283,13 @@ CREATE POLICY "Users can view answers in their room" ON answers FOR SELECT USING
     WHERE dq.id = answers.daily_question_id AND rm.user_id = auth.uid()
   )
 );
+DROP POLICY IF EXISTS "Users can insert their own answer" ON answers;
 CREATE POLICY "Users can insert their own answer" ON answers FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own answers" ON answers;
 CREATE POLICY "Users can update own answers" ON answers FOR UPDATE USING (auth.uid() = user_id);
 
 -- REACTIONS
+DROP POLICY IF EXISTS "Users can view reactions in their room" ON reactions;
 CREATE POLICY "Users can view reactions in their room" ON reactions FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM daily_questions dq
@@ -283,19 +297,25 @@ CREATE POLICY "Users can view reactions in their room" ON reactions FOR SELECT U
     WHERE dq.id = reactions.daily_question_id AND rm.user_id = auth.uid()
   )
 );
+DROP POLICY IF EXISTS "Users can insert own reactions" ON reactions;
 CREATE POLICY "Users can insert own reactions" ON reactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own reactions" ON reactions;
 CREATE POLICY "Users can update own reactions" ON reactions FOR UPDATE USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can delete own reactions" ON reactions;
 CREATE POLICY "Users can delete own reactions" ON reactions FOR DELETE USING (auth.uid() = user_id);
 
 -- STATS
+DROP POLICY IF EXISTS "Users can view stats for their room" ON stats;
 CREATE POLICY "Users can view stats for their room" ON stats FOR SELECT USING (
   EXISTS (SELECT 1 FROM room_members WHERE room_id = stats.room_id AND user_id = auth.uid())
 );
 
 -- AUDIT
+DROP POLICY IF EXISTS "Users can view audit for their room" ON audit;
 CREATE POLICY "Users can view audit for their room" ON audit FOR SELECT USING (
   EXISTS (SELECT 1 FROM room_members WHERE room_id = audit.room_id AND user_id = auth.uid())
 );
+DROP POLICY IF EXISTS "Users can insert audit logs" ON audit;
 CREATE POLICY "Users can insert audit logs" ON audit FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- ==========================================

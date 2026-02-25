@@ -54,16 +54,26 @@ Deno.serve(async (_req) => {
                     const locale = profile?.locale || "en"
 
                     try {
-                        await supabase.functions.invoke("send-push-notification", {
-                            body: {
-                                user_id: m.user_id,
-                                title: locale === "no" ? "📅 Kommende hendelse" : "📅 Upcoming event",
-                                body: ev.title,
-                                url: "/app/planner",
-                                tag: `event-${ev.id}`,
-                                badge: 1,
-                            },
-                        })
+                        const pushRes = await fetch(
+                            `${supabaseUrl}/functions/v1/send-push-notification`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${supabaseServiceKey}`,
+                                },
+                                body: JSON.stringify({
+                                    user_id: m.user_id,
+                                    title: locale === "no" ? "📅 Kommende hendelse" : "📅 Upcoming event",
+                                    body: ev.title,
+                                    url: "/app/planner",
+                                    tag: `event-${ev.id}`,
+                                    badge: 1,
+                                }),
+                            }
+                        )
+                        const pushData = await pushRes.text()
+                        console.log(`Event push for ${m.user_id}: ${pushRes.status} ${pushData}`)
                     } catch (pushErr) {
                         console.error("Push failed for event", ev.id, pushErr)
                     }
@@ -107,16 +117,26 @@ Deno.serve(async (_req) => {
                     const locale = profile?.locale || "en"
 
                     try {
-                        await supabase.functions.invoke("send-push-notification", {
-                            body: {
-                                user_id: m.user_id,
-                                title: locale === "no" ? "✅ Oppgavepåminnelse" : "✅ Task reminder",
-                                body: task.title,
-                                url: "/app/planner",
-                                tag: `task-${task.id}`,
-                                badge: 1,
-                            },
-                        })
+                        const pushRes = await fetch(
+                            `${supabaseUrl}/functions/v1/send-push-notification`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${supabaseServiceKey}`,
+                                },
+                                body: JSON.stringify({
+                                    user_id: m.user_id,
+                                    title: locale === "no" ? "✅ Oppgavepåminnelse" : "✅ Task reminder",
+                                    body: task.title,
+                                    url: "/app/planner",
+                                    tag: `task-${task.id}`,
+                                    badge: 1,
+                                }),
+                            }
+                        )
+                        const pushData = await pushRes.text()
+                        console.log(`Task push for ${m.user_id}: ${pushRes.status} ${pushData}`)
                     } catch (pushErr) {
                         console.error("Push failed for task", task.id, pushErr)
                     }
