@@ -9,6 +9,7 @@ import {
 } from "lucide-react"
 import { clsx } from "clsx"
 import { useTranslations } from "@/lib/i18n"
+import { useInboxBadge } from "@/hooks/use-inbox-badge"
 
 /* ── Tab definitions ── */
 const primaryTabs = [
@@ -34,6 +35,7 @@ export function BottomNav() {
     const [open, setOpen] = useState(false)
     const sheetRef = useRef<HTMLDivElement>(null)
     const t = useTranslations('nav')
+    const badgeCount = useInboxBadge()
 
     // Is a "more" route currently active?
     const moreActive = moreTabs.some(t => pathname.startsWith(t.href))
@@ -73,7 +75,14 @@ export function BottomNav() {
                                     isActive ? "text-rose-500" : "text-zinc-500 hover:text-zinc-300"
                                 )}
                             >
-                                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
+                                <div className="relative">
+                                    <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
+                                    {item.key === 'inbox' && badgeCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                            {badgeCount > 9 ? '9+' : badgeCount}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="text-[10px] font-medium leading-none">{t(item.key)}</span>
                             </Link>
                         )
@@ -157,6 +166,7 @@ export function BottomNav() {
 export function SideNav() {
     const pathname = usePathname()
     const t = useTranslations('nav')
+    const badgeCount = useInboxBadge()
 
     return (
         <nav className="hidden md:flex flex-col w-64 border-r border-zinc-800 bg-zinc-950 min-h-screen pt-8 px-4">
@@ -182,7 +192,14 @@ export function SideNav() {
                                     : "text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100"
                             )}
                         >
-                            <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
+                            <div className="relative">
+                                <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
+                                {item.key === 'inbox' && badgeCount > 0 && (
+                                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                        {badgeCount > 9 ? '9+' : badgeCount}
+                                    </span>
+                                )}
+                            </div>
                             <span className="font-medium text-sm">{t(item.key)}</span>
                         </Link>
                     )
