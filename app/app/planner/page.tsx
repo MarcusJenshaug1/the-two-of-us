@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { format, parseISO, isPast, isToday as isTodayFn, isTomorrow, addDays, nextSaturday, nextSunday, isSaturday, isSunday, type Locale } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -658,6 +659,7 @@ export default function PlannerPage() {
 
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
+            <ClearNotifications tags={['event', 'task']} />
             {/* Header */}
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>

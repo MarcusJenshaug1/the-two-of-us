@@ -15,6 +15,7 @@ import { resizeImage } from '@/lib/storage'
 import { SignedImage } from '@/components/signed-image'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 type Memory = {
     id: string
@@ -209,6 +210,7 @@ export default function MemoriesPage() {
 
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
+            <ClearNotifications tags={['memory', 'milestone']} />
             {/* Header */}
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>

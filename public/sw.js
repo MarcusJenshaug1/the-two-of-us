@@ -14,10 +14,28 @@ self.addEventListener('activate', (event) => {
     console.log('[SW] activated')
 })
 
-// Listen for SKIP_WAITING message from AppUpdateNotifier
+// Listen for messages from the app
 self.addEventListener('message', (event) => {
     if (event.data && event.data.type === 'SKIP_WAITING') {
         self.skipWaiting()
+    }
+
+    // Close notifications matching specific tags when user opens the relevant page
+    if (event.data && event.data.type === 'CLEAR_NOTIFICATIONS') {
+        const tags = event.data.tags || []
+        self.registration.getNotifications().then((notifications) => {
+            notifications.forEach((n) => {
+                // Match exact tag or tag prefix (e.g. 'event' matches 'event-abc')
+                const shouldClose =
+                    tags.length === 0 ||
+                    tags.some((t) => n.tag === t || (n.tag && n.tag.startsWith(t + '-')))
+                if (shouldClose) n.close()
+            })
+        })
+        // Also clear badge
+        if (navigator.clearAppBadge) {
+            navigator.clearAppBadge()
+        }
     }
 })
 

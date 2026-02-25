@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { resizeImage } from '@/lib/storage'
 import { SignedImage } from '@/components/signed-image'
 import { useTranslations } from '@/lib/i18n'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -307,6 +308,7 @@ export default function LovePage() {
 
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24 animate-in fade-in">
+            <ClearNotifications tags={['nudge', 'mood']} />
             {/* Header */}
             <div className="space-y-2">
                 <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">

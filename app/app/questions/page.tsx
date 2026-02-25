@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, Clock, Send, AlertTriangle, User } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 const TIMEZONE = 'Europe/Oslo'
 
@@ -314,6 +315,7 @@ export default function QuestionsPage() {
 
     return (
         <div className="p-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 md:pt-12">
+            <ClearNotifications tags={['daily-question', 'partner-answered']} />
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
                     <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">{t('todaysQuestion')}</h1>

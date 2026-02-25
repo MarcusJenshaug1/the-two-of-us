@@ -8,6 +8,7 @@ import { format, parseISO, isToday, isYesterday, type Locale } from 'date-fns'
 import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 const PAGE_SIZE = 30
 
@@ -435,6 +436,7 @@ export default function InboxPage() {
 
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24">
+            <ClearNotifications tags={['message', 'journal', 'reaction']} />
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
                 <p className="text-sm text-zinc-400">{t('subtitle')}</p>

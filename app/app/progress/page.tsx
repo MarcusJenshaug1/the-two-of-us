@@ -17,6 +17,7 @@ import { CalendarHeart, Flame, Trophy, Activity, Calendar, ChevronLeft, ChevronR
 import confetti from 'canvas-confetti'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { ClearNotifications } from '@/components/clear-notifications'
 
 const MOODS = [
     { id: 'great', emoji: '😄', labelKey: 'moodGreat' },
@@ -400,6 +401,7 @@ export default function ProgressPage() {
 
     return (
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24">
+            <ClearNotifications tags={['anniversary']} />
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
                 <p className="text-sm text-zinc-400">{t('subtitle')}</p>
