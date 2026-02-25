@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/supabase/auth-provider'
 import { useToast } from '@/components/ui/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, Clock, Send, AlertTriangle, User } from 'lucide-react'
+import { CheckCircle2, Clock, Send, AlertTriangle, User, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n'
 import { ClearNotifications } from '@/components/clear-notifications'
@@ -32,6 +32,12 @@ export default function QuestionsPage() {
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [partnerName, setPartnerName] = useState<string>('Partner')
     const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null)
+    const [roomId, setRoomId] = useState<string | null>(null)
+
+    // Nudge-to-answer state
+    const [nudgeCooldown, setNudgeCooldown] = useState(false)
+    const [nudgeSent, setNudgeSent] = useState(false)
+    const [isSendingNudge, setIsSendingNudge] = useState(false)
 
     const supabase = createClient()
     const { user } = useAuth()
@@ -59,6 +65,7 @@ export default function QuestionsPage() {
             }
 
             const roomId = member.room_id
+            setRoomId(roomId)
 
             // Load partner profile
             const { data: members } = await supabase
@@ -203,6 +210,29 @@ export default function QuestionsPage() {
                     setMyAnswer(answers.find((a: any) => a.user_id === user.id) || null)
                     setPartnerAnswer(answers.find((a: any) => a.user_id !== user.id) || null)
                 }
+
+                // Check nudge cooldown (1 hour)
+                const { data: lastNudge } = await supabase
+                    .from('answer_nudges')
+                    .select('created_at')
+                    .eq('sender_id', user.id)
+                    .eq('daily_question_id', dq.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+
+                if (lastNudge) {
+                    const elapsed = Date.now() - new Date(lastNudge.created_at).getTime()
+                    if (elapsed < 60 * 60 * 1000) {
+                        setNudgeCooldown(true)
+                        setNudgeSent(true)
+                        // Auto-clear cooldown when time expires
+                        setTimeout(() => {
+                            setNudgeCooldown(false)
+                            setNudgeSent(false)
+                        }, 60 * 60 * 1000 - elapsed)
+                    }
+                }
             }
         } catch (err) {
             console.error('Error loading question data', err)
@@ -275,6 +305,37 @@ export default function QuestionsPage() {
         }
     }
 
+    const handleNudge = async () => {
+        if (!user || !dailyQuestion || !roomId || nudgeCooldown || isSendingNudge) return
+
+        setIsSendingNudge(true)
+        try {
+            const { error } = await supabase
+                .from('answer_nudges')
+                .insert({
+                    room_id: roomId,
+                    sender_id: user.id,
+                    daily_question_id: dailyQuestion.id,
+                })
+
+            if (error) throw error
+
+            setNudgeSent(true)
+            setNudgeCooldown(true)
+            toast(t('nudgeSent'), 'love')
+
+            // Reset cooldown after 1 hour
+            setTimeout(() => {
+                setNudgeCooldown(false)
+                setNudgeSent(false)
+            }, 60 * 60 * 1000)
+        } catch (err: any) {
+            toast(err.message || 'Failed to nudge', 'error')
+        } finally {
+            setIsSendingNudge(false)
+        }
+    }
+
     if (isLoading) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -315,7 +376,7 @@ export default function QuestionsPage() {
 
     return (
         <div className="p-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pt-8 md:pt-12">
-            <ClearNotifications tags={['daily-question', 'partner-answered']} />
+            <ClearNotifications tags={['daily-question', 'partner-answered', 'answer-nudge']} />
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
                     <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">{t('todaysQuestion')}</h1>
@@ -365,6 +426,25 @@ export default function QuestionsPage() {
                         <span className="text-sm">{t('waitingFor', { name: partnerName })}</span>
                     </div>
                     <p className="text-xs text-zinc-600">{t('answerHidden')}</p>
+
+                    {/* Nudge partner to answer */}
+                    {!nudgeCooldown ? (
+                        <button
+                            onClick={handleNudge}
+                            disabled={isSendingNudge}
+                            className="group w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-700 hover:border-rose-500/50 bg-zinc-900/50 hover:bg-rose-500/10 transition-all duration-300 text-zinc-400 hover:text-rose-400"
+                        >
+                            <Bell className="h-4 w-4 group-hover:animate-[wiggle_0.5s_ease-in-out_infinite] transition-transform" />
+                            <span className="text-sm font-medium">
+                                {isSendingNudge ? t('sending') : t('nudgePartner', { name: partnerName })}
+                            </span>
+                        </button>
+                    ) : (
+                        <div className="w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span className="text-sm font-medium">{t('nudgeAlreadySent')}</span>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">

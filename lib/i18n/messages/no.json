@@ -154,7 +154,10 @@
     "partnerJustAnswered": "{name} har nettopp svart! 💕",
     "reloadPage": "Last siden på nytt",
     "tryAgain": "Prøv igjen",
-    "sending": "Sender..."
+    "sending": "Sender...",
+    "nudgePartner": "Dytt {name} til å svare 👋",
+    "nudgeSent": "Dytt sendt! 👋",
+    "nudgeAlreadySent": "Dytt sendt — venter på svar ✨"
   },
   "settings": {
     "title": "Innstillinger",

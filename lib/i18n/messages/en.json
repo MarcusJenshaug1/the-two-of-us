@@ -154,7 +154,10 @@
     "partnerJustAnswered": "{name} just answered! 💕",
     "reloadPage": "Reload Page",
     "tryAgain": "Try Again",
-    "sending": "Sending..."
+    "sending": "Sending...",
+    "nudgePartner": "Nudge {name} to answer 👋",
+    "nudgeSent": "Nudge sent! 👋",
+    "nudgeAlreadySent": "Nudge sent — waiting for answer ✨"
   },
   "settings": {
     "title": "Settings",
