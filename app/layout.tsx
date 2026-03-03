@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { AppUpdateNotifier } from "@/components/app-update-notifier";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 import { LocaleProvider } from "@/lib/i18n";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -79,6 +80,7 @@ export default function RootLayout({
                         </ToastProvider>
                     </AuthProvider>
                 </LocaleProvider>
+                <SpeedInsights />
             </body>
         </html>
     );
