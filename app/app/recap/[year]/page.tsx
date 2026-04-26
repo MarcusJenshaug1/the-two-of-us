@@ -209,7 +209,7 @@ export default function YearRecapPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -218,51 +218,51 @@ export default function YearRecapPage() {
 
     return (
         <div className="p-4 space-y-6 pt-8 md:pt-12 pb-24 animate-in fade-in">
-            <Link href="/app/progress" className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors">
+            <Link href="/app/progress" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="w-4 h-4" /> {t('backToProgress')}
             </Link>
 
             {/* Hero */}
-            <div className="bg-gradient-to-br from-rose-500/20 via-purple-500/10 to-zinc-900 border border-rose-500/20 rounded-3xl p-6 text-center space-y-2">
+            <div className="bg-gradient-to-br from-rose-500/20 via-purple-500/10 to-card border border-rose-500/20 rounded-3xl p-6 text-center space-y-2">
                 <p className="text-sm font-medium text-rose-400 uppercase tracking-widest">{t('yearInReviewLabel')}</p>
                 <h1 className="text-4xl font-bold tracking-tight">{year}</h1>
-                <p className="text-sm text-zinc-400">{t('yearDesc')}</p>
+                <p className="text-sm text-muted-foreground">{t('yearDesc')}</p>
             </div>
 
             {/* Stats grid */}
             <div className="grid grid-cols-3 gap-3">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-1">
                     <MessageSquare className="w-5 h-5 text-rose-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.daysWithBothAnswers || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('daysBothAnswered')}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t('daysBothAnswered')}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-1">
                     <Heart className="w-5 h-5 text-pink-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.totalNudges || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('loveNudges')}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t('loveNudges')}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-1">
                     <Star className="w-5 h-5 text-amber-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.totalMemories || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('memoriesSaved')}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t('memoriesSaved')}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-1">
                     <Trophy className="w-5 h-5 text-emerald-500 mx-auto mb-2" />
                     <p className="text-2xl font-bold">{data?.milestones.length || 0}</p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('milestones')}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t('milestones')}</p>
                 </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 text-center space-y-1">
+                <div className="bg-card border border-border rounded-2xl p-4 text-center space-y-1">
                     <Lightbulb className="w-5 h-5 text-purple-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold">{data?.datesDone || 0}<span className="text-sm text-zinc-600">/{data?.datesPlanned || 0}</span></p>
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">{t('datesDone')}</p>
+                    <p className="text-2xl font-bold">{data?.datesDone || 0}<span className="text-sm text-muted-foreground/80">/{data?.datesPlanned || 0}</span></p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{t('datesDone')}</p>
                 </div>
             </div>
 
             {/* Mood summary */}
             {totalMoods > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('moodOverview')}</h3>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('moodOverview')}</h3>
+                    <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
                         {Object.entries(data?.moodBreakdown || {})
                             .sort((a, b) => b[1] - a[1])
                             .map(([mood, count]) => {
@@ -272,11 +272,11 @@ export default function YearRecapPage() {
                                     <div key={mood} className="flex items-center gap-3">
                                         <span className="text-lg w-7 text-center">{m?.emoji || '❓'}</span>
                                         <div className="flex-1">
-                                            <div className="h-2 rounded-full bg-zinc-800 overflow-hidden">
+                                            <div className="h-2 rounded-full bg-secondary overflow-hidden">
                                                 <div className="h-full rounded-full bg-rose-500/60" style={{ width: `${pct}%` }} />
                                             </div>
                                         </div>
-                                        <span className="text-xs text-zinc-500 w-10 text-right">{pct}%</span>
+                                        <span className="text-xs text-muted-foreground w-10 text-right">{pct}%</span>
                                     </div>
                                 )
                             })}
@@ -287,11 +287,11 @@ export default function YearRecapPage() {
             {/* Top tags */}
             {data && data.topTags.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('topTags')}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('topTags')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {data.topTags.map(({ tag, count }) => (
-                            <span key={tag} className="flex items-center gap-1 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
-                                <Tag className="w-3 h-3" /> {tag} <span className="text-zinc-600">×{count}</span>
+                            <span key={tag} className="flex items-center gap-1 text-xs bg-card border border-border text-muted-foreground px-3 py-1.5 rounded-full">
+                                <Tag className="w-3 h-3" /> {tag} <span className="text-muted-foreground/80">×{count}</span>
                             </span>
                         ))}
                     </div>
@@ -301,29 +301,29 @@ export default function YearRecapPage() {
             {/* Highlights */}
             {data && data.highlights.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('highlights')}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('highlights')}</h3>
                     <div className="space-y-2">
                         {data.highlights.map(mem => (
                             <Link
                                 key={mem.id}
                                 href={`/app/memories/${mem.id}`}
-                                className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-3 hover:border-zinc-700 transition-colors"
+                                className="flex items-center gap-3 bg-card border border-border rounded-2xl p-3 hover:border-border transition-colors"
                             >
                                 {mem.images.length > 0 ? (
                                     <img src={mem.images[0]} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
                                 ) : (
-                                    <div className="w-14 h-14 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
-                                        <Star className="w-5 h-5 text-zinc-600" />
+                                    <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                                        <Star className="w-5 h-5 text-muted-foreground/80" />
                                     </div>
                                 )}
                                 <div className="flex-1 min-w-0 space-y-0.5">
                                     <p className="text-sm font-medium truncate">{mem.title}</p>
-                                    <p className="text-xs text-zinc-500">
+                                    <p className="text-xs text-muted-foreground">
                                         {format(parseISO(mem.happened_at), 'MMM d', { locale: dateLoc })}
                                         {mem.location && <> · {mem.location}</>}
                                     </p>
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
+                                <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
                             </Link>
                         ))}
                     </div>
@@ -333,16 +333,16 @@ export default function YearRecapPage() {
             {/* Milestones */}
             {data && data.milestones.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('milestones')}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('milestones')}</h3>
                     <div className="space-y-2">
                         {data.milestones.map(ms => (
-                            <div key={ms.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                            <div key={ms.id} className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4">
                                 <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                                     <Trophy className="w-4 h-4 text-amber-500" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">{ms.title}</p>
-                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
+                                    <p className="text-xs text-muted-foreground">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
                                 </div>
                             </div>
                         ))}
@@ -353,11 +353,11 @@ export default function YearRecapPage() {
             {/* Date idea categories */}
             {data && data.topDateCategories.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('dateNightFavorites')}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('dateNightFavorites')}</h3>
                     <div className="flex gap-2 flex-wrap">
                         {data.topDateCategories.map(({ category, count }) => (
-                            <span key={category} className="flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-3 py-1.5 rounded-full">
-                                <Lightbulb className="w-3 h-3" /> {category} <span className="text-zinc-600">×{count}</span>
+                            <span key={category} className="flex items-center gap-1.5 text-xs bg-card border border-border text-muted-foreground px-3 py-1.5 rounded-full">
+                                <Lightbulb className="w-3 h-3" /> {category} <span className="text-muted-foreground/80">×{count}</span>
                             </span>
                         ))}
                     </div>
@@ -366,13 +366,13 @@ export default function YearRecapPage() {
 
             {/* Month links */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('browseByMonth')}</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('browseByMonth')}</h3>
                 <div className="grid grid-cols-3 gap-2">
                     {months.map(m => (
                         <Link
                             key={format(m, 'MM')}
                             href={`/app/recap/${year}/${format(m, 'MM')}`}
-                            className="bg-zinc-900 border border-zinc-800 rounded-xl py-3 text-center text-sm font-medium text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
+                            className="bg-card border border-border rounded-xl py-3 text-center text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
                         >
                             {format(m, 'MMM', { locale: dateLoc })}
                         </Link>

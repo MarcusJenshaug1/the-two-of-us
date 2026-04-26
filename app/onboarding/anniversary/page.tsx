@@ -114,25 +114,25 @@ export default function AnniversaryPage() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">{ot('whenDidItBegin')}</h1>
-                    <p className="text-sm text-zinc-400 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                         {ot('anniversaryDesc')}
                     </p>
                 </div>
             </div>
 
             {/* Calendar */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
+            <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
                 {mode === 'month' ? (
                     <>
                         {/* Month/Year header */}
                         <div className="flex items-center justify-between">
-                            <button type="button" onClick={handlePrevMonth} className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-zinc-100">
+                            <button type="button" onClick={handlePrevMonth} className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                                 <ChevronLeft className="h-5 w-5" />
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setMode('year')}
-                                className="text-sm font-semibold hover:text-rose-400 transition-colors px-3 py-1 rounded-lg hover:bg-zinc-800"
+                                className="text-sm font-semibold hover:text-rose-400 transition-colors px-3 py-1 rounded-lg hover:bg-secondary"
                             >
                                 {MONTH_NAMES[viewMonth]} {viewYear}
                             </button>
@@ -141,7 +141,7 @@ export default function AnniversaryPage() {
                                 onClick={handleNextMonth}
                                 className={clsx(
                                     "p-2 rounded-lg transition-colors",
-                                    isCurrentMonthView ? "text-zinc-700 cursor-not-allowed" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                    isCurrentMonthView ? "text-muted-foreground/60 cursor-not-allowed" : "hover:bg-secondary text-muted-foreground hover:text-foreground"
                                 )}
                                 disabled={isCurrentMonthView}
                             >
@@ -152,7 +152,7 @@ export default function AnniversaryPage() {
                         {/* Day labels */}
                         <div className="grid grid-cols-7 gap-1">
                             {DAY_LABELS.map(d => (
-                                <div key={d} className="text-center text-[10px] font-semibold text-zinc-600 uppercase py-1">{d}</div>
+                                <div key={d} className="text-center text-[10px] font-semibold text-muted-foreground/80 uppercase py-1">{d}</div>
                             ))}
                         </div>
 
@@ -177,10 +177,10 @@ export default function AnniversaryPage() {
                                         disabled={isFuture}
                                         className={clsx(
                                             "aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-all duration-150",
-                                            isFuture && "text-zinc-800 cursor-not-allowed",
-                                            isSelected && "bg-rose-600 text-white shadow-lg shadow-rose-600/20 scale-110",
+                                            isFuture && "text-muted-foreground/40 cursor-not-allowed",
+                                            isSelected && "bg-rose-600 text-zinc-50 shadow-lg shadow-rose-600/20 scale-110",
                                             isToday && !isSelected && "ring-1 ring-rose-500/40 text-rose-400",
-                                            !isSelected && !isFuture && !isToday && "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50"
+                                            !isSelected && !isFuture && !isToday && "text-foreground hover:bg-secondary hover:text-foreground"
                                         )}
                                     >
                                         {day}
@@ -193,7 +193,7 @@ export default function AnniversaryPage() {
                     /* Month overview / year picker */
                     <>
                         <div className="flex items-center justify-between">
-                            <button type="button" onClick={() => setViewYear(y => y - 1)} className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-zinc-100">
+                            <button type="button" onClick={() => setViewYear(y => y - 1)} className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
                                 <ChevronLeft className="h-5 w-5" />
                             </button>
                             <span className="text-sm font-semibold">{viewYear}</span>
@@ -202,7 +202,7 @@ export default function AnniversaryPage() {
                                 onClick={() => { if (viewYear < today.getFullYear()) setViewYear(y => y + 1) }}
                                 className={clsx(
                                     "p-2 rounded-lg transition-colors",
-                                    viewYear >= today.getFullYear() ? "text-zinc-700 cursor-not-allowed" : "hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100"
+                                    viewYear >= today.getFullYear() ? "text-muted-foreground/60 cursor-not-allowed" : "hover:bg-secondary text-muted-foreground hover:text-foreground"
                                 )}
                                 disabled={viewYear >= today.getFullYear()}
                             >
@@ -221,8 +221,8 @@ export default function AnniversaryPage() {
                                         onClick={() => { setViewMonth(i); setMode('month') }}
                                         className={clsx(
                                             "py-3 rounded-xl text-sm font-medium transition-all",
-                                            isFuture && "text-zinc-800 cursor-not-allowed",
-                                            !isFuture && "text-zinc-300 hover:bg-zinc-800 hover:text-zinc-50"
+                                            isFuture && "text-muted-foreground/40 cursor-not-allowed",
+                                            !isFuture && "text-foreground hover:bg-secondary hover:text-foreground"
                                         )}
                                     >
                                         {name.slice(0, 3)}
@@ -235,8 +235,8 @@ export default function AnniversaryPage() {
 
                 {/* Selected date display */}
                 {selectedDate && (
-                    <div className="text-center pt-2 border-t border-zinc-800">
-                        <p className="text-xs text-zinc-500">{ot('selected')}</p>
+                    <div className="text-center pt-2 border-t border-border">
+                        <p className="text-xs text-muted-foreground">{ot('selected')}</p>
                         <p className="text-sm font-semibold text-rose-400">{formatSelected(selectedDate)}</p>
                     </div>
                 )}
@@ -249,7 +249,7 @@ export default function AnniversaryPage() {
             <div className="space-y-3">
                 <Button
                     type="button"
-                    className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50"
+                    className="w-full bg-rose-600 hover:bg-rose-700 text-foreground"
                     disabled={isLoading || !selectedDate}
                     onClick={handleSubmit}
                 >

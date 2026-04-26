@@ -274,7 +274,7 @@ export default function ProgressPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -311,7 +311,7 @@ export default function ProgressPage() {
                 particleCount: 150,
                 spread: 90,
                 origin: { y: 0.6 },
-                colors: ['#f43f5e', '#ec4899', '#f97316', '#eab308', '#a855f7']
+                colors: ['#a8526a', '#c46778', '#d8838f', '#ecafb6', '#c99458']
             })
         }, 500)
     }
@@ -410,17 +410,17 @@ export default function ProgressPage() {
             <ClearNotifications tags={['anniversary']} />
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
             </div>
 
             {/* Time Together Card */}
-            <div className="bg-gradient-to-br from-rose-500/20 to-zinc-900 border border-rose-500/20 rounded-3xl p-6 text-center space-y-2 relative overflow-hidden">
+            <div className="bg-gradient-to-br from-rose-500/20 to-card border border-rose-500/20 rounded-3xl p-6 text-center space-y-2 relative overflow-hidden">
                 <div className="absolute -top-10 -right-10 text-rose-500/10">
                     <CalendarHeart className="w-40 h-40" />
                 </div>
                 <p className="text-sm font-medium text-rose-400 uppercase tracking-widest relative z-10">{t('togetherFor')}</p>
                 <h2 className="text-4xl font-bold tracking-tight relative z-10">{timeStr}</h2>
-                <p className="text-sm text-zinc-400 relative z-10">{t('totalDays', { count: totalDays })}</p>
+                <p className="text-sm text-muted-foreground relative z-10">{t('totalDays', { count: totalDays })}</p>
             </div>
 
             {/* Milestone celebration */}
@@ -428,16 +428,16 @@ export default function ProgressPage() {
                 <div className="bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 border border-amber-500/20 rounded-2xl p-5 text-center space-y-2 animate-in fade-in zoom-in duration-500">
                     <div className="text-4xl">🎉</div>
                     <h3 className="text-lg font-bold text-amber-300">{t('milestoneTitle')}</h3>
-                    <p className="text-sm text-zinc-300">{t('milestoneCelebration', { count: totalDays })}</p>
+                    <p className="text-sm text-foreground">{t('milestoneCelebration', { count: totalDays })}</p>
                 </div>
             )}
 
             {/* Mood Check-in */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5" /> {t('moodTitle')}
                 </h3>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                     <div className="flex justify-between">
                         {MOODS.map(m => (
                             <button
@@ -447,19 +447,19 @@ export default function ProgressPage() {
                                 className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all active:scale-90 ${
                                     myMood === m.id
                                         ? 'bg-rose-500/10 ring-1 ring-rose-500/30 scale-105'
-                                        : 'hover:bg-zinc-800'
+                                        : 'hover:bg-secondary'
                                 }`}
                             >
                                 <span className="text-2xl">{m.emoji}</span>
-                                <span className="text-[10px] text-zinc-500">{t(m.labelKey)}</span>
+                                <span className="text-[10px] text-muted-foreground">{t(m.labelKey)}</span>
                             </button>
                         ))}
                     </div>
                     {partnerMood && (
-                        <div className="flex items-center justify-center gap-2 pt-2 border-t border-zinc-800">
-                            <span className="text-xs text-zinc-500">{t('partnerFeeling')}</span>
+                        <div className="flex items-center justify-center gap-2 pt-2 border-t border-border">
+                            <span className="text-xs text-muted-foreground">{t('partnerFeeling')}</span>
                             <span className="text-lg">{MOODS.find(m => m.id === partnerMood)?.emoji}</span>
-                            <span className="text-xs text-zinc-400 font-medium">{MOODS.find(m => m.id === partnerMood)?.labelKey ? t(MOODS.find(m => m.id === partnerMood)!.labelKey) : ''}</span>
+                            <span className="text-xs text-muted-foreground font-medium">{MOODS.find(m => m.id === partnerMood)?.labelKey ? t(MOODS.find(m => m.id === partnerMood)!.labelKey) : ''}</span>
                         </div>
                     )}
                 </div>
@@ -467,37 +467,37 @@ export default function ProgressPage() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
                     <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center mb-4">
                         <Flame className="w-4 h-4 text-orange-500" />
                     </div>
                     <p className="text-2xl font-semibold">{stats?.current_streak || 0}</p>
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t('currentStreak')}</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('currentStreak')}</p>
                 </div>
 
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
                     <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
                         <Trophy className="w-4 h-4 text-amber-500" />
                     </div>
                     <p className="text-2xl font-semibold">{stats?.best_streak || 0}</p>
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t('bestStreak')}</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('bestStreak')}</p>
                 </div>
 
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
                     <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4">
                         <Activity className="w-4 h-4 text-emerald-500" />
                     </div>
                     <p className="text-2xl font-semibold">{stats?.total_answered || 0}</p>
-                    <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t('totalAnswered')}</p>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('totalAnswered')}</p>
                 </div>
 
                 {daysToMilestone && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
+                    <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
                         <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center mb-4">
                             <Calendar className="w-4 h-4 text-indigo-500" />
                         </div>
                         <p className="text-2xl font-semibold">{daysToMilestone}</p>
-                        <p className="text-xs text-zinc-500 font-medium uppercase tracking-wider">{t('daysTo', { milestone: nextMilestone! })}</p>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('daysTo', { milestone: nextMilestone! })}</p>
                     </div>
                 )}
             </div>
@@ -505,12 +505,12 @@ export default function ProgressPage() {
             {/* Calendar View */}
             <div className="space-y-4 pt-4">
                 <h3 className="font-semibold text-lg">{t('calendar')}</h3>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+                <div className="bg-card border border-border rounded-2xl p-4">
                     {/* Month navigation */}
                     <div className="flex items-center justify-between mb-4">
                         <button
                             onClick={() => { setCalMonth(prev => subMonths(prev, 1)); setSelectedSpecial(null) }}
-                            className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                            className="p-2 rounded-full hover:bg-secondary transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -527,7 +527,7 @@ export default function ProgressPage() {
                         </div>
                         <button
                             onClick={() => { setCalMonth(prev => addMonths(prev, 1)); setSelectedSpecial(null) }}
-                            className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                            className="p-2 rounded-full hover:bg-secondary transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>
@@ -536,7 +536,7 @@ export default function ProgressPage() {
                     {/* Day headers */}
                     <div className="grid grid-cols-7 gap-1 mb-1">
                         {(['dayMon', 'dayTue', 'dayWed', 'dayThu', 'dayFri', 'daySat', 'daySun'] as const).map(d => (
-                            <div key={d} className="text-center text-[10px] font-medium text-zinc-600 uppercase">
+                            <div key={d} className="text-center text-[10px] font-medium text-muted-foreground/80 uppercase">
                                 {t(d)}
                             </div>
                         ))}
@@ -562,12 +562,12 @@ export default function ProgressPage() {
                             const statusClass = status === 'both'
                                 ? 'bg-rose-500/20 text-rose-400'
                                 : status === 'partial'
-                                    ? 'bg-zinc-700/30 text-zinc-400'
+                                    ? 'bg-muted/30 text-muted-foreground'
                                     : isFuture && isTappable
                                         ? 'bg-amber-500/10 text-amber-300' // Future dates with content get highlighted
                                         : isFuture
-                                            ? 'text-zinc-800'
-                                            : 'text-zinc-600'
+                                            ? 'text-muted-foreground/30'
+                                            : 'text-muted-foreground/80'
 
                             // Special date ring overlay (doesn't replace answer status)
                             const specialRing = special ? 'ring-1 ring-amber-500/50' : (isFuture && isTappable ? 'ring-1 ring-amber-500/50' : '')
@@ -601,15 +601,15 @@ export default function ProgressPage() {
                                     <span className={special ? 'text-[9px] leading-none' : ''}>{format(day, 'd')}</span>
                                     {/* Show answer dot on special dates that also have answers */}
                                     {special && status && (
-                                        <span className={`absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${status === 'both' ? 'bg-rose-400' : 'bg-zinc-400'}`} />
+                                        <span className={`absolute bottom-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${status === 'both' ? 'bg-rose-400' : 'bg-muted-foreground/40'}`} />
                                     )}
                                     {/* Content badges */}
                                     {badges.length > 0 && !special && (
                                         <div className="flex gap-px absolute bottom-0.5 left-1/2 -translate-x-1/2">
                                             {badges.slice(0, 3).map(b => (
-                                                <span key={b} className={`w-1 h-1 rounded-full ${BADGE_COLORS[b] || 'bg-zinc-500'}`} />
+                                                <span key={b} className={`w-1 h-1 rounded-full ${BADGE_COLORS[b] || 'bg-muted-foreground/50'}`} />
                                             ))}
-                                            {badges.length > 3 && <span className="text-[5px] text-zinc-500 leading-none">+</span>}
+                                            {badges.length > 3 && <span className="text-[5px] text-muted-foreground leading-none">+</span>}
                                         </div>
                                     )}
                                     {journalCounts[dateKey] > 1 && !special && (
@@ -635,9 +635,9 @@ export default function ProgressPage() {
                     )}
 
                     {/* Legend */}
-                    <div className="flex items-center justify-end flex-wrap gap-x-3 gap-y-1.5 mt-4 text-[10px] text-zinc-500">
+                    <div className="flex items-center justify-end flex-wrap gap-x-3 gap-y-1.5 mt-4 text-[10px] text-muted-foreground">
                         <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500/40 mr-1" /> {t('legendBoth')}</div>
-                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-700/50 mr-1" /> {t('legendPartial')}</div>
+                        <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-muted/50 mr-1" /> {t('legendPartial')}</div>
                         <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-amber-500/30 ring-1 ring-amber-500/30 mr-1" /> {t('legendSpecial')}</div>
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-1" /> {t('legendEvent')}</div>
                         <div className="flex items-center"><div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1" /> {t('legendTask')}</div>
@@ -652,30 +652,30 @@ export default function ProgressPage() {
             {/* Activity Heatmap - newest first */}
             <div className="space-y-4 pt-4">
                 <h3 className="font-semibold text-lg">{t('last90Days')}</h3>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 overflow-x-auto">
+                <div className="bg-card border border-border rounded-2xl p-6 overflow-x-auto">
                     {reversedActivity.length > 0 ? (
                         <div className="flex gap-1">
                             {reversedActivity.map((day, i) => (
                                 <div
                                     key={i}
                                     className={`w-3 h-12 rounded-sm flex-shrink-0 ${day.status === 'both_answered' ? 'bg-rose-500' :
-                                            day.status === 'you_answered' ? 'bg-zinc-600' :
-                                                'bg-zinc-800'
+                                            day.status === 'you_answered' ? 'bg-muted-foreground/40' :
+                                                'bg-secondary'
                                         }`}
                                     title={`${day.date_key}: ${day.status}`}
                                 />
                             ))}
                         </div>
                     ) : (
-                        <p className="text-sm text-zinc-500 text-center py-4">
+                        <p className="text-sm text-muted-foreground text-center py-4">
                             {t('activityEmpty')}
                         </p>
                     )}
-                    <div className="flex items-center justify-between mt-6 text-xs text-zinc-500">
+                    <div className="flex items-center justify-between mt-6 text-xs text-muted-foreground">
                         <span>{t('newest')}</span>
                         <div className="flex items-center space-x-4">
-                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-800 mr-2" /> {t('missed')}</div>
-                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-zinc-600 mr-2" /> {t('partial')}</div>
+                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-secondary mr-2" /> {t('missed')}</div>
+                            <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-muted-foreground/40 mr-2" /> {t('partial')}</div>
                             <div className="flex items-center"><div className="w-2 h-2 rounded-sm bg-rose-500 mr-2" /> {t('completed')}</div>
                         </div>
                         <span>{t('oldest')}</span>
@@ -691,17 +691,17 @@ export default function ProgressPage() {
                 <div className="grid grid-cols-2 gap-3">
                     <Link
                         href={`/app/recap/${currentYear}/${currentMonth}`}
-                        className="bg-gradient-to-br from-purple-500/10 to-zinc-900 border border-purple-500/20 rounded-2xl p-4 text-center hover:border-purple-500/40 transition-colors"
+                        className="bg-gradient-to-br from-purple-500/10 to-card border border-purple-500/20 rounded-2xl p-4 text-center hover:border-purple-500/40 transition-colors"
                     >
                         <p className="text-sm font-medium text-purple-400">{t('thisMonth')}</p>
-                        <p className="text-xs text-zinc-500 mt-1">{format(new Date(), 'MMMM', { locale: dateLoc })}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{format(new Date(), 'MMMM', { locale: dateLoc })}</p>
                     </Link>
                     <Link
                         href={`/app/recap/${currentYear}`}
-                        className="bg-gradient-to-br from-rose-500/10 to-zinc-900 border border-rose-500/20 rounded-2xl p-4 text-center hover:border-rose-500/40 transition-colors"
+                        className="bg-gradient-to-br from-rose-500/10 to-card border border-rose-500/20 rounded-2xl p-4 text-center hover:border-rose-500/40 transition-colors"
                     >
                         <p className="text-sm font-medium text-rose-400">{t('thisYear')}</p>
-                        <p className="text-xs text-zinc-500 mt-1">{currentYear}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{currentYear}</p>
                     </Link>
                 </div>
             </div>
@@ -728,36 +728,36 @@ export default function ProgressPage() {
                 </div>
 
                 {userMilestones.length === 0 ? (
-                    <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
-                        <Trophy className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                    <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                        <Trophy className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
                         {t('noMilestones')}
                     </div>
                 ) : (
                     <div className="space-y-2">
                         {userMilestones.map(ms => (
-                            <div key={ms.id} className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 group">
+                            <div key={ms.id} className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 group">
                                 <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
                                     <Trophy className="w-4 h-4 text-amber-500" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">{ms.title}</p>
-                                    <p className="text-xs text-zinc-500">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
-                                    {ms.note && <p className="text-xs text-zinc-400 mt-1">{ms.note}</p>}
+                                    <p className="text-xs text-muted-foreground">{format(parseISO(ms.happened_at), 'MMM d, yyyy', { locale: dateLoc })}</p>
+                                    {ms.note && <p className="text-xs text-muted-foreground mt-1">{ms.note}</p>}
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-all">
                                     <button
                                         onClick={() => openEditMilestone(ms)}
-                                        className="p-1.5 rounded-lg hover:bg-zinc-800"
+                                        className="p-1.5 rounded-lg hover:bg-secondary"
                                         aria-label={t('editMilestoneAria')}
                                     >
-                                        <Pencil className="w-3.5 h-3.5 text-zinc-500" />
+                                        <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
                                     <button
                                         onClick={() => handleDeleteMilestone(ms.id)}
-                                        className="p-1.5 rounded-lg hover:bg-zinc-800"
+                                        className="p-1.5 rounded-lg hover:bg-secondary"
                                         aria-label={t('deleteMilestoneAria')}
                                     >
-                                        <X className="w-3.5 h-3.5 text-zinc-500" />
+                                        <X className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
                                 </div>
                             </div>
@@ -769,31 +769,31 @@ export default function ProgressPage() {
             {/* Memories shortcut */}
             <Link
                 href="/app/memories"
-                className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-4 hover:border-zinc-700 transition-colors"
+                className="flex items-center gap-3 bg-card border border-border rounded-2xl p-4 hover:border-border transition-colors"
             >
                 <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
                     <Star className="w-4 h-4 text-rose-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{t('memories')}</p>
-                    <p className="text-xs text-zinc-500">{t('memoriesDesc')}</p>
+                    <p className="text-xs text-muted-foreground">{t('memoriesDesc')}</p>
                 </div>
-                <ChevronRight className="w-4 h-4 text-zinc-700 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
             </Link>
 
             {/* ═══ MILESTONE FORM MODAL ═══ */}
             {showMilestoneForm && (
                 <div
-                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[60] bg-zinc-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={() => { setShowMilestoneForm(false); setEditingMilestone(null) }}
                 >
                     <div
-                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        className="w-full sm:max-w-md bg-card border border-border rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">{editingMilestone ? t('editMilestone') : t('newMilestone')}</h3>
-                            <button onClick={() => { setShowMilestoneForm(false); setEditingMilestone(null) }} className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors" aria-label={t('close')}>
+                            <button onClick={() => { setShowMilestoneForm(false); setEditingMilestone(null) }} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" aria-label={t('close')}>
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -809,7 +809,7 @@ export default function ProgressPage() {
                                             if (k.value !== 'custom') setMsTitle(t(k.labelKey).replace(/^\S+\s/, ''))
                                         }}
                                         className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                            msKind === k.value ? 'bg-amber-600 text-white' : 'bg-zinc-800 text-zinc-400'
+                                            msKind === k.value ? 'bg-amber-600 text-zinc-50' : 'bg-secondary text-muted-foreground'
                                         }`}
                                     >
                                         {t(k.labelKey)}
@@ -822,23 +822,23 @@ export default function ProgressPage() {
                                 placeholder={t('titlePlaceholder')}
                                 value={msTitle}
                                 onChange={e => setMsTitle(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-muted-foreground/80"
                                 maxLength={120}
                             />
                             <div>
-                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('whenLabel')}</label>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">{t('whenLabel')}</label>
                                 <input
                                     type="date"
                                     value={msDate}
                                     onChange={e => setMsDate(e.target.value)}
-                                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 [color-scheme:dark]"
+                                    className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 [color-scheme:dark]"
                                 />
                             </div>
                             <textarea
                                 placeholder={t('notePlaceholder')}
                                 value={msNote}
                                 onChange={e => setMsNote(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50 placeholder:text-muted-foreground/80 resize-none min-h-[60px]"
                                 maxLength={500}
                             />
                         </div>
@@ -846,7 +846,7 @@ export default function ProgressPage() {
                         <Button
                             onClick={handleSaveMilestone}
                             disabled={!msTitle.trim() || !msDate || isSavingMs}
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-zinc-50"
                         >
                             {isSavingMs ? t('saving') : t('addMilestone')}
                         </Button>

@@ -13,14 +13,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
         const Comp = asChild ? Slot : "button"
 
-        // Minimal standard variants
         const variants: Record<string, string> = {
-            default: "bg-zinc-50 text-zinc-900 hover:bg-zinc-50/90",
-            destructive: "bg-red-500 text-zinc-50 hover:bg-red-500/90",
-            outline: "border border-zinc-200 bg-transparent hover:bg-zinc-100 hover:text-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
-            secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-100/80 dark:bg-zinc-800 dark:text-zinc-50 dark:hover:bg-zinc-800/80",
-            ghost: "hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
-            link: "text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-50",
+            default: "bg-primary text-primary-foreground hover:bg-rose-700",
+            destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+            outline: "border border-border bg-transparent text-foreground hover:bg-secondary hover:text-secondary-foreground",
+            secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+            ghost: "text-foreground hover:bg-secondary hover:text-secondary-foreground",
+            link: "text-primary underline-offset-4 hover:underline",
         }
 
         const sizes: Record<string, string> = {
@@ -33,7 +32,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return (
             <Comp
                 className={cn(
-                    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-zinc-950 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+                    "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
                     variants[variant as keyof typeof variants],
                     sizes[size as keyof typeof sizes],
                     className

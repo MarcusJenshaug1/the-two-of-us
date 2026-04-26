@@ -38,20 +38,16 @@ export function BottomNav() {
     const t = useTranslations('nav')
     const badgeCount = useInboxBadge()
 
-    // Is a "more" route currently active?
     const moreActive = moreTabs.some(t => pathname.startsWith(t.href))
 
-    // Close sheet on navigation
     useEffect(() => { setOpen(false) }, [pathname])
 
-    // Close on outside click
     const handleBackdropClick = useCallback((e: React.MouseEvent) => {
         if (sheetRef.current && !sheetRef.current.contains(e.target as Node)) {
             setOpen(false)
         }
     }, [])
 
-    // Close on Escape
     useEffect(() => {
         if (!open) return
         const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
@@ -62,7 +58,7 @@ export function BottomNav() {
     return (
         <>
             {/* Bottom bar */}
-            <nav className="fixed bottom-0 z-50 w-full border-t border-zinc-800 bg-zinc-950/80 pb-safe backdrop-blur-md md:hidden">
+            <nav className="fixed bottom-0 z-50 w-full border-t border-border bg-background/85 pb-safe backdrop-blur-md md:hidden">
                 <div className="flex justify-around items-center h-16">
                     {primaryTabs.map((item) => {
                         const isActive = pathname.startsWith(item.href)
@@ -73,13 +69,13 @@ export function BottomNav() {
                                 href={item.href}
                                 className={clsx(
                                     "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-                                    isActive ? "text-rose-500" : "text-zinc-500 hover:text-zinc-300"
+                                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 <div className="relative">
                                     <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
                                     {'badge' in item && item.badge && badgeCount > 0 && (
-                                        <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                        <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
                                             {badgeCount > 9 ? '9+' : badgeCount}
                                         </span>
                                     )}
@@ -94,7 +90,7 @@ export function BottomNav() {
                         onClick={() => setOpen(prev => !prev)}
                         className={clsx(
                             "flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors",
-                            open || moreActive ? "text-rose-500" : "text-zinc-500 hover:text-zinc-300"
+                            open || moreActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                         )}
                         aria-expanded={open}
                         aria-label="More navigation"
@@ -108,26 +104,26 @@ export function BottomNav() {
             {/* Bottom sheet overlay */}
             {open && (
                 <div
-                    className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm md:hidden animate-in fade-in duration-150"
+                    className="fixed inset-0 z-[55] bg-zinc-950/40 backdrop-blur-sm md:hidden animate-in fade-in duration-150"
                     onClick={handleBackdropClick}
                 >
                     <div
                         ref={sheetRef}
-                        className="absolute bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 rounded-t-2xl pb-safe animate-in slide-in-from-bottom-4 duration-200"
+                        className="absolute bottom-0 left-0 right-0 bg-card text-card-foreground border-t border-border rounded-t-2xl pb-safe animate-in slide-in-from-bottom-4 duration-200 shadow-xl"
                     >
                         {/* Handle bar */}
                         <div className="flex justify-center pt-3 pb-1">
-                            <div className="w-10 h-1 rounded-full bg-zinc-700" />
+                            <div className="w-10 h-1 rounded-full bg-border" />
                         </div>
 
                         {/* Close button */}
                         <div className="flex justify-end px-4 pb-1">
                             <button
                                 onClick={() => setOpen(false)}
-                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                 aria-label="Close menu"
                             >
-                                <X className="w-4 h-4 text-zinc-500" />
+                                <X className="w-4 h-4 text-muted-foreground" />
                             </button>
                         </div>
 
@@ -143,13 +139,13 @@ export function BottomNav() {
                                         className={clsx(
                                             "flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors",
                                             isActive
-                                                ? "bg-zinc-800 text-rose-500"
-                                                : "text-zinc-300 hover:bg-zinc-800/60"
+                                                ? "bg-accent text-accent-foreground"
+                                                : "text-foreground hover:bg-secondary"
                                         )}
                                     >
                                         <Icon className="h-5 w-5 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
                                         <span className="font-medium text-sm flex-1">{t(item.key)}</span>
-                                        <ChevronRight className="h-4 w-4 text-zinc-600" />
+                                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                                     </Link>
                                 )
                             })}
@@ -170,12 +166,12 @@ export function SideNav() {
     const badgeCount = useInboxBadge()
 
     return (
-        <nav className="hidden md:flex flex-col w-64 border-r border-zinc-800 bg-zinc-950 min-h-screen pt-8 px-4">
+        <nav className="hidden md:flex flex-col w-64 border-r border-border bg-background min-h-screen pt-8 px-4">
             <div className="flex items-center space-x-2 px-4 mb-12">
-                <div className="h-8 w-8 rounded-full bg-rose-500/10 flex items-center justify-center">
-                    <MessageSquare className="h-4 w-4 text-rose-500" />
+                <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
+                    <MessageSquare className="h-4 w-4 text-primary" />
                 </div>
-                <span className="font-semibold tracking-tight text-lg">Two of Us</span>
+                <span className="font-semibold tracking-tight text-lg text-foreground">Two of Us</span>
             </div>
 
             <div className="space-y-1 flex-1">
@@ -189,14 +185,14 @@ export function SideNav() {
                             className={clsx(
                                 "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors",
                                 isActive
-                                    ? "bg-zinc-900 text-rose-500"
-                                    : "text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-100"
+                                    ? "bg-accent text-accent-foreground"
+                                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                             )}
                         >
                             <div className="relative">
                                 <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
                                 {'badge' in item && item.badge && badgeCount > 0 && (
-                                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                                    <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center px-1">
                                         {badgeCount > 9 ? '9+' : badgeCount}
                                     </span>
                                 )}

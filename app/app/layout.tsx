@@ -10,7 +10,7 @@ export default function AppLayout({
     // Room membership is enforced by middleware.
     // If user reaches here, they have a room.
     return (
-        <div className="flex h-[100dvh] w-full flex-col md:flex-row bg-zinc-950 overflow-hidden">
+        <div className="flex h-[100dvh] w-full flex-col md:flex-row bg-background text-foreground overflow-hidden">
             <ClearBadge />
             <NotificationPrompt />
             <SideNav />

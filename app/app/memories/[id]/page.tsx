@@ -113,14 +113,14 @@ export default function MemoryDetailPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
 
     if (!memory) {
         return (
-            <div className="p-4 pt-8 text-center text-zinc-500">
+            <div className="p-4 pt-8 text-center text-muted-foreground">
                 <p>{t('notFound')}</p>
                 <Link href="/app/memories" className="text-rose-500 text-sm mt-4 inline-block">{t('backToMemories')}</Link>
             </div>
@@ -146,22 +146,22 @@ export default function MemoryDetailPage() {
                     {memory.images.length > 1 && (
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                             {memory.images.map((_, i) => (
-                                <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                                <div key={i} className="w-1.5 h-1.5 rounded-full bg-zinc-50/50" />
                             ))}
                         </div>
                     )}
                     {/* Back button overlay */}
                     <Link
                         href="/app/memories"
-                        className="absolute top-4 left-4 p-2 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors"
+                        className="absolute top-4 left-4 p-2 rounded-full bg-zinc-950/40 backdrop-blur-sm hover:bg-zinc-950/60 transition-colors"
                         aria-label={t('backToMemories')}
                     >
-                        <ArrowLeft className="w-5 h-5 text-white" />
+                        <ArrowLeft className="w-5 h-5 text-zinc-50" />
                     </Link>
                 </div>
             ) : (
                 <div className="p-4 pt-8">
-                    <Link href="/app/memories" className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
+                    <Link href="/app/memories" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
                         <ArrowLeft className="w-4 h-4" /> {t('title')}
                     </Link>
                 </div>
@@ -173,7 +173,7 @@ export default function MemoryDetailPage() {
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0 space-y-1">
                         <h1 className="text-xl font-semibold tracking-tight">{memory.title}</h1>
-                        <div className="flex items-center gap-3 text-xs text-zinc-500">
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 {format(parseISO(memory.happened_at), 'MMMM d, yyyy', { locale: dateLoc })}
@@ -188,17 +188,17 @@ export default function MemoryDetailPage() {
                     <div className="flex items-center gap-1 shrink-0">
                         <button
                             onClick={toggleFav}
-                            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+                            className="p-2 rounded-lg hover:bg-secondary transition-colors"
                             aria-label={isFav ? t('removeFromFavorites') : t('addToFavorites')}
                         >
-                            <Heart className={`w-5 h-5 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-zinc-500'}`} />
+                            <Heart className={`w-5 h-5 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-muted-foreground'}`} />
                         </button>
                         <button
                             onClick={handleDelete}
-                            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+                            className="p-2 rounded-lg hover:bg-secondary transition-colors"
                             aria-label={t('deleteMemory')}
                         >
-                            <Trash2 className="w-5 h-5 text-zinc-500" />
+                            <Trash2 className="w-5 h-5 text-muted-foreground" />
                         </button>
                     </div>
                 </div>
@@ -207,7 +207,7 @@ export default function MemoryDetailPage() {
                 {memory.tags.length > 0 && (
                     <div className="flex gap-1.5 flex-wrap">
                         {memory.tags.map(tag => (
-                            <span key={tag} className="flex items-center gap-1 text-xs bg-zinc-900 border border-zinc-800 text-zinc-400 px-2.5 py-1 rounded-full">
+                            <span key={tag} className="flex items-center gap-1 text-xs bg-card border border-border text-muted-foreground px-2.5 py-1 rounded-full">
                                 <Tag className="w-3 h-3" /> {tag}
                             </span>
                         ))}
@@ -216,14 +216,14 @@ export default function MemoryDetailPage() {
 
                 {/* Description */}
                 {memory.description && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
-                        <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{memory.description}</p>
+                    <div className="bg-card border border-border rounded-2xl p-4">
+                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{memory.description}</p>
                     </div>
                 )}
 
                 {/* Photo grid (if no hero) */}
                 {memory.images.length === 0 && (
-                    <div className="text-center py-8 text-zinc-600 text-sm">
+                    <div className="text-center py-8 text-muted-foreground/80 text-sm">
                         {t('noPhotos')}
                     </div>
                 )}
@@ -231,7 +231,7 @@ export default function MemoryDetailPage() {
                 {/* Photo grid (below description for quick browse) */}
                 {memory.images.length > 0 && (
                     <div className="space-y-2">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('photos')}</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('photos')}</h3>
                         <div className="grid grid-cols-3 gap-1.5">
                             {memory.images.map((url, i) => (
                                 <button
@@ -250,11 +250,11 @@ export default function MemoryDetailPage() {
             {/* ═══ FULLSCREEN VIEWER ═══ */}
             {viewerIndex !== null && (
                 <div
-                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[100] bg-zinc-950/95 flex items-center justify-center animate-in fade-in duration-200"
                     onClick={() => setViewerIndex(null)}
                 >
                     <button
-                        className="absolute top-4 right-4 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
+                        className="absolute top-4 right-4 p-2 rounded-full bg-secondary/50 hover:bg-muted transition-colors z-10"
                         onClick={() => setViewerIndex(null)}
                         aria-label={t('closeViewer')}
                     >
@@ -264,7 +264,7 @@ export default function MemoryDetailPage() {
                     {/* Prev / Next */}
                     {viewerIndex > 0 && (
                         <button
-                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-secondary/50 hover:bg-muted transition-colors z-10"
                             onClick={(e) => { e.stopPropagation(); setViewerIndex(viewerIndex - 1) }}
                             aria-label={t('previousPhoto')}
                         >
@@ -273,7 +273,7 @@ export default function MemoryDetailPage() {
                     )}
                     {viewerIndex < memory.images.length - 1 && (
                         <button
-                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-secondary/50 hover:bg-muted transition-colors z-10"
                             onClick={(e) => { e.stopPropagation(); setViewerIndex(viewerIndex + 1) }}
                             aria-label={t('nextPhoto')}
                         >
@@ -289,7 +289,7 @@ export default function MemoryDetailPage() {
                     />
 
                     {/* Counter */}
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-zinc-400">
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-sm text-muted-foreground">
                         {viewerIndex + 1} / {memory.images.length}
                     </div>
                 </div>

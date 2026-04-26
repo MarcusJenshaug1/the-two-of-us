@@ -120,18 +120,18 @@ export default function ProfilePage() {
                     className="relative group"
                     onClick={() => avatarInputRef.current?.click()}
                 >
-                    <div className="h-24 w-24 rounded-full bg-zinc-900 border-2 border-zinc-700 overflow-hidden flex items-center justify-center">
+                    <div className="h-24 w-24 rounded-full bg-card border-2 border-border overflow-hidden flex items-center justify-center">
                         {avatarPreview ? (
                             <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
                         ) : (
-                            <User className="h-10 w-10 text-zinc-400" />
+                            <User className="h-10 w-10 text-muted-foreground" />
                         )}
                     </div>
-                    <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                        <Camera className="h-6 w-6 text-white" />
+                    <div className="absolute inset-0 rounded-full bg-zinc-950/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <Camera className="h-6 w-6 text-zinc-50" />
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-full bg-rose-500 flex items-center justify-center border-2 border-zinc-950">
-                        <Camera className="h-3.5 w-3.5 text-white" />
+                    <div className="absolute -bottom-0.5 -right-0.5 h-7 w-7 rounded-full bg-rose-500 flex items-center justify-center border-2 border-background">
+                        <Camera className="h-3.5 w-3.5 text-zinc-50" />
                     </div>
                 </button>
                 <input
@@ -144,7 +144,7 @@ export default function ProfilePage() {
 
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">{t('setupProfile')}</h1>
-                    <p className="text-sm text-zinc-400 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                         {t('setupProfileDesc')}
                     </p>
                 </div>

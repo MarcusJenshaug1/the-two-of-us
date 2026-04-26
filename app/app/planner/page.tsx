@@ -110,7 +110,7 @@ const CATEGORIES = [
 ]
 
 const PRICE_LABELS: Record<string, string> = { free: 'Free', low: '$', medium: '$$', high: '$$$' }
-const PRICE_COLORS: Record<string, string> = { free: 'text-emerald-400', low: 'text-zinc-400', medium: 'text-amber-400', high: 'text-rose-400' }
+const PRICE_COLORS: Record<string, string> = { free: 'text-emerald-400', low: 'text-muted-foreground', medium: 'text-amber-400', high: 'text-rose-400' }
 
 const LANGUAGES: { code: string; label: string }[] = [
     { code: 'nb', label: 'Norsk' },
@@ -657,7 +657,7 @@ export default function PlannerPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -668,17 +668,17 @@ export default function PlannerPage() {
             {/* Header */}
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-zinc-900 rounded-xl p-1">
+            <div className="flex gap-1 bg-card rounded-xl p-1">
                 <button
                     onClick={() => setTab('events')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                         tab === 'events'
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                     }`}
                     aria-current={tab === 'events' ? 'page' : undefined}
                 >
@@ -689,8 +689,8 @@ export default function PlannerPage() {
                     onClick={() => setTab('tasks')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                         tab === 'tasks'
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                     }`}
                     aria-current={tab === 'tasks' ? 'page' : undefined}
                 >
@@ -701,8 +701,8 @@ export default function PlannerPage() {
                     onClick={() => setTab('ideas')}
                     className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
                         tab === 'ideas'
-                            ? 'bg-zinc-800 text-white'
-                            : 'text-zinc-500 hover:text-zinc-300'
+                            ? 'bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                     }`}
                     aria-current={tab === 'ideas' ? 'page' : undefined}
                 >
@@ -716,42 +716,42 @@ export default function PlannerPage() {
                 <div className="space-y-4">
                     <Button
                         onClick={() => { resetEventForm(); setShowEventForm(true) }}
-                        className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                        className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50"
                     >
                         <Plus className="w-4 h-4 mr-2" /> {t('addEvent')}
                     </Button>
 
                     {eventGroups.length === 0 ? (
-                        <div className="text-center py-16 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
-                            <CalendarDays className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                        <div className="text-center py-16 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                            <CalendarDays className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
                             {t('noUpcomingPlans')}
                         </div>
                     ) : (
                         eventGroups.map(({ dateKey, items }) => (
                             <div key={dateKey} className="space-y-2">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-950/90 backdrop-blur-sm py-1 z-10">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground sticky top-0 bg-background/90 backdrop-blur-sm py-1 z-10">
                                     {formatDateLabel(dateKey, t('today'), t('tomorrow'), dateLoc)}
                                 </h3>
                                 {items.map(ev => (
                                     <div
                                         key={ev.id}
-                                        className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2 group"
+                                        className="bg-card border border-border rounded-2xl p-4 space-y-2 group"
                                     >
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="flex-1 min-w-0 space-y-1">
                                                 <p className="font-medium text-sm leading-snug">{ev.title}</p>
-                                                <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
                                                     {formatEventDate(ev.start_at, ev.all_day, dateLoc)}
                                                     {ev.end_at && <> — {format(parseISO(ev.end_at), 'HH:mm')}</>}
                                                 </p>
                                                 {ev.location && (
-                                                    <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                         <MapPin className="w-3 h-3" /> {ev.location}
                                                     </p>
                                                 )}
                                                 {ev.description && (
-                                                    <p className="text-xs text-zinc-400 mt-1">{ev.description}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">{ev.description}</p>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -760,17 +760,17 @@ export default function PlannerPage() {
                                                 )}
                                                 <button
                                                     onClick={() => openEditEvent(ev)}
-                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                     aria-label="Edit event"
                                                 >
-                                                    <Pencil className="w-3.5 h-3.5 text-zinc-500" />
+                                                    <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteEvent(ev.id)}
-                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                     aria-label="Delete event"
                                                 >
-                                                    <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                                    <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                                                 </button>
                                             </div>
                                         </div>
@@ -795,14 +795,14 @@ export default function PlannerPage() {
                             placeholder={t('addTaskPlaceholder')}
                             value={newTaskTitle}
                             onChange={(e) => setNewTaskTitle(e.target.value)}
-                            className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                            className="flex-1 bg-card border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80"
                             maxLength={140}
                             disabled={isAddingTask}
                         />
                         <Button
                             type="submit"
                             disabled={!newTaskTitle.trim() || isAddingTask}
-                            className="bg-rose-600 hover:bg-rose-700 text-white px-4 shrink-0"
+                            className="bg-rose-600 hover:bg-rose-700 text-zinc-50 px-4 shrink-0"
                             aria-label="Add task"
                         >
                             <Plus className="w-4 h-4" />
@@ -811,8 +811,8 @@ export default function PlannerPage() {
 
                     {/* Open tasks */}
                     {openTasks.length === 0 && doneTasks.length === 0 ? (
-                        <div className="text-center py-16 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
-                            <Check className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                        <div className="text-center py-16 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                            <Check className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
                             {t('noTasks')}
                         </div>
                     ) : (
@@ -820,11 +820,11 @@ export default function PlannerPage() {
                             {openTasks.map(task => (
                                 <div
                                     key={task.id}
-                                    className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 group"
+                                    className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 group"
                                 >
                                     <button
                                         onClick={() => handleToggleTask(task)}
-                                        className="shrink-0 text-zinc-600 hover:text-rose-400 transition-colors"
+                                        className="shrink-0 text-muted-foreground/80 hover:text-rose-400 transition-colors"
                                         aria-label={`Mark "${task.title}" as done`}
                                     >
                                         <Circle className="w-5 h-5" />
@@ -832,17 +832,17 @@ export default function PlannerPage() {
                                     <span className="flex-1 text-sm min-w-0 truncate">{task.title}</span>
                                     {task.due_at && (
                                         <span className={`text-[10px] shrink-0 ${
-                                            isPast(parseISO(task.due_at)) ? 'text-red-400' : 'text-zinc-500'
+                                            isPast(parseISO(task.due_at)) ? 'text-red-400' : 'text-muted-foreground'
                                         }`}>
                                             {format(parseISO(task.due_at), 'MMM d', { locale: dateLoc })}
                                         </span>
                                     )}
                                     <button
                                         onClick={() => handleDeleteTask(task.id)}
-                                        className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all shrink-0"
+                                        className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all shrink-0"
                                         aria-label={`Delete "${task.title}"`}
                                     >
-                                        <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                                     </button>
                                 </div>
                             ))}
@@ -854,7 +854,7 @@ export default function PlannerPage() {
                         <div>
                             <button
                                 onClick={() => setShowDoneTasks(!showDoneTasks)}
-                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-300 transition-colors w-full py-2"
+                                className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors w-full py-2"
                             >
                                 {showDoneTasks ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                                 {t('completed')} ({doneTasks.length})
@@ -864,22 +864,22 @@ export default function PlannerPage() {
                                     {doneTasks.map(task => (
                                         <div
                                             key={task.id}
-                                            className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-4 py-3 group"
+                                            className="flex items-center gap-3 bg-card/50 border border-border/50 rounded-xl px-4 py-3 group"
                                         >
                                             <button
                                                 onClick={() => handleToggleTask(task)}
-                                                className="shrink-0 text-emerald-500 hover:text-zinc-400 transition-colors"
+                                                className="shrink-0 text-emerald-500 hover:text-muted-foreground transition-colors"
                                                 aria-label={`Mark "${task.title}" as not done`}
                                             >
                                                 <Check className="w-5 h-5" />
                                             </button>
-                                            <span className="flex-1 text-sm min-w-0 truncate text-zinc-500 line-through">{task.title}</span>
+                                            <span className="flex-1 text-sm min-w-0 truncate text-muted-foreground line-through">{task.title}</span>
                                             <button
                                                 onClick={() => handleDeleteTask(task.id)}
-                                                className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all shrink-0"
+                                                className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all shrink-0"
                                                 aria-label={`Delete "${task.title}"`}
                                             >
-                                                <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                                <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                                             </button>
                                         </div>
                                     ))}
@@ -898,7 +898,7 @@ export default function PlannerPage() {
                         <button
                             onClick={() => setIdeasTab('room')}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                                ideasTab === 'room' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                ideasTab === 'room' ? 'bg-rose-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                             }`}
                         >
                             {t('forUs')}
@@ -906,7 +906,7 @@ export default function PlannerPage() {
                         <button
                             onClick={() => setIdeasTab('public')}
                             className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                                ideasTab === 'public' ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                ideasTab === 'public' ? 'bg-rose-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                             }`}
                         >
                             {t('public')}
@@ -917,7 +917,7 @@ export default function PlannerPage() {
                                 <select
                                     value={publicLang}
                                     onChange={(e) => setPublicLang(e.target.value)}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-[11px] text-zinc-300 appearance-none bg-[length:12px] bg-[right_6px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3%204.5l3%203%203-3%22/%3E%3C/svg%3E')] pr-5 [color-scheme:dark]"
+                                    className="bg-card border border-border rounded-lg px-2.5 py-1 text-[11px] text-foreground appearance-none bg-[length:12px] bg-[right_6px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2212%22%20height%3D%2212%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3%204.5l3%203%203-3%22/%3E%3C/svg%3E')] pr-5 [color-scheme:dark]"
                                 >
                                     {LANGUAGES.map(l => (
                                         <option key={l.code} value={l.code}>{l.label}</option>
@@ -926,7 +926,7 @@ export default function PlannerPage() {
                                 <select
                                     value={publicSort}
                                     onChange={(e) => setPublicSort(e.target.value as 'trending' | 'newest')}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1 text-[11px] text-zinc-300 [color-scheme:dark]"
+                                    className="bg-card border border-border rounded-lg px-2 py-1 text-[11px] text-foreground [color-scheme:dark]"
                                 >
                                     <option value="trending">{t('trending')}</option>
                                     <option value="newest">{t('newest')}</option>
@@ -937,9 +937,9 @@ export default function PlannerPage() {
                     {/* Planned dates section */}
                     {plannedCompletions.length > 0 && (
                         <div className="space-y-2">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('plannedDates')}</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('plannedDates')}</h3>
                             {plannedCompletions.map(c => (
-                                <div key={c.id} className="bg-zinc-900 border border-amber-500/30 rounded-2xl p-4 space-y-2">
+                                <div key={c.id} className="bg-card border border-amber-500/30 rounded-2xl p-4 space-y-2">
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0 space-y-1">
                                             <p className="text-sm font-medium">{c.date_ideas?.title || t('dateIdea')}</p>
@@ -960,10 +960,10 @@ export default function PlannerPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleSkipCompletion(c)}
-                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                 aria-label="Skip this date"
                                             >
-                                                <X className="w-4 h-4 text-zinc-500" />
+                                                <X className="w-4 h-4 text-muted-foreground" />
                                             </button>
                                         </div>
                                     </div>
@@ -974,7 +974,7 @@ export default function PlannerPage() {
 
                     {/* Random suggestion card */}
                     {randomIdea && (
-                        <div className="bg-gradient-to-br from-rose-500/10 via-purple-500/5 to-zinc-900 border border-rose-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="bg-gradient-to-br from-rose-500/10 via-purple-500/5 to-card border border-rose-500/20 rounded-2xl p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="w-4 h-4 text-rose-400" />
                                 <span className="text-xs font-medium text-rose-400 uppercase tracking-wider">{t('suggestion')}</span>
@@ -982,9 +982,9 @@ export default function PlannerPage() {
                             <div className="space-y-1">
                                 <p className="font-medium">{randomIdea.title}</p>
                                 {randomIdea.description && (
-                                    <p className="text-sm text-zinc-400">{randomIdea.description}</p>
+                                    <p className="text-sm text-muted-foreground">{randomIdea.description}</p>
                                 )}
-                                <div className="flex items-center gap-3 text-xs text-zinc-500 pt-1">
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1">
                                     <span>{CATEGORIES.find(c => c.key === randomIdea.category)?.emoji} {t('cat_' + randomIdea.category)}</span>
                                     <span className={PRICE_COLORS[randomIdea.price_level]}>{PRICE_LABELS[randomIdea.price_level]}</span>
                                     <span>{formatDuration(randomIdea.duration_minutes)}</span>
@@ -993,16 +993,16 @@ export default function PlannerPage() {
                             <div className="flex gap-2">
                                 <Button
                                     onClick={() => handlePlanIdea(randomIdea)}
-                                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                                    className="flex-1 bg-rose-600 hover:bg-rose-700 text-zinc-50 text-sm"
                                 >
                                     <CalendarDays className="w-4 h-4 mr-1.5" /> {t('planThisWeekend')}
                                 </Button>
                                 <button
                                     onClick={() => setRandomIdea(null)}
-                                    className="p-2 rounded-lg hover:bg-zinc-800 transition-colors"
+                                    className="p-2 rounded-lg hover:bg-secondary transition-colors"
                                     aria-label="Dismiss suggestion"
                                 >
-                                    <X className="w-4 h-4 text-zinc-500" />
+                                    <X className="w-4 h-4 text-muted-foreground" />
                                 </button>
                             </div>
                         </div>
@@ -1012,14 +1012,14 @@ export default function PlannerPage() {
                     <div className="flex gap-2">
                         <Button
                             onClick={handleRandomSuggestion}
-                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                            className="flex-1 bg-purple-600 hover:bg-purple-700 text-zinc-50"
                         >
                             <Shuffle className="w-4 h-4 mr-2" /> {t('surpriseMe')}
                         </Button>
                         {ideasTab === 'room' && (
                             <Button
                                 onClick={() => setShowAddIdea(true)}
-                                className="bg-zinc-800 hover:bg-zinc-700 text-white px-4"
+                                className="bg-secondary hover:bg-muted text-foreground px-4"
                                 aria-label="Add custom idea"
                             >
                                 <Plus className="w-4 h-4" />
@@ -1034,7 +1034,7 @@ export default function PlannerPage() {
                             <button
                                 onClick={() => setCatFilter(null)}
                                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                    !catFilter ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                    !catFilter ? 'bg-rose-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                                 }`}
                             >
                                 {t('all')}
@@ -1044,7 +1044,7 @@ export default function PlannerPage() {
                                     key={c.key}
                                     onClick={() => setCatFilter(catFilter === c.key ? null : c.key)}
                                     className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                        catFilter === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
+                                        catFilter === c.key ? 'bg-rose-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                                     }`}
                                 >
                                     {c.emoji} {t('cat_' + c.key)}
@@ -1060,7 +1060,7 @@ export default function PlannerPage() {
                                         key={p}
                                         onClick={() => setPriceFilter(priceFilter === p ? null : p)}
                                         className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
-                                            priceFilter === p ? 'bg-amber-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                                            priceFilter === p ? 'bg-amber-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                                         }`}
                                     >
                                         {PRICE_LABELS[p]}
@@ -1071,7 +1071,7 @@ export default function PlannerPage() {
                                 <button
                                     onClick={() => setShowSavedOnly(!showSavedOnly)}
                                     className={`ml-auto px-3 py-1 rounded-lg text-[11px] font-medium transition-colors flex items-center gap-1 ${
-                                        showSavedOnly ? 'bg-pink-600 text-white' : 'bg-zinc-900 text-zinc-500 border border-zinc-800'
+                                        showSavedOnly ? 'bg-pink-600 text-zinc-50' : 'bg-card text-muted-foreground border border-border'
                                     }`}
                                     aria-label={showSavedOnly ? 'Show all ideas' : 'Show saved only'}
                                 >
@@ -1083,8 +1083,8 @@ export default function PlannerPage() {
 
                     {/* Ideas list */}
                     {filteredIdeas.length === 0 ? (
-                        <div className="text-center py-12 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
-                            <Lightbulb className="w-8 h-8 mx-auto mb-3 text-zinc-700" />
+                        <div className="text-center py-12 text-muted-foreground text-sm border border-dashed border-border rounded-xl">
+                            <Lightbulb className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
                             {showSavedOnly ? t('noSavedIdeas') : t('noIdeasMatchFilter')}
                         </div>
                     ) : (
@@ -1092,7 +1092,7 @@ export default function PlannerPage() {
                             {filteredIdeas.map(idea => (
                                 <div
                                     key={idea.id}
-                                    className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2 group"
+                                    className="bg-card border border-border rounded-2xl p-4 space-y-2 group"
                                 >
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1 min-w-0 space-y-1">
@@ -1102,24 +1102,24 @@ export default function PlannerPage() {
                                                 {idea.visibility === 'public' ? (
                                                     <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">{t('publicBadge')}</span>
                                                 ) : (
-                                                    <span className="text-[10px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">{t('customBadge')}</span>
+                                                    <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded">{t('customBadge')}</span>
                                                 )}
                                                 {idea.visibility === 'public' && idea.language && (
-                                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">{LANG_LABEL[idea.language] || idea.language}</span>
+                                                    <span className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded">{LANG_LABEL[idea.language] || idea.language}</span>
                                                 )}
                                             </div>
                                             {idea.description && (
-                                                <p className="text-xs text-zinc-400 line-clamp-2">{idea.description}</p>
+                                                <p className="text-xs text-muted-foreground line-clamp-2">{idea.description}</p>
                                             )}
-                                            <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+                                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                                                 <span className={PRICE_COLORS[idea.price_level]}>{PRICE_LABELS[idea.price_level]}</span>
                                                 <span className="flex items-center gap-0.5"><Timer className="w-3 h-3" /> {formatDuration(idea.duration_minutes)}</span>
                                                 {idea.time_of_day !== 'any' && (
                                                     <span className="flex items-center gap-0.5"><Sun className="w-3 h-3" /> {idea.time_of_day}</span>
                                                 )}
                                                 {idea.visibility === 'public' && (
-                                                    <span className="flex items-center gap-0.5 text-zinc-400">
-                                                        <Heart className={`w-3 h-3 ${likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-500'}`} />
+                                                    <span className="flex items-center gap-0.5 text-muted-foreground">
+                                                        <Heart className={`w-3 h-3 ${likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-muted-foreground'}`} />
                                                         {idea.like_count || 0}
                                                     </span>
                                                 )}
@@ -1129,47 +1129,47 @@ export default function PlannerPage() {
                                             {idea.visibility !== 'public' && (
                                                 <button
                                                     onClick={() => handleToggleSaveIdea(idea.id)}
-                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                     aria-label={savedIds.has(idea.id) ? 'Remove from saved' : 'Save idea'}
                                                 >
                                                     <Heart className={`w-4 h-4 transition-colors ${
-                                                        savedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
+                                                        savedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-muted-foreground/80'
                                                     }`} />
                                                 </button>
                                             )}
                                             {idea.visibility === 'public' && (
                                                 <button
                                                     onClick={() => handleToggleLike(idea)}
-                                                    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                    className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                     aria-label={likedIds.has(idea.id) ? 'Unlike idea' : 'Like idea'}
                                                 >
                                                     <Heart className={`w-4 h-4 transition-colors ${
-                                                        likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-zinc-600'
+                                                        likedIds.has(idea.id) ? 'text-pink-500 fill-pink-500' : 'text-muted-foreground/80'
                                                     }`} />
                                                 </button>
                                             )}
                                             <button
                                                 onClick={() => handlePlanIdea(idea)}
-                                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                                 aria-label="Plan this weekend"
                                             >
-                                                <CalendarDays className="w-4 h-4 text-zinc-600 hover:text-amber-400" />
+                                                <CalendarDays className="w-4 h-4 text-muted-foreground/80 hover:text-amber-400" />
                                             </button>
                                             {idea.visibility !== 'public' && (
                                                 <>
                                                     <button
                                                         onClick={() => openPublishIdea(idea)}
-                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all"
                                                         aria-label="Publish idea publicly"
                                                     >
                                                         <Share2 className="w-3.5 h-3.5 text-emerald-400" />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteIdea(idea.id)}
-                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-zinc-800 transition-all"
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-secondary transition-all"
                                                         aria-label="Delete idea"
                                                     >
-                                                        <Trash2 className="w-3.5 h-3.5 text-zinc-500" />
+                                                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground" />
                                                     </button>
                                                 </>
                                             )}
@@ -1183,13 +1183,13 @@ export default function PlannerPage() {
                     {/* Done dates history */}
                     {doneCompletions.length > 0 && (
                         <div className="space-y-2">
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 pt-2">{t('completedDates')}</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground pt-2">{t('completedDates')}</h3>
                             {doneCompletions.slice(0, 5).map(c => (
-                                <div key={c.id} className="flex items-center gap-3 bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-4 py-3">
+                                <div key={c.id} className="flex items-center gap-3 bg-card/50 border border-border/50 rounded-xl px-4 py-3">
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                    <span className="flex-1 text-sm text-zinc-400 truncate">{c.date_ideas?.title || t('date')}</span>
+                                    <span className="flex-1 text-sm text-muted-foreground truncate">{c.date_ideas?.title || t('date')}</span>
                                     {c.completed_at && (
-                                        <span className="text-[10px] text-zinc-600">{format(parseISO(c.completed_at), 'MMM d', { locale: dateLoc })}</span>
+                                        <span className="text-[10px] text-muted-foreground/80">{format(parseISO(c.completed_at), 'MMM d', { locale: dateLoc })}</span>
                                     )}
                                 </div>
                             ))}
@@ -1201,22 +1201,22 @@ export default function PlannerPage() {
             {/* ═══ PUBLISH IDEA MODAL ═══ */}
             {showPublishIdea && publishIdea && (
                 <div
-                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[60] bg-zinc-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={() => setShowPublishIdea(false)}
                 >
                     <div
-                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        className="w-full sm:max-w-md bg-card border border-border rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">{t('publishIdea')}</h3>
-                            <button onClick={() => setShowPublishIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
+                            <button onClick={() => setShowPublishIdea(false)} className="p-1.5 rounded-lg hover:bg-secondary" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
 
                         <div className="space-y-2">
-                            <p className="text-sm text-zinc-300">
+                            <p className="text-sm text-foreground">
                                 {t('publishVisibilityWarning')}
                             </p>
                             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
@@ -1225,11 +1225,11 @@ export default function PlannerPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{t('language')}</label>
+                            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t('language')}</label>
                             <select
                                 value={publishLang}
                                 onChange={(e) => setPublishLang(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M4%206l4%204%204-4%22/%3E%3C/svg%3E')] pr-8 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M4%206l4%204%204-4%22/%3E%3C/svg%3E')] pr-8 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                             >
                                 {LANGUAGES.map(l => (
                                     <option key={l.code} value={l.code}>{l.label}</option>
@@ -1240,7 +1240,7 @@ export default function PlannerPage() {
                         <Button
                             onClick={handlePublishIdea}
                             disabled={isPublishing}
-                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-zinc-50"
                         >
                             {isPublishing ? t('publishing') : t('publishPublicly')}
                         </Button>
@@ -1251,16 +1251,16 @@ export default function PlannerPage() {
             {/* ═══ ADD IDEA MODAL ═══ */}
             {showAddIdea && (
                 <div
-                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[60] bg-zinc-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={() => setShowAddIdea(false)}
                 >
                     <div
-                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        className="w-full sm:max-w-md bg-card border border-border rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-semibold">{t('addCustomIdea')}</h3>
-                            <button onClick={() => setShowAddIdea(false)} className="p-1.5 rounded-lg hover:bg-zinc-800" aria-label="Close">
+                            <button onClick={() => setShowAddIdea(false)} className="p-1.5 rounded-lg hover:bg-secondary" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -1271,7 +1271,7 @@ export default function PlannerPage() {
                                 placeholder={t('ideaTitlePlaceholder')}
                                 value={newIdeaTitle}
                                 onChange={e => setNewIdeaTitle(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80"
                                 maxLength={120}
                                 autoFocus
                             />
@@ -1280,20 +1280,20 @@ export default function PlannerPage() {
                                 placeholder={t('descriptionOptional')}
                                 value={newIdeaDesc}
                                 onChange={e => setNewIdeaDesc(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80 resize-none min-h-[60px]"
                                 maxLength={800}
                             />
 
                             {/* Category pills */}
                             <div>
-                                <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5 block">{t('category')}</label>
+                                <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5 block">{t('category')}</label>
                                 <div className="flex gap-1.5 flex-wrap">
                                     {CATEGORIES.map(c => (
                                         <button
                                             key={c.key}
                                             onClick={() => setNewIdeaCat(c.key)}
                                             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                                                newIdeaCat === c.key ? 'bg-rose-600 text-white' : 'bg-zinc-800 text-zinc-400'
+                                                newIdeaCat === c.key ? 'bg-rose-600 text-zinc-50' : 'bg-secondary text-muted-foreground'
                                             }`}
                                         >
                                             {c.emoji} {t('cat_' + c.key)}
@@ -1305,11 +1305,11 @@ export default function PlannerPage() {
                             {/* Price + Duration + Time */}
                             <div className="grid grid-cols-3 gap-2">
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('price')}</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">{t('price')}</label>
                                     <select
                                         value={newIdeaPrice}
                                         onChange={e => setNewIdeaPrice(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-background border border-border rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="free">{t('priceFree')}</option>
                                         <option value="low">{t('priceLow')}</option>
@@ -1318,11 +1318,11 @@ export default function PlannerPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('duration')}</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">{t('duration')}</label>
                                     <select
                                         value={newIdeaDuration}
                                         onChange={e => setNewIdeaDuration(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-background border border-border rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="30">{t('duration30min')}</option>
                                         <option value="60">{t('duration1hour')}</option>
@@ -1334,11 +1334,11 @@ export default function PlannerPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('time')}</label>
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">{t('time')}</label>
                                     <select
                                         value={newIdeaTime}
                                         onChange={e => setNewIdeaTime(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-background border border-border rounded-lg py-2.5 px-3 text-sm appearance-none bg-[length:14px] bg-[right_8px_center] bg-no-repeat bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22none%22%20stroke%3D%22%2371717a%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22M3.5%205.25l3.5%203.5%203.5-3.5%22/%3E%3C/svg%3E')] pr-7 focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     >
                                         <option value="any">{t('anyTime')}</option>
                                         <option value="morning">{t('morning')}</option>
@@ -1352,7 +1352,7 @@ export default function PlannerPage() {
                         <Button
                             onClick={handleAddCustomIdea}
                             disabled={!newIdeaTitle.trim() || isSavingIdea}
-                            className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                            className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50"
                         >
                             {isSavingIdea ? t('saving') : t('addIdeaButton')}
                         </Button>
@@ -1363,11 +1363,11 @@ export default function PlannerPage() {
             {/* ═══ EVENT FORM MODAL ═══ */}
             {showEventForm && (
                 <div
-                    className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[60] bg-zinc-950/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
                     onClick={resetEventForm}
                 >
                     <div
-                        className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+                        className="w-full sm:max-w-md bg-card border border-border rounded-t-2xl sm:rounded-2xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between">
@@ -1376,7 +1376,7 @@ export default function PlannerPage() {
                             </h3>
                             <button
                                 onClick={resetEventForm}
-                                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
                                 aria-label="Close"
                             >
                                 <X className="w-5 h-5" />
@@ -1389,7 +1389,7 @@ export default function PlannerPage() {
                                 placeholder={t('eventTitlePlaceholder')}
                                 value={eventTitle}
                                 onChange={e => setEventTitle(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80"
                                 maxLength={120}
                                 autoFocus
                             />
@@ -1398,7 +1398,7 @@ export default function PlannerPage() {
                                 placeholder={t('descriptionOptional')}
                                 value={eventDesc}
                                 onChange={e => setEventDesc(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 resize-none min-h-[60px]"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80 resize-none min-h-[60px]"
                                 maxLength={500}
                             />
 
@@ -1407,7 +1407,7 @@ export default function PlannerPage() {
                                 placeholder={t('locationOptional')}
                                 value={eventLocation}
                                 onChange={e => setEventLocation(e.target.value)}
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600"
+                                className="w-full bg-background border border-border rounded-xl py-2.5 px-4 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80"
                                 maxLength={120}
                             />
 
@@ -1419,31 +1419,31 @@ export default function PlannerPage() {
                                     onChange={e => setEventAllDay(e.target.checked)}
                                     className="sr-only peer"
                                 />
-                                <div className="w-9 h-5 bg-zinc-700 peer-checked:bg-rose-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
-                                <span className="text-sm text-zinc-300">{t('allDay')}</span>
+                                <div className="w-9 h-5 bg-muted peer-checked:bg-rose-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-zinc-50 after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
+                                <span className="text-sm text-foreground">{t('allDay')}</span>
                             </label>
 
                             {/* Date/Time inputs */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">
+                                    <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">
                                         {eventAllDay ? t('dateLabel') : t('startLabel')}
                                     </label>
                                     <input
                                         type={eventAllDay ? 'date' : 'datetime-local'}
                                         value={eventStartAt}
                                         onChange={e => setEventStartAt(e.target.value)}
-                                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                        className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                     />
                                 </div>
                                 {!eventAllDay && (
                                     <div>
-                                        <label className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 mb-1 block">{t('endLabel')}</label>
+                                        <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 block">{t('endLabel')}</label>
                                         <input
                                             type="datetime-local"
                                             value={eventEndAt}
                                             onChange={e => setEventEndAt(e.target.value)}
-                                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
+                                            className="w-full bg-background border border-border rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 [color-scheme:dark]"
                                         />
                                     </div>
                                 )}
@@ -1457,8 +1457,8 @@ export default function PlannerPage() {
                                     onChange={e => setEventReminder(e.target.checked)}
                                     className="sr-only peer"
                                 />
-                                <div className="w-9 h-5 bg-zinc-700 peer-checked:bg-amber-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
-                                <span className="text-sm text-zinc-300 flex items-center gap-1.5">
+                                <div className="w-9 h-5 bg-muted peer-checked:bg-amber-600 rounded-full transition-colors relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-zinc-50 after:rounded-full after:transition-transform peer-checked:after:translate-x-4" />
+                                <span className="text-sm text-foreground flex items-center gap-1.5">
                                     <Bell className="w-3.5 h-3.5" /> {t('remind30min')}
                                 </span>
                             </label>
@@ -1467,7 +1467,7 @@ export default function PlannerPage() {
                         <Button
                             onClick={handleSaveEvent}
                             disabled={!eventTitle.trim() || !eventStartAt || isSavingEvent}
-                            className="w-full bg-rose-600 hover:bg-rose-700 text-white"
+                            className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50"
                         >
                             {isSavingEvent ? t('saving') : (editingEvent ? t('updateEvent') : t('createEvent'))}
                         </Button>

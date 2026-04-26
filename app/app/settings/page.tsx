@@ -215,15 +215,15 @@ export default function SettingsPage() {
         <div className="p-4 space-y-8 pt-8 md:pt-12 pb-24 max-w-lg mx-auto">
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
             </div>
 
             {/* Profile Section */}
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center">
                     <User className="w-4 h-4 mr-2" /> {t('profile')}
                 </h2>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
                     {/* Avatar */}
                     <div className="flex items-center space-x-4">
                         <button
@@ -232,19 +232,19 @@ export default function SettingsPage() {
                             onClick={() => avatarInputRef.current?.click()}
                             disabled={isUploadingAvatar}
                         >
-                            <div className="h-16 w-16 rounded-full bg-zinc-800 border-2 border-zinc-700 overflow-hidden flex items-center justify-center">
+                            <div className="h-16 w-16 rounded-full bg-secondary border-2 border-border overflow-hidden flex items-center justify-center">
                                 {avatarUrl ? (
                                     <img src={avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                                 ) : (
-                                    <User className="h-7 w-7 text-zinc-500" />
+                                    <User className="h-7 w-7 text-muted-foreground" />
                                 )}
                             </div>
-                            <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                <Camera className="h-5 w-5 text-white" />
+                            <div className="absolute inset-0 rounded-full bg-zinc-950/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                <Camera className="h-5 w-5 text-zinc-50" />
                             </div>
                             {isUploadingAvatar && (
-                                <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                <div className="absolute inset-0 rounded-full bg-zinc-950/60 flex items-center justify-center">
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-zinc-50 border-t-transparent" />
                                 </div>
                             )}
                         </button>
@@ -257,13 +257,13 @@ export default function SettingsPage() {
                         />
                         <div className="space-y-0.5">
                             <p className="font-medium text-sm">{profile?.name || t('noName')}</p>
-                            <p className="text-xs text-zinc-500">{user?.email}</p>
-                            <p className="text-[10px] text-zinc-600">{t('tapPhoto')}</p>
+                            <p className="text-xs text-muted-foreground">{user?.email}</p>
+                            <p className="text-[10px] text-muted-foreground/80">{t('tapPhoto')}</p>
                         </div>
                     </div>
 
                     {/* Name */}
-                    <div className="space-y-2 pt-2 border-t border-zinc-800">
+                    <div className="space-y-2 pt-2 border-t border-border">
                         <label className="text-sm font-medium">{t('displayName')}</label>
                         <div className="flex space-x-2">
                             <Input
@@ -281,27 +281,27 @@ export default function SettingsPage() {
 
             {/* Relationship Section */}
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center">
                     <Heart className="w-4 h-4 mr-2" /> {t('relationship')}
                 </h2>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
                     {/* Partner or Invite */}
                     {memberCount >= 2 && partner ? (
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center">
-                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> {t('yourPartner')}
+                                <Users className="w-4 h-4 mr-2 text-muted-foreground" /> {t('yourPartner')}
                             </label>
-                            <div className="flex items-center space-x-3 bg-zinc-950 p-3 rounded-xl border border-zinc-800/50">
-                                <div className="h-10 w-10 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
+                            <div className="flex items-center space-x-3 bg-background p-3 rounded-xl border border-border/50">
+                                <div className="h-10 w-10 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center shrink-0">
                                     {partner.avatar_url ? (
                                         <img src={partner.avatar_url} alt={partner.name} className="h-full w-full object-cover" />
                                     ) : (
-                                        <User className="h-5 w-5 text-zinc-500" />
+                                        <User className="h-5 w-5 text-muted-foreground" />
                                     )}
                                 </div>
                                 <div>
                                     <p className="font-medium text-sm">{partner.name || t('noName')}</p>
-                                    <p className="text-[10px] text-zinc-500">{t('partnerConnected')}</p>
+                                    <p className="text-[10px] text-muted-foreground">{t('partnerConnected')}</p>
                                 </div>
                                 <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-auto shrink-0" />
                             </div>
@@ -309,14 +309,14 @@ export default function SettingsPage() {
                     ) : (
                         <div className="space-y-2">
                             <label className="text-sm font-medium flex items-center">
-                                <Users className="w-4 h-4 mr-2 text-zinc-400" /> {t('inviteYourPartner')}
+                                <Users className="w-4 h-4 mr-2 text-muted-foreground" /> {t('inviteYourPartner')}
                             </label>
                             {room ? (
                                 <div className="flex space-x-2">
                                     <Input
                                         value={`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${room?.invite_code}`}
                                         readOnly
-                                        className="bg-zinc-950 font-mono text-xs"
+                                        className="bg-background font-mono text-xs"
                                     />
                                     <Button
                                         variant="outline"
@@ -329,16 +329,16 @@ export default function SettingsPage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <p className="text-sm text-zinc-500">{t('notInRoomYet')}</p>
+                                <p className="text-sm text-muted-foreground">{t('notInRoomYet')}</p>
                             )}
-                            <p className="text-xs text-zinc-500">
+                            <p className="text-xs text-muted-foreground">
                                 {t('shareThisLink')}
                             </p>
                         </div>
                     )}
 
                     {/* Anniversary */}
-                    <div className="pt-4 border-t border-zinc-800 space-y-2">
+                    <div className="pt-4 border-t border-border space-y-2">
                         <label className="text-sm font-medium">{t('anniversaryDate')}</label>
                         <div className="flex space-x-2">
                             <Input
@@ -357,17 +357,17 @@ export default function SettingsPage() {
 
             {/* App Section */}
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center">
                     <Download className="w-4 h-4 mr-2" /> {t('app')}
                 </h2>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-4">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
                     {pwaInstall.isInstalled ? (
                         /* Already installed */
                         <div className="flex items-center space-x-3 text-emerald-400">
                             <CheckCircle2 className="w-5 h-5 shrink-0" />
                             <div>
                                 <p className="font-medium text-sm">{t('appInstalled')}</p>
-                                <p className="text-xs text-zinc-500">{t('appInstalledDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('appInstalledDesc')}</p>
                             </div>
                         </div>
                     ) : pwaInstall.isInstallable && pwaInstall.platform === 'ios' ? (
@@ -375,7 +375,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <p className="font-medium text-sm">{t('installOnIphone')}</p>
-                                <p className="text-xs text-zinc-400">{t('installOnIphoneDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('installOnIphoneDesc')}</p>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleInstallClick}>
                                 {t('install')}
@@ -386,7 +386,7 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <p className="font-medium text-sm">{t('installApp')}</p>
-                                <p className="text-xs text-zinc-400">{t('installAppDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('installAppDesc')}</p>
                             </div>
                             <Button variant="outline" size="sm" onClick={handleInstallClick}>
                                 {t('install')}
@@ -404,16 +404,16 @@ export default function SettingsPage() {
 
             {/* Notifications Section */}
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center">
                     <Bell className="w-4 h-4 mr-2" /> {t('notifications')}
                 </h2>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
                     {notifStatus === 'unsupported' ? (
-                        <div className="flex items-center space-x-3 text-zinc-500">
+                        <div className="flex items-center space-x-3 text-muted-foreground">
                             <BellOff className="w-5 h-5 shrink-0" />
                             <div>
                                 <p className="font-medium text-sm">{t('notifsNotAvailable')}</p>
-                                <p className="text-xs text-zinc-500">{t('notifsNotAvailableDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('notifsNotAvailableDesc')}</p>
                             </div>
                         </div>
                     ) : notifStatus === 'denied' ? (
@@ -421,7 +421,7 @@ export default function SettingsPage() {
                             <BellOff className="w-5 h-5 shrink-0" />
                             <div>
                                 <p className="font-medium text-sm">{t('notifsBlocked')}</p>
-                                <p className="text-xs text-zinc-400">{t('notifsBlockedDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('notifsBlockedDesc')}</p>
                             </div>
                         </div>
                     ) : notifStatus === 'subscribed' ? (
@@ -430,7 +430,7 @@ export default function SettingsPage() {
                                 <BellRing className="w-5 h-5 shrink-0" />
                                 <div>
                                     <p className="font-medium text-sm">{t('notifsOn')}</p>
-                                    <p className="text-xs text-zinc-400">{t('notifsOnDesc')}</p>
+                                    <p className="text-xs text-muted-foreground">{t('notifsOnDesc')}</p>
                                 </div>
                             </div>
                             <Button variant="outline" size="sm" onClick={unsubscribeNotifs}>
@@ -441,11 +441,11 @@ export default function SettingsPage() {
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <p className="font-medium text-sm">{t('enableNotifications')}</p>
-                                <p className="text-xs text-zinc-400">{t('enableNotifsDesc')}</p>
+                                <p className="text-xs text-muted-foreground">{t('enableNotifsDesc')}</p>
                             </div>
                             <Button
                                 size="sm"
-                                className="bg-rose-600 hover:bg-rose-700 text-white"
+                                className="bg-rose-600 hover:bg-rose-700 text-zinc-50"
                                 onClick={async () => {
                                     const result = await subscribeNotifs()
                                     if (!result.ok) {
@@ -469,18 +469,18 @@ export default function SettingsPage() {
 
             {/* Language Section */}
             <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-widest text-zinc-500 flex items-center">
+                <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center">
                     <Globe className="w-4 h-4 mr-2" /> {t('language')}
                 </h2>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
-                    <p className="text-xs text-zinc-400">{t('languageDesc')}</p>
+                <div className="bg-card border border-border rounded-2xl p-4 space-y-3">
+                    <p className="text-xs text-muted-foreground">{t('languageDesc')}</p>
                     <div className="flex space-x-2">
                         <button
                             onClick={() => setLocale('en')}
                             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors border ${
                                 locale === 'en'
-                                    ? 'bg-white text-black border-white'
-                                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-background text-muted-foreground border-border hover:border-rose-300'
                             }`}
                         >
                             {t('english')}
@@ -489,8 +489,8 @@ export default function SettingsPage() {
                             onClick={() => setLocale('no')}
                             className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-colors border ${
                                 locale === 'no'
-                                    ? 'bg-white text-black border-white'
-                                    : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-background text-muted-foreground border-border hover:border-rose-300'
                             }`}
                         >
                             {t('norwegian')}
@@ -500,7 +500,7 @@ export default function SettingsPage() {
             </section>
 
             {/* Version */}
-            <div className="text-center text-xs text-zinc-600 pt-4">
+            <div className="text-center text-xs text-muted-foreground/80 pt-4">
                 <p>
                     {process.env.NEXT_PUBLIC_BUILD_TIME
                         ? new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleDateString('nb-NO')
@@ -516,7 +516,7 @@ export default function SettingsPage() {
             <section className="pt-8">
                 <Button
                     variant="destructive"
-                    className="w-full h-12 flex items-center justify-center space-x-2 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-colors"
+                    className="w-full h-12 flex items-center justify-center space-x-2 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-zinc-50 transition-colors"
                     onClick={handleLogout}
                 >
                     <LogOut className="w-5 h-5" />

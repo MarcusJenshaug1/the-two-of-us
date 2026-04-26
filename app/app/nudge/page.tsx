@@ -307,7 +307,7 @@ export default function LovePage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -321,7 +321,7 @@ export default function LovePage() {
                     <Sparkles className="w-5 h-5 text-rose-400" />
                     {t('title')}
                 </h1>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                     {t('subtitle', { name: partnerName })}
                 </p>
             </div>
@@ -336,48 +336,48 @@ export default function LovePage() {
             {/* ===== TODAY'S JOURNAL ===== */}
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                         <Camera className="w-3.5 h-3.5" /> {t('todaysJournal')}
                     </h3>
-                    <span className="text-[10px] text-zinc-600">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</span>
+                    <span className="text-[10px] text-muted-foreground/80">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</span>
                 </div>
 
                 {/* My logs */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-3 pb-2">
                         <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                            <div className="h-6 w-6 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center">
                                 {myProfile?.avatar_url ? (
                                     <img src={myProfile.avatar_url} alt="" className="h-full w-full object-cover" />
                                 ) : (
-                                    <User className="h-3 w-3 text-zinc-500" />
+                                    <User className="h-3 w-3 text-muted-foreground" />
                                 )}
                             </div>
                             <span className="text-xs font-semibold text-rose-400">{t('you')}</span>
                         </div>
-                        <span className="text-[10px] text-zinc-600">{myLogs.length}/4</span>
+                        <span className="text-[10px] text-muted-foreground/80">{myLogs.length}/4</span>
                     </div>
 
                     <div className="px-4 pb-4 space-y-3">
                         {myLogs.length === 0 && (
-                            <p className="text-xs text-zinc-500">{t('noEntriesYet')}</p>
+                            <p className="text-xs text-muted-foreground">{t('noEntriesYet')}</p>
                         )}
 
                         {myLogs.map((log, idx) => (
-                            <div key={log.id} className="border border-zinc-800 rounded-xl p-3 space-y-2">
+                            <div key={log.id} className="border border-border rounded-xl p-3 space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[10px] text-zinc-500">{t('entryNumber', { number: idx + 1 })}</span>
+                                    <span className="text-[10px] text-muted-foreground">{t('entryNumber', { number: idx + 1 })}</span>
                                     <div className="flex items-center gap-2">
                                         <button
                                             onClick={() => handleEditLog(log)}
-                                            className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
+                                            className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
                                             aria-label={t('edit')}
                                         >
                                             <Pencil className="w-3 h-3" /> {t('edit')}
                                         </button>
                                         <button
                                             onClick={() => handleDeleteLog(log.id)}
-                                            className="text-[10px] text-zinc-500 hover:text-zinc-300 flex items-center gap-1"
+                                            className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
                                             aria-label={t('delete')}
                                         >
                                             <X className="w-3 h-3" /> {t('delete')}
@@ -385,12 +385,12 @@ export default function LovePage() {
                                     </div>
                                 </div>
                                 {log.text && (
-                                    <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log.text}</p>
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{log.text}</p>
                                 )}
                                 {log.images && log.images.length > 0 && (
                                     <div className={`grid gap-1.5 ${log.images.length === 1 ? 'grid-cols-1' : log.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                                         {log.images.map((url, i) => (
-                                            <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
+                                            <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-secondary">
                                                 <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
                                             </button>
                                         ))}
@@ -402,19 +402,19 @@ export default function LovePage() {
                 </div>
 
                 {/* Add / edit entry */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                <div className="bg-card border border-border rounded-2xl overflow-hidden">
                     <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                        <span className="text-xs font-semibold text-zinc-300">
+                        <span className="text-xs font-semibold text-foreground">
                             {editingLog ? t('editEntry') : t('addEntry')}
                         </span>
                         {!canAddLog && !editingLog && (
-                            <span className="text-[10px] text-zinc-500">{t('maxEntries')}</span>
+                            <span className="text-[10px] text-muted-foreground">{t('maxEntries')}</span>
                         )}
                     </div>
 
                     <div className="px-4 pb-4 space-y-3">
                         <textarea
-                            className="w-full min-h-[80px] resize-none bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-zinc-600 transition-all"
+                            className="w-full min-h-[80px] resize-none bg-background border border-border rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/50 placeholder:text-muted-foreground/80 transition-all"
                             placeholder={t('journalPlaceholder')}
                             value={logText}
                             onChange={(e) => setLogText(e.target.value)}
@@ -424,13 +424,13 @@ export default function LovePage() {
 
                         <div className="flex flex-wrap gap-2">
                             {logImages.map((url, i) => (
-                                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-zinc-800 group">
+                                <div key={i} className="relative w-20 h-20 rounded-xl overflow-hidden bg-secondary group">
                                     <SignedImage path={url} alt="" className="h-full w-full object-cover" />
                                     <button
                                         onClick={() => removeImage(i)}
-                                        className="absolute top-1 right-1 p-0.5 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute top-1 right-1 p-0.5 bg-zinc-950/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
-                                        <X className="w-3 h-3 text-white" />
+                                        <X className="w-3 h-3 text-zinc-50" />
                                     </button>
                                 </div>
                             ))}
@@ -439,14 +439,14 @@ export default function LovePage() {
                                 <button
                                     onClick={() => imageInputRef.current?.click()}
                                     disabled={isUploadingImage || (!canAddLog && !editingLog)}
-                                    className="w-20 h-20 rounded-xl border-2 border-dashed border-zinc-700 hover:border-rose-500/30 flex flex-col items-center justify-center gap-1 transition-colors"
+                                    className="w-20 h-20 rounded-xl border-2 border-dashed border-border hover:border-rose-500/30 flex flex-col items-center justify-center gap-1 transition-colors"
                                 >
                                     {isUploadingImage ? (
                                         <div className="h-5 w-5 animate-spin rounded-full border-2 border-rose-500 border-t-transparent" />
                                     ) : (
                                         <>
-                                            <ImagePlus className="w-4 h-4 text-zinc-500" />
-                                            <span className="text-[10px] text-zinc-600">{logImages.length}/6</span>
+                                            <ImagePlus className="w-4 h-4 text-muted-foreground" />
+                                            <span className="text-[10px] text-muted-foreground/80">{logImages.length}/6</span>
                                         </>
                                     )}
                                 </button>
@@ -466,7 +466,7 @@ export default function LovePage() {
                             <Button
                                 onClick={saveLog}
                                 disabled={isSavingLog || (!logText.trim() && logImages.length === 0) || (!canAddLog && !editingLog)}
-                                className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-white text-sm"
+                                className="flex-1 h-10 bg-rose-600 hover:bg-rose-700 text-zinc-50 text-sm"
                             >
                                 {isSavingLog ? t('saving') : (
                                     <span className="flex items-center gap-2">
@@ -488,38 +488,38 @@ export default function LovePage() {
                                 </Button>
                             )}
                         </div>
-                        <p className="text-[10px] text-zinc-600 text-center">{logText.length}/1000 · {t('maxPhotosShort')}</p>
+                        <p className="text-[10px] text-muted-foreground/80 text-center">{logText.length}/1000 · {t('maxPhotosShort')}</p>
                     </div>
                 </div>
 
                 {/* Partner logs */}
                 {partnerLogs.length > 0 ? (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden">
                         <div className="flex items-center justify-between px-4 pt-3 pb-2">
                             <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center">
+                                <div className="h-6 w-6 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center">
                                     {partnerProfile?.avatar_url ? (
                                         <img src={partnerProfile.avatar_url} alt="" className="h-full w-full object-cover" />
                                     ) : (
-                                        <User className="h-3 w-3 text-zinc-500" />
+                                        <User className="h-3 w-3 text-muted-foreground" />
                                     )}
                                 </div>
-                                <span className="text-xs font-semibold text-zinc-400">{partnerName}</span>
+                                <span className="text-xs font-semibold text-muted-foreground">{partnerName}</span>
                             </div>
-                            <span className="text-[10px] text-zinc-600">{partnerLogs.length}</span>
+                            <span className="text-[10px] text-muted-foreground/80">{partnerLogs.length}</span>
                         </div>
 
                         <div className="px-4 pb-4 space-y-3">
                             {partnerLogs.map((log, idx) => (
-                                <div key={log.id} className="border border-zinc-800 rounded-xl p-3 space-y-2">
-                                    <span className="text-[10px] text-zinc-500">Entry {idx + 1}</span>
+                                <div key={log.id} className="border border-border rounded-xl p-3 space-y-2">
+                                    <span className="text-[10px] text-muted-foreground">Entry {idx + 1}</span>
                                     {log.text && (
-                                        <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">{log.text}</p>
+                                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{log.text}</p>
                                     )}
                                     {log.images && log.images.length > 0 && (
                                         <div className={`grid gap-1.5 ${log.images.length === 1 ? 'grid-cols-1' : log.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                                             {log.images.map((url, i) => (
-                                                <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-zinc-800">
+                                                <button key={i} onClick={() => setPreviewImage(url)} className="aspect-square rounded-xl overflow-hidden bg-secondary">
                                                     <SignedImage path={url} alt="" className="h-full w-full object-cover hover:scale-105 transition-transform duration-300" />
                                                 </button>
                                             ))}
@@ -530,7 +530,7 @@ export default function LovePage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="text-center py-3 text-xs text-zinc-600">
+                    <div className="text-center py-3 text-xs text-muted-foreground/80">
                         {t('partnerNoEntries', { name: partnerName })}
                     </div>
                 )}
@@ -538,7 +538,7 @@ export default function LovePage() {
 
             {/* ===== QUICK NUDGES ===== */}
             <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Send className="w-3.5 h-3.5" /> {t('quickLove')}
                 </h3>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -547,10 +547,10 @@ export default function LovePage() {
                             key={key}
                             onClick={() => sendNudge(emoji, t(key))}
                             disabled={isSending}
-                            className="flex items-center gap-3 p-3.5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-rose-500/30 hover:bg-rose-500/5 transition-all active:scale-95 disabled:opacity-50 text-left"
+                            className="flex items-center gap-3 p-3.5 bg-card border border-border rounded-2xl hover:border-rose-500/30 hover:bg-rose-500/5 transition-all active:scale-95 disabled:opacity-50 text-left"
                         >
                             <span className="text-xl">{emoji}</span>
-                            <span className="text-sm font-medium text-zinc-300">{t(key)}</span>
+                            <span className="text-sm font-medium text-foreground">{t(key)}</span>
                         </button>
                     ))}
                 </div>
@@ -559,7 +559,7 @@ export default function LovePage() {
             {/* Recent nudges */}
             {nudges.length > 0 && (
                 <div className="space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t('recent')}</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('recent')}</h3>
                     <div className="space-y-2">
                         {nudges.map(nudge => {
                             const isMe = nudge.sender_id === user?.id
@@ -567,15 +567,15 @@ export default function LovePage() {
                                 <div
                                     key={nudge.id}
                                     className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
-                                        isMe ? 'bg-rose-500/5 border-rose-500/10' : 'bg-zinc-900 border-zinc-800'
+                                        isMe ? 'bg-rose-500/5 border-rose-500/10' : 'bg-card border-border'
                                     }`}
                                 >
                                     <span className="text-xl">{nudge.emoji}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium truncate">{isMe ? t('you') : partnerName}</p>
-                                        <p className="text-xs text-zinc-500 truncate">{nudge.message || ''}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{nudge.message || ''}</p>
                                     </div>
-                                    <span className="text-[10px] text-zinc-600">
+                                    <span className="text-[10px] text-muted-foreground/80">
                                         {formatDistanceToNow(parseISO(nudge.created_at), { addSuffix: true })}
                                     </span>
                                 </div>
@@ -588,11 +588,11 @@ export default function LovePage() {
             {/* Fullscreen image preview */}
             {previewImage && (
                 <div
-                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[100] bg-zinc-950/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
                     onClick={() => setPreviewImage(null)}
                 >
                     <button
-                        className="absolute top-4 right-4 p-2 rounded-full bg-zinc-800/50 hover:bg-zinc-700 transition-colors z-10"
+                        className="absolute top-4 right-4 p-2 rounded-full bg-secondary/50 hover:bg-muted transition-colors z-10"
                         onClick={() => setPreviewImage(null)}
                     >
                         <X className="w-6 h-6" />

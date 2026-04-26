@@ -104,10 +104,10 @@ export default function InviteClient({ code }: { code: string }) {
 
     if (isLoading || authLoading) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-950">
+            <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
                 <div className="animate-pulse flex flex-col items-center space-y-4">
                     <HeartHandshake className="h-8 w-8 text-rose-500 animate-bounce" />
-                    <p className="text-zinc-400">{t('acceptingInvitation')}</p>
+                    <p className="text-muted-foreground">{t('acceptingInvitation')}</p>
                 </div>
             </div>
         )
@@ -115,15 +115,15 @@ export default function InviteClient({ code }: { code: string }) {
 
     if (error) {
         return (
-            <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-950">
+            <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
                 <div className="w-full max-w-sm space-y-6 text-center">
                     <div className="rounded-full bg-red-500/10 p-4 mx-auto w-fit">
                         <HeartHandshake className="h-8 w-8 text-red-500" />
                     </div>
                     <h1 className="text-2xl font-semibold tracking-tight">{t('oops')}</h1>
-                    <p className="text-sm text-zinc-400">{error}</p>
+                    <p className="text-sm text-muted-foreground">{error}</p>
                     <Button
-                        className="w-full bg-zinc-800 text-zinc-50 hover:bg-zinc-700"
+                        className="w-full bg-secondary text-foreground hover:bg-muted"
                         onClick={() => router.push('/onboarding/room')}
                     >
                         {t('goToRoomSetup')}
