@@ -469,7 +469,7 @@ export default function InboxPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -494,7 +494,7 @@ export default function InboxPage() {
             <ClearNotifications tags={['message', 'journal', 'reaction']} />
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold tracking-tight">{t('title')}</h1>
-                <p className="text-sm text-zinc-400">{t('subtitle')}</p>
+                <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
             </div>
 
             {/* YOUR TURN — unanswered questions where partner already answered */}
@@ -517,9 +517,9 @@ export default function InboxPage() {
                                         {item.text}
                                     </p>
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xs text-zinc-500">{format(parseISO(item.date_key), 'MMM d, yyyy', { locale: dateLoc })}</p>
+                                        <p className="text-xs text-muted-foreground">{format(parseISO(item.date_key), 'MMM d, yyyy', { locale: dateLoc })}</p>
                                         {item.category && (
-                                            <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
+                                            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 bg-secondary px-1.5 py-0.5 rounded">
                                                 {item.category}
                                             </span>
                                         )}
@@ -534,7 +534,7 @@ export default function InboxPage() {
 
             {/* TIMELINE — grouped by date */}
             {feed.length === 0 ? (
-                <div className="text-center py-12 text-zinc-500 text-sm border border-zinc-800 border-dashed rounded-xl">
+                <div className="text-center py-12 text-muted-foreground text-sm border border-border border-dashed rounded-xl">
                     {t('noHistory')}
                 </div>
             ) : (
@@ -542,7 +542,7 @@ export default function InboxPage() {
                     {dateGroups.map(({ dateKey, items }) => (
                         <div key={dateKey} className="space-y-2">
                             {/* Date header */}
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 sticky top-0 bg-zinc-950/90 backdrop-blur-sm py-1 z-10">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground sticky top-0 bg-background/90 backdrop-blur-sm py-1 z-10">
                                 {(() => {
                                     const label = formatDateLabel(dateKey, dateLoc)
                                     if (label.type === 'today') return t('today')
@@ -557,14 +557,14 @@ export default function InboxPage() {
                                         const q = item as QuestionItem
                                         return (
                                             <Link key={q.id} href={`/app/inbox/${q.date_key}`} className="block group">
-                                                <div className="flex items-start space-x-4 p-4 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-rose-500/50 transition-colors">
+                                                <div className="flex items-start space-x-4 p-4 rounded-xl bg-card border border-border hover:border-rose-500/50 transition-colors">
                                                     <div className="pt-1">
                                                         {q.status === 'completed' ? (
                                                             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                                                         ) : q.status === 'waiting' ? (
                                                             <CircleDashed className="h-5 w-5 text-amber-500" />
                                                         ) : (
-                                                            <CircleDashed className="h-5 w-5 text-zinc-700" />
+                                                            <CircleDashed className="h-5 w-5 text-muted-foreground/60" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 space-y-1">
@@ -572,15 +572,15 @@ export default function InboxPage() {
                                                             {q.text}
                                                         </p>
                                                         {q.lastMessage && (
-                                                            <p className="text-xs text-zinc-500 truncate flex items-center gap-1">
+                                                            <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                                                                 <MessageCircle className="w-3 h-3 shrink-0" />
-                                                                <span className="font-medium text-zinc-400">{q.isLastMessageMine ? t('you') : q.lastMessageBy}:</span>
+                                                                <span className="font-medium text-muted-foreground">{q.isLastMessageMine ? t('you') : q.lastMessageBy}:</span>
                                                                 {q.lastMessage}
                                                             </p>
                                                         )}
                                                         <div className="flex items-center gap-2">
                                                             {q.category && (
-                                                                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-600 bg-zinc-800 px-1.5 py-0.5 rounded">
+                                                                <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80 bg-secondary px-1.5 py-0.5 rounded">
                                                                     {q.category}
                                                                 </span>
                                                             )}
@@ -588,7 +588,7 @@ export default function InboxPage() {
                                                                 <span className="text-[10px] text-amber-500">{t('waitingForPartner')}</span>
                                                             )}
                                                             {q.messageCount > 0 && (
-                                                                <span className="flex items-center gap-0.5 text-[10px] text-zinc-500">
+                                                                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                                                                     <MessageCircle className="w-2.5 h-2.5" /> {q.messageCount}
                                                                 </span>
                                                             )}
@@ -603,37 +603,37 @@ export default function InboxPage() {
                                         const j = item as JournalItem
                                         return (
                                             <Link key={j.id} href={`/app/inbox/${j.date_key}`} className="block group">
-                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/60 hover:border-rose-500/30 transition-colors">
-                                                    <div className="h-8 w-8 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center shrink-0">
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-card/60 border border-border/60 hover:border-rose-500/30 transition-colors">
+                                                    <div className="h-8 w-8 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center shrink-0">
                                                         {j.avatarUrl ? (
                                                             <img src={j.avatarUrl} alt="" className="h-full w-full object-cover" />
                                                         ) : (
-                                                            <User className="h-4 w-4 text-zinc-500" />
+                                                            <User className="h-4 w-4 text-muted-foreground" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm truncate">
-                                                            <span className={`font-medium ${j.isMe ? 'text-rose-400' : 'text-zinc-300'}`}>
+                                                            <span className={`font-medium ${j.isMe ? 'text-rose-400' : 'text-foreground'}`}>
                                                                 {j.isMe ? t('you') : j.userName}
                                                             </span>
-                                                            <span className="text-zinc-500">
+                                                            <span className="text-muted-foreground">
                                                                 {j.entryCount > 1 ? ` ${t('addedEntries', { count: j.entryCount })}` : ` ${t('addedAnEntry')}`}
                                                             </span>
                                                         </p>
                                                         {j.text && (
-                                                            <p className="text-xs text-zinc-500 truncate">{j.text}</p>
+                                                            <p className="text-xs text-muted-foreground truncate">{j.text}</p>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-1.5 shrink-0">
                                                         {j.entryCount > 1 && (
-                                                            <span className="text-[10px] text-zinc-500">{j.entryCount}×</span>
+                                                            <span className="text-[10px] text-muted-foreground">{j.entryCount}×</span>
                                                         )}
                                                         {j.imageCount > 0 && (
                                                             <span className="flex items-center gap-0.5 text-[10px] text-rose-400">
                                                                 <Camera className="w-3 h-3" /> {j.imageCount}
                                                             </span>
                                                         )}
-                                                        <BookOpen className="w-3.5 h-3.5 text-zinc-600" />
+                                                        <BookOpen className="w-3.5 h-3.5 text-muted-foreground/80" />
                                                     </div>
                                                 </div>
                                             </Link>
@@ -646,19 +646,19 @@ export default function InboxPage() {
                                             <div
                                                 key={n.id}
                                                 className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
-                                                    n.isMe ? 'bg-rose-500/5 border-rose-500/10' : 'bg-zinc-900/40 border-zinc-800/40'
+                                                    n.isMe ? 'bg-rose-500/5 border-rose-500/10' : 'bg-card/40 border-border/40'
                                                 }`}
                                             >
                                                 <span className="text-xl">{n.emoji}</span>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm truncate">
-                                                        <span className={`font-medium ${n.isMe ? 'text-rose-400' : 'text-zinc-300'}`}>
+                                                        <span className={`font-medium ${n.isMe ? 'text-rose-400' : 'text-foreground'}`}>
                                                             {n.isMe ? t('you') : n.senderName}
                                                         </span>
-                                                        <span className="text-zinc-500"> {t('sentLove')}</span>
+                                                        <span className="text-muted-foreground"> {t('sentLove')}</span>
                                                     </p>
                                                     {n.message && (
-                                                        <p className="text-xs text-zinc-500 truncate">{n.message}</p>
+                                                        <p className="text-xs text-muted-foreground truncate">{n.message}</p>
                                                     )}
                                                 </div>
                                             </div>
@@ -673,7 +673,7 @@ export default function InboxPage() {
                                                     <CalendarDays className="w-4 h-4 text-blue-400 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-medium truncate">{e.title}</p>
-                                                        <p className="text-xs text-zinc-500 flex items-center gap-1">
+                                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
                                                             {e.all_day ? t('allDay') : format(parseISO(e.start_at), 'HH:mm')}
                                                             {e.location && <><MapPin className="w-3 h-3 ml-1" /> <span className="truncate">{e.location}</span></>}
@@ -687,12 +687,12 @@ export default function InboxPage() {
                                     if (item.type === 'task') {
                                         const t = item as TaskItem
                                         return (
-                                            <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/40 border border-zinc-800/40">
+                                            <div key={t.id} className="flex items-center gap-3 p-3 rounded-xl bg-card/40 border border-border/40">
                                                 {t.is_done
                                                     ? <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                    : <CircleDashed className="w-4 h-4 text-zinc-600 shrink-0" />
+                                                    : <CircleDashed className="w-4 h-4 text-muted-foreground/80 shrink-0" />
                                                 }
-                                                <p className={`text-sm flex-1 truncate ${t.is_done ? 'text-zinc-500 line-through' : ''}`}>{t.title}</p>
+                                                <p className={`text-sm flex-1 truncate ${t.is_done ? 'text-muted-foreground line-through' : ''}`}>{t.title}</p>
                                                 {t.due_at && !t.is_done && (
                                                     <span className="text-[10px] text-amber-400 shrink-0">{format(parseISO(t.due_at), 'MMM d')}</span>
                                                 )}
@@ -708,7 +708,7 @@ export default function InboxPage() {
                                                     <Star className="w-4 h-4 text-amber-400 shrink-0" />
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm font-medium truncate">{m.title}</p>
-                                                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                                             {m.imageCount > 0 && <span className="flex items-center gap-0.5"><Camera className="w-3 h-3" /> {m.imageCount}</span>}
                                                             {m.location && <span className="flex items-center gap-0.5 truncate"><MapPin className="w-3 h-3 shrink-0" /> {m.location}</span>}
                                                         </div>
@@ -735,7 +735,7 @@ export default function InboxPage() {
                                                 <Lightbulb className={`w-4 h-4 shrink-0 ${dp.status === 'done' ? 'text-emerald-400' : 'text-pink-400'}`} />
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium truncate">{dp.ideaTitle}</p>
-                                                    <p className="text-[10px] text-zinc-500">
+                                                    <p className="text-[10px] text-muted-foreground">
                                                         {dp.status === 'done' ? t('dateCompleted') : t('datePlanned')}
                                                     </p>
                                                 </div>
@@ -752,7 +752,7 @@ export default function InboxPage() {
                     {/* Infinite scroll trigger */}
                     {hasMore && (
                         <div ref={loadMoreRef} className="flex justify-center py-4">
-                            {isLoadingMore && <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />}
+                            {isLoadingMore && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
                         </div>
                     )}
                 </div>

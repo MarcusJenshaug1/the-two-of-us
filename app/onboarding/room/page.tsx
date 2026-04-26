@@ -126,12 +126,12 @@ export default function RoomPage() {
         return (
             <div className="space-y-6">
                 <div className="flex flex-col items-center space-y-4 text-center">
-                    <div className="rounded-full bg-zinc-900 p-4">
-                        <Users className="h-8 w-8 text-zinc-400" />
+                    <div className="rounded-full bg-card p-4">
+                        <Users className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">{t('joinPartner')}</h1>
-                        <p className="text-sm text-zinc-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                             {t('joinPartnerDesc')}
                         </p>
                     </div>
@@ -156,7 +156,7 @@ export default function RoomPage() {
                     )}
 
                     <div className="pt-4 space-y-3">
-                        <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50" disabled={isLoading || joinCode.length < 6}>
+                        <Button type="submit" className="w-full bg-rose-600 hover:bg-rose-700 text-foreground" disabled={isLoading || joinCode.length < 6}>
                             {isLoading ? t('joining') : t('joinRoom')}
                         </Button>
                         <Button
@@ -182,7 +182,7 @@ export default function RoomPage() {
                 </div>
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">{t('setupSpace')}</h1>
-                    <p className="text-sm text-zinc-400 mt-2">
+                    <p className="text-sm text-muted-foreground mt-2">
                         {t('setupSpaceDesc')}
                     </p>
                 </div>
@@ -194,7 +194,7 @@ export default function RoomPage() {
 
             <div className="space-y-3 pt-4">
                 <Button
-                    className="w-full bg-rose-600 text-zinc-50 hover:bg-rose-700 h-12"
+                    className="w-full bg-rose-600 text-foreground hover:bg-rose-700 h-12"
                     onClick={handleCreateRoom}
                     disabled={isLoading}
                 >
@@ -202,10 +202,10 @@ export default function RoomPage() {
                 </Button>
                 <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-zinc-800" />
+                        <span className="w-full border-t border-border" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-zinc-950 px-2 text-zinc-500">{t('or')}</span>
+                        <span className="bg-background px-2 text-muted-foreground">{t('or')}</span>
                     </div>
                 </div>
                 <Button

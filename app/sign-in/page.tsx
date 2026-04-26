@@ -127,17 +127,17 @@ export default function SignInPage() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-zinc-950">
+        <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background">
             <div className="w-full max-w-sm space-y-8 animate-in fade-in duration-700 slide-in-from-bottom-4">
                 <div className="flex flex-col items-center space-y-4 text-center">
                     <div className="rounded-full bg-rose-500/10 p-5 shadow-2xl shadow-rose-500/20 ring-1 ring-rose-500/20">
                         <Heart className="h-10 w-10 text-rose-500 animate-pulse" strokeWidth={2.5} />
                     </div>
                     <div className="space-y-1">
-                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-t from-zinc-400 to-zinc-50 bg-clip-text text-transparent">
+                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-t from-rose-700 to-rose-500 bg-clip-text text-transparent">
                             {view === 'verifyEmail' ? t('verifyEmail') : view === 'forgotPassword' ? t('resetPassword') : view === 'resetSent' ? t('checkYourEmail') : 'The Two of Us'}
                         </h1>
-                        <p className="text-zinc-400 text-sm font-medium">
+                        <p className="text-muted-foreground text-sm font-medium">
                             {view === 'signIn' && t('welcomeBack')}
                             {view === 'signUp' && t('startJourney')}
                             {view === 'verifyEmail' && t('enterCode', { email })}
@@ -149,12 +149,12 @@ export default function SignInPage() {
 
                 {view === 'signIn' || view === 'signUp' ? (
                     <div className="space-y-6">
-                        <div className="flex p-1 bg-zinc-900 rounded-xl border border-zinc-800">
+                        <div className="flex p-1 bg-card rounded-xl border border-border">
                             <button
                                 onClick={() => { setView('signIn'); setError(null); }}
                                 className={clsx(
                                     "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
-                                    view === 'signIn' ? "bg-zinc-800 text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                                    view === 'signIn' ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 {t('signIn')}
@@ -163,7 +163,7 @@ export default function SignInPage() {
                                 onClick={() => { setView('signUp'); setError(null); }}
                                 className={clsx(
                                     "flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
-                                    view === 'signUp' ? "bg-zinc-800 text-zinc-50 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+                                    view === 'signUp' ? "bg-secondary text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
                                 {t('newUser')}
@@ -173,11 +173,11 @@ export default function SignInPage() {
                         <form onSubmit={handleAuth} className="space-y-4">
                             <div className="space-y-4">
                                 <div className="relative group">
-                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
+                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-rose-500 transition-colors" />
                                     <Input
                                         type="email"
                                         placeholder={t('email')}
-                                        className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
+                                        className="pl-10 bg-card border-border focus:ring-rose-500"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
@@ -185,11 +185,11 @@ export default function SignInPage() {
                                     />
                                 </div>
                                 <div className="relative group">
-                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
+                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-rose-500 transition-colors" />
                                     <Input
                                         type="password"
                                         placeholder={t('password')}
-                                        className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
+                                        className="pl-10 bg-card border-border focus:ring-rose-500"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
@@ -202,7 +202,7 @@ export default function SignInPage() {
                                 <button
                                     type="button"
                                     onClick={() => { setView('forgotPassword'); setError(null); }}
-                                    className="text-xs text-zinc-500 hover:text-rose-400 transition-colors w-full text-right -mt-2"
+                                    className="text-xs text-muted-foreground hover:text-rose-400 transition-colors w-full text-right -mt-2"
                                 >
                                     {t('forgotPassword')}
                                 </button>
@@ -216,7 +216,7 @@ export default function SignInPage() {
 
                             <Button
                                 type="submit"
-                                className="w-full h-11 bg-rose-600 text-zinc-50 hover:bg-rose-700 shadow-lg shadow-rose-900/20 font-bold tracking-wide"
+                                className="w-full h-11 bg-rose-600 text-foreground hover:bg-rose-700 shadow-lg shadow-rose-900/20 font-bold tracking-wide"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
@@ -233,11 +233,11 @@ export default function SignInPage() {
                 ) : view === 'forgotPassword' ? (
                     <form onSubmit={handleForgotPassword} className="space-y-6 animate-in fade-in duration-500">
                         <div className="relative group">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-rose-500 transition-colors" />
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-rose-500 transition-colors" />
                             <Input
                                 type="email"
                                 placeholder={t('email')}
-                                className="pl-10 bg-zinc-900 border-zinc-800 focus:ring-rose-500"
+                                className="pl-10 bg-card border-border focus:ring-rose-500"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
@@ -253,7 +253,7 @@ export default function SignInPage() {
 
                         <Button
                             type="submit"
-                            className="w-full h-11 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
+                            className="w-full h-11 bg-rose-600 text-foreground hover:bg-rose-700 font-bold"
                             disabled={isLoading}
                         >
                             {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : t('sendResetLink')}
@@ -261,7 +261,7 @@ export default function SignInPage() {
 
                         <button
                             type="button"
-                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center justify-center gap-1 w-full"
                             onClick={() => { setView('signIn'); setError(null); }}
                         >
                             <ArrowLeft className="h-3 w-3" /> {t('backToSignIn')}
@@ -272,10 +272,10 @@ export default function SignInPage() {
                         <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
                             <Mail className="h-6 w-6 text-emerald-400" />
                         </div>
-                        <p className="text-sm text-zinc-400">{t('resetSentInfo')}</p>
+                        <p className="text-sm text-muted-foreground">{t('resetSentInfo')}</p>
                         <button
                             type="button"
-                            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1 w-full"
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center justify-center gap-1 w-full"
                             onClick={() => { setView('signIn'); setError(null); }}
                         >
                             <ArrowLeft className="h-3 w-3" /> {t('backToSignIn')}
@@ -296,7 +296,7 @@ export default function SignInPage() {
                                             "border-2 rounded-xl flex items-center justify-center font-bold transition-all duration-300 shadow-sm",
                                             otp.length === i ? "border-rose-500 ring-4 ring-rose-500/10 bg-rose-500/5 scale-110" :
                                                 otp.length > i ? "border-emerald-500/50 bg-emerald-500/5 text-emerald-400" :
-                                                    "border-zinc-800 bg-zinc-900/50 text-zinc-700"
+                                                    "border-border bg-card/50 text-muted-foreground/60"
                                         )}
                                     >
                                         {otp[i] || ''}
@@ -343,7 +343,7 @@ export default function SignInPage() {
                         <div className="space-y-3">
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-rose-600 text-zinc-50 hover:bg-rose-700 font-bold"
+                                className="w-full h-12 bg-rose-600 text-foreground hover:bg-rose-700 font-bold"
                                 disabled={isLoading || otp.length !== 8}
                             >
                                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : t('verifyCode')}
@@ -352,7 +352,7 @@ export default function SignInPage() {
                             <div className="flex flex-col space-y-2">
                                 <button
                                     type="button"
-                                    className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1"
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center justify-center gap-1"
                                     onClick={handleResendOtp}
                                     disabled={isLoading}
                                 >
@@ -361,7 +361,7 @@ export default function SignInPage() {
                                 </button>
                                 <button
                                     type="button"
-                                    className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1 flex items-center justify-center gap-1"
+                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center justify-center gap-1"
                                     onClick={() => { setView('signUp'); setOtp(''); setError(null); setMessage(null); }}
                                     disabled={isLoading}
                                 >
@@ -373,7 +373,7 @@ export default function SignInPage() {
                     </form>
                 )}
 
-                <p className="text-center text-xs text-zinc-600 px-8">
+                <p className="text-center text-xs text-muted-foreground/80 px-8">
                     {t('termsNotice')}
                 </p>
             </div>

@@ -344,7 +344,7 @@ export default function QuestionsPage() {
     if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-                <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
+                <div className="animate-pulse h-8 w-8 rounded-full bg-secondary" />
             </div>
         )
     }
@@ -354,7 +354,7 @@ export default function QuestionsPage() {
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
                 <AlertTriangle className="h-12 w-12 text-amber-500" />
                 <h2 className="text-xl font-semibold">{t('setupRequired')}</h2>
-                <p className="text-sm text-zinc-400 max-w-sm">{errorMsg}</p>
+                <p className="text-sm text-muted-foreground max-w-sm">{errorMsg}</p>
                 <Button onClick={() => window.location.reload()} variant="outline">
                     {t('reloadPage')}
                 </Button>
@@ -365,9 +365,9 @@ export default function QuestionsPage() {
     if (!dailyQuestion) {
         return (
             <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 h-[calc(100vh-4rem)]">
-                <Clock className="h-12 w-12 text-zinc-500" />
+                <Clock className="h-12 w-12 text-muted-foreground" />
                 <h2 className="text-xl font-semibold">{t('noQuestionYet')}</h2>
-                <p className="text-sm text-zinc-400">
+                <p className="text-sm text-muted-foreground">
                     {t('noQuestionDesc')}
                 </p>
                 <Button onClick={() => window.location.reload()} variant="outline" size="sm">
@@ -386,58 +386,58 @@ export default function QuestionsPage() {
                 <div className="flex items-center gap-2">
                     <h1 className="text-xs font-bold uppercase tracking-widest text-rose-500">{t('todaysQuestion')}</h1>
                     {dailyQuestion.category && (
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
                             {dailyQuestion.category}
                         </span>
                     )}
                 </div>
                 <p className="text-2xl md:text-3xl font-semibold leading-tight">{dailyQuestion.text}</p>
-                <p className="text-sm text-zinc-500">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</p>
+                <p className="text-sm text-muted-foreground">{formatInTimeZone(new Date(), TIMEZONE, 'EEEE, MMM d')}</p>
             </div>
 
             {bothAnswered ? (
-                <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-6 text-center space-y-4">
+                <div className="rounded-2xl bg-card border border-border p-6 text-center space-y-4">
                     <div className="mx-auto w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center">
                         <CheckCircle2 className="h-6 w-6 text-rose-500" />
                     </div>
                     <div>
                         <h3 className="text-lg font-medium">{t('dayCompleted')}</h3>
-                        <p className="text-sm text-zinc-400 mt-1">{t('bothAnswered')}</p>
+                        <p className="text-sm text-muted-foreground mt-1">{t('bothAnswered')}</p>
                     </div>
                     <Link href={`/app/inbox/${dateKey}`} className="block">
-                        <Button className="w-full bg-rose-600 hover:bg-rose-700 text-zinc-50 mt-4">
+                        <Button className="w-full bg-rose-600 hover:bg-rose-700 text-foreground mt-4">
                             {t('viewAnswers')}
                         </Button>
                     </Link>
                 </div>
             ) : myAnswer ? (
-                <div className="rounded-2xl bg-zinc-900/50 border border-zinc-800 p-6 space-y-4">
-                    <div className="flex items-center space-x-3 text-zinc-300">
+                <div className="rounded-2xl bg-card/50 border border-border p-6 space-y-4">
+                    <div className="flex items-center space-x-3 text-foreground">
                         <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                         <span className="font-medium text-sm">{t('youAnswered')}</span>
                     </div>
-                    <div className="text-sm text-zinc-400 bg-zinc-950 p-4 rounded-lg border border-zinc-800/50 whitespace-pre-wrap">
+                    <div className="text-sm text-muted-foreground bg-background p-4 rounded-lg border border-border/50 whitespace-pre-wrap">
                         {myAnswer.answer_text}
                     </div>
 
-                    <div className="flex items-center space-x-3 text-zinc-500 pt-4 border-t border-zinc-800/50">
-                        <div className="h-7 w-7 rounded-full bg-zinc-800 border border-zinc-700 overflow-hidden flex items-center justify-center flex-shrink-0">
+                    <div className="flex items-center space-x-3 text-muted-foreground pt-4 border-t border-border/50">
+                        <div className="h-7 w-7 rounded-full bg-secondary border border-border overflow-hidden flex items-center justify-center flex-shrink-0">
                             {partnerAvatar ? (
                                 <img src={partnerAvatar} alt="" className="h-full w-full object-cover" />
                             ) : (
-                                <User className="h-3.5 w-3.5 text-zinc-500" />
+                                <User className="h-3.5 w-3.5 text-muted-foreground" />
                             )}
                         </div>
                         <span className="text-sm">{t('waitingFor', { name: partnerName })}</span>
                     </div>
-                    <p className="text-xs text-zinc-600">{t('answerHidden')}</p>
+                    <p className="text-xs text-muted-foreground/80">{t('answerHidden')}</p>
 
                     {/* Nudge partner to answer */}
                     {!nudgeCooldown ? (
                         <button
                             onClick={handleNudge}
                             disabled={isSendingNudge}
-                            className="group w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-zinc-700 hover:border-rose-500/50 bg-zinc-900/50 hover:bg-rose-500/10 transition-all duration-300 text-zinc-400 hover:text-rose-400"
+                            className="group w-full mt-2 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-border hover:border-rose-500/50 bg-card/50 hover:bg-rose-500/10 transition-all duration-300 text-muted-foreground hover:text-rose-400"
                         >
                             <Bell className="h-4 w-4 group-hover:animate-[wiggle_0.5s_ease-in-out_infinite] transition-transform" />
                             <span className="text-sm font-medium">
@@ -455,21 +455,21 @@ export default function QuestionsPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
                         <textarea
-                            className="w-full min-h-[160px] resize-none rounded-2xl bg-zinc-900 border border-zinc-800 p-4 text-base focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 placeholder:text-zinc-600 transition-all"
+                            className="w-full min-h-[160px] resize-none rounded-2xl bg-card border border-border p-4 text-base focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500/50 placeholder:text-muted-foreground/80 transition-all"
                             placeholder={t('placeholder')}
                             value={draft}
                             onChange={handleDraftChange}
                             disabled={isSubmitting}
                             maxLength={500}
                         />
-                        <div className="absolute bottom-3 right-3 text-xs text-zinc-500">
+                        <div className="absolute bottom-3 right-3 text-xs text-muted-foreground">
                             {draft.length}/500
                         </div>
                     </div>
 
                     <Button
                         type="submit"
-                        className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-zinc-50 transition-colors"
+                        className="w-full h-12 bg-rose-600 hover:bg-rose-700 text-foreground transition-colors"
                         disabled={isSubmitting || draft.length < 10}
                     >
                         {isSubmitting ? t('sending') : (
@@ -478,7 +478,7 @@ export default function QuestionsPage() {
                             </span>
                         )}
                     </Button>
-                    <p className="text-xs text-center text-zinc-500">
+                    <p className="text-xs text-center text-muted-foreground">
                         {t('minChars')}
                     </p>
                 </form>

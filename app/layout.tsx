@@ -10,7 +10,10 @@ import { LocaleProvider } from "@/lib/i18n";
 const inter = Inter({ subsets: ["latin"] });
 
 export const viewport: Viewport = {
-    themeColor: "#09090b", // zinc-950
+    themeColor: [
+        { media: "(prefers-color-scheme: light)", color: "#fbf6f1" },
+        { media: "(prefers-color-scheme: dark)", color: "#1f1411" },
+    ],
     width: "device-width",
     initialScale: 1,
     maximumScale: 1,
@@ -48,7 +51,7 @@ export const metadata: Metadata = {
     },
     appleWebApp: {
         capable: true,
-        statusBarStyle: "black-translucent",
+        statusBarStyle: "default",
         title: "Two of Us",
     },
     icons: {
@@ -68,8 +71,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className="dark">
-            <body className={`${inter.className} bg-zinc-950 text-zinc-50 antialiased min-h-screen flex flex-col`}>
+        <html lang="en">
+            <body className={`${inter.className} bg-background text-foreground antialiased min-h-screen flex flex-col`}>
                 <LocaleProvider>
                     <AuthProvider>
                         <ToastProvider>
