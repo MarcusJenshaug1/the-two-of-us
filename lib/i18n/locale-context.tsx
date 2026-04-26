@@ -48,7 +48,8 @@ function detectDefaultLocale(): Locale {
 }
 
 function setLocaleCookie(locale: Locale) {
-    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax`
+    const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:'
+    document.cookie = `locale=${locale};path=/;max-age=${365 * 24 * 60 * 60};samesite=lax${isSecure ? ';secure' : ''}`
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {

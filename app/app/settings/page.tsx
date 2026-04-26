@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
 import { Button } from '@/components/ui/button'
@@ -56,7 +55,6 @@ export default function SettingsPage() {
 
     const supabase = createClient()
     const { user, signOut } = useAuth()
-    const router = useRouter()
     const { toast } = useToast()
     const t = useTranslations('settings')
     const { locale, setLocale } = useLocale()
@@ -209,8 +207,8 @@ export default function SettingsPage() {
     }
 
     const handleLogout = async () => {
+        // signOut() already navigates to /sign-in via AuthProvider
         await signOut()
-        router.push('/sign-in')
     }
 
     return (

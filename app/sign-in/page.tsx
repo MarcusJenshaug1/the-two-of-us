@@ -51,6 +51,8 @@ export default function SignInPage() {
                     password,
                 })
                 if (error) throw error
+                // Force RSC re-fetch so middleware sees the new auth cookie
+                router.refresh()
                 // Redirect to invite page if pending invite code
                 const pendingCode = sessionStorage.getItem('inviteCode')
                 if (pendingCode) {
@@ -78,6 +80,8 @@ export default function SignInPage() {
                 type: 'signup',
             })
             if (error) throw error
+            // Force RSC re-fetch so middleware sees the new auth cookie
+            router.refresh()
             // Keep invite code in sessionStorage — profile page will handle it
             router.push('/onboarding/profile')
         } catch (err: any) {

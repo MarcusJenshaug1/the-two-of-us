@@ -90,6 +90,8 @@ export default function AnniversaryPage() {
 
             if (updateError) throw updateError
 
+            // Room data changed — invalidate RSC before navigating into /app
+            router.refresh()
             router.push('/app/questions')
         } catch (err: any) {
             setError(err.message)

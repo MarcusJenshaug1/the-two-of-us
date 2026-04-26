@@ -70,6 +70,8 @@ export default function RoomPage() {
 
             if (memberError) throw memberError
 
+            // Membership changed — invalidate RSC so middleware sees the new room
+            router.refresh()
             router.push('/onboarding/anniversary')
         } catch (err: any) {
             setError(err.message || 'Failed to create room')
@@ -110,6 +112,8 @@ export default function RoomPage() {
             if (joinError) throw new Error('Failed to join room. It might be full.')
 
             sessionStorage.removeItem('inviteCode')
+            // Membership changed — invalidate RSC so middleware sees the new room
+            router.refresh()
             router.push('/app/questions') // Skip anniversary if joining
         } catch (err: any) {
             setError(err.message)

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import Link from 'next/link'
 import { format, parseISO, isToday, isYesterday, type Locale } from 'date-fns'
 import { CheckCircle2, CircleDashed, ArrowRight, Send, Loader2, Camera, User, BookOpen, MessageCircle, CalendarDays, MapPin, Clock, Trophy, Lightbulb, Star, Check } from 'lucide-react'
@@ -105,37 +106,57 @@ function formatDateLabel(dateKey: string, dateLoc?: Locale): { type: 'today' | '
 
 export default function InboxPage() {
     const [feed, setFeed] = useState<FeedItem[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [hasMore, setHasMore] = useState(true)
-    const [page, setPage] = useState(0)
+    const pageRef = useRef(0)
     const loadMoreRef = useRef<HTMLDivElement>(null)
+    const inFlightRef = useRef<AbortController | null>(null)
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const t = useTranslations('inbox')
     const { locale } = useLocale()
     const dateLoc = getDateLocale(locale)
 
     const loadInbox = useCallback(async (pageNum: number, append = false) => {
-        if (!user) return
-        try {
-            if (pageNum === 0) setIsLoading(true)
-            else setIsLoadingMore(true)
+        if (!user) {
+            setIsLoading(false)
+            setIsLoadingMore(false)
+            return
+        }
 
+        // Cancel any in-flight load
+        inFlightRef.current?.abort()
+        const controller = new AbortController()
+        inFlightRef.current = controller
+        const signal = controller.signal
+
+        if (pageNum === 0) setIsLoading(true)
+        else setIsLoadingMore(true)
+
+        try {
             const { data: member } = await supabase
                 .from('room_members')
                 .select('room_id')
                 .eq('user_id', user.id)
+                .abortSignal(signal)
                 .single()
 
-            if (!member) return
+            if (signal.aborted) return
+            if (!member) {
+                setIsLoading(false)
+                setIsLoadingMore(false)
+                return
+            }
 
             // Load profiles for name display
             const { data: members } = await supabase
                 .from('room_members')
                 .select('user_id, profiles(name, avatar_url)')
                 .eq('room_id', member.room_id)
+                .abortSignal(signal)
 
             const profileMap: Record<string, { name: string; avatar_url: string | null }> = {}
             if (members) {
@@ -156,64 +177,77 @@ export default function InboxPage() {
                 .eq('room_id', member.room_id)
                 .order('date_key', { ascending: false })
                 .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1)
+                .abortSignal(signal)
 
-            if (!dqData) return
+            if (signal.aborted) return
+            if (!dqData) {
+                setIsLoading(false)
+                setIsLoadingMore(false)
+                return
+            }
 
             if (dqData.length < PAGE_SIZE) setHasMore(false)
 
             const dateKeys = dqData.map((d: any) => d.date_key)
 
-            // 2. Load journal entries for these dates
-            const { data: logData } = await supabase
-                .from('daily_logs')
-                .select('id, date_key, user_id, text, images, created_at')
-                .eq('room_id', member.room_id)
-                .in('date_key', dateKeys)
+            // Run all secondary queries in parallel — they don't depend on each other
+            const [
+                { data: logData },
+                { data: nudgeData },
+                { data: eventData },
+                { data: taskData },
+                { data: memoryData },
+                { data: milestoneData },
+                { data: datePlanData },
+            ] = await Promise.all([
+                supabase
+                    .from('daily_logs')
+                    .select('id, date_key, user_id, text, images, created_at')
+                    .eq('room_id', member.room_id)
+                    .in('date_key', dateKeys)
+                    .abortSignal(signal),
+                supabase
+                    .from('nudges')
+                    .select('id, sender_id, emoji, message, created_at')
+                    .eq('room_id', member.room_id)
+                    .gte('created_at', `${dateKeys[dateKeys.length - 1]}T00:00:00`)
+                    .lte('created_at', `${dateKeys[0]}T23:59:59`)
+                    .order('created_at', { ascending: false })
+                    .abortSignal(signal),
+                supabase
+                    .from('shared_events')
+                    .select('id, title, location, start_at, all_day, date_key')
+                    .eq('room_id', member.room_id)
+                    .in('date_key', dateKeys)
+                    .abortSignal(signal),
+                supabase
+                    .from('shared_tasks')
+                    .select('id, title, is_done, due_at, due_date_key')
+                    .eq('room_id', member.room_id)
+                    .in('due_date_key', dateKeys)
+                    .abortSignal(signal),
+                supabase
+                    .from('memories')
+                    .select('id, title, images, location, date_key')
+                    .eq('room_id', member.room_id)
+                    .in('date_key', dateKeys)
+                    .abortSignal(signal),
+                supabase
+                    .from('milestones')
+                    .select('id, title, kind, happened_at')
+                    .eq('room_id', member.room_id)
+                    .in('happened_at', dateKeys)
+                    .abortSignal(signal),
+                supabase
+                    .from('date_completions')
+                    .select('id, status, planned_for, date_ideas(title)')
+                    .eq('room_id', member.room_id)
+                    .in('planned_for', dateKeys)
+                    .neq('status', 'skipped')
+                    .abortSignal(signal),
+            ])
 
-            // 3. Load nudges for these dates
-            const { data: nudgeData } = await supabase
-                .from('nudges')
-                .select('id, sender_id, emoji, message, created_at')
-                .eq('room_id', member.room_id)
-                .gte('created_at', `${dateKeys[dateKeys.length - 1]}T00:00:00`)
-                .lte('created_at', `${dateKeys[0]}T23:59:59`)
-                .order('created_at', { ascending: false })
-
-            // 4. Load events for these dates
-            const { data: eventData } = await supabase
-                .from('shared_events')
-                .select('id, title, location, start_at, all_day, date_key')
-                .eq('room_id', member.room_id)
-                .in('date_key', dateKeys)
-
-            // 5. Load tasks with due dates in these dates
-            const { data: taskData } = await supabase
-                .from('shared_tasks')
-                .select('id, title, is_done, due_at, due_date_key')
-                .eq('room_id', member.room_id)
-                .in('due_date_key', dateKeys)
-
-            // 6. Load memories for these dates
-            const { data: memoryData } = await supabase
-                .from('memories')
-                .select('id, title, images, location, date_key')
-                .eq('room_id', member.room_id)
-                .in('date_key', dateKeys)
-
-            // 7. Load milestones for these dates
-            const { data: milestoneData } = await supabase
-                .from('milestones')
-                .select('id, title, kind, happened_at')
-                .eq('room_id', member.room_id)
-                .in('happened_at', dateKeys)
-
-            // 8. Load date plans for these dates
-            const { data: datePlanData } = await supabase
-                .from('date_completions')
-                .select('id, status, planned_for, date_ideas(title)')
-                .eq('room_id', member.room_id)
-                .in('planned_for', dateKeys)
-                .neq('status', 'skipped')
+            if (signal.aborted) return
 
             const logDateSet = new Set((logData || []).map((l: any) => l.date_key))
 
@@ -224,6 +258,9 @@ export default function InboxPage() {
                 .select('id, daily_question_id, user_id, text, created_at')
                 .in('daily_question_id', dqIds)
                 .order('created_at', { ascending: false })
+                .abortSignal(signal)
+
+            if (signal.aborted) return
 
             // Group messages by daily_question_id
             const msgMap: Record<string, { count: number; lastText: string; lastUserId: string }> = {}
@@ -379,39 +416,57 @@ export default function InboxPage() {
                 return (priority[a.type] ?? 99) - (priority[b.type] ?? 99)
             })
 
+            if (signal.aborted) return
+
             if (append) {
                 setFeed(prev => [...prev, ...allItems])
             } else {
                 setFeed(allItems)
             }
         } catch (err) {
+            if ((err as { name?: string })?.name === 'AbortError' || signal.aborted) return
             console.error('Error loading inbox', err)
         } finally {
-            setIsLoading(false)
-            setIsLoadingMore(false)
+            if (!signal.aborted) {
+                setIsLoading(false)
+                setIsLoadingMore(false)
+            }
         }
-    }, [user, supabase])
+        // Stable deps — re-create only when the *user identity* changes, not on every token refresh
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id])
 
+    // Initial load — runs whenever the user identity changes
     useEffect(() => {
+        if (!user) return
+        pageRef.current = 0
+        setHasMore(true)
         loadInbox(0)
+        return () => inFlightRef.current?.abort()
+    }, [user?.id, loadInbox])
+
+    // Keep latest loadInbox in a ref so the IntersectionObserver doesn't churn
+    const loadInboxRef = useRef(loadInbox)
+    useEffect(() => {
+        loadInboxRef.current = loadInbox
     }, [loadInbox])
 
     // Infinite scroll observer
     useEffect(() => {
-        if (!loadMoreRef.current || !hasMore) return
+        const node = loadMoreRef.current
+        if (!node || !hasMore) return
         const observer = new IntersectionObserver((entries) => {
             if (entries[0].isIntersecting && !isLoadingMore && hasMore) {
-                const nextPage = page + 1
-                setPage(nextPage)
-                loadInbox(nextPage, true)
+                pageRef.current += 1
+                loadInboxRef.current(pageRef.current, true)
             }
         }, { threshold: 0.1 })
 
-        observer.observe(loadMoreRef.current)
+        observer.observe(node)
         return () => observer.disconnect()
-    }, [hasMore, isLoadingMore, page, loadInbox])
+    }, [hasMore, isLoadingMore])
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

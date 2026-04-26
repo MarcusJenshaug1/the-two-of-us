@@ -88,6 +88,8 @@ export default function InviteClient({ code }: { code: string }) {
                 // Clear saved code
                 sessionStorage.removeItem('inviteCode')
 
+                // Membership changed — invalidate RSC so middleware sees the new room
+                router.refresh()
                 // Successfully joined — go to questions
                 router.push('/app/questions')
             } catch (err: any) {

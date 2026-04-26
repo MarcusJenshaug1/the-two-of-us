@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ export default function QuestionsPage() {
     const [myAnswer, setMyAnswer] = useState<any>(null)
     const [partnerAnswer, setPartnerAnswer] = useState<any>(null)
     const [draft, setDraft] = useState('')
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
     const [partnerName, setPartnerName] = useState<string>('Partner')
@@ -41,12 +42,16 @@ export default function QuestionsPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const { toast } = useToast()
     const dateKey = getDateKey()
     const t = useTranslations('questions')
 
     const loadData = useCallback(async () => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
 
         try {
             setIsLoading(true)
@@ -336,7 +341,7 @@ export default function QuestionsPage() {
         }
     }
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
