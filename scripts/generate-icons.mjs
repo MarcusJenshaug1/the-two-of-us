@@ -1,15 +1,16 @@
 /**
  * Generate app icons for "The Two of Us" / Us2.
  * Design: Two overlapping hearts leaning toward each other.
- * Form/proportions are unchanged from the original mark — colors only.
  *
- * New palette: dusty rose on warm cream off-white.
+ * Palette: dusty rose on warm cream off-white.
  *   bg gradient    : #fbf6f1 → #f5ece2  (warm cream)
  *   heart-1 (back) : #ecafb6 → #c46778  (light dusty rose)
  *   heart-2 (front): #d8838f → #a8526a  (deep dusty rose)
  *
- * Maskable icon uses solid cream background (#fbf6f1) — NOT transparent —
- * so the safe area matches the brand background on every Android launcher.
+ * PWA / apple icons are full-bleed with a solid background — no transparent
+ * corners — so iOS Safari does not fill them with black and Android launchers
+ * do not double-mask an already rounded shape. The browser favicon
+ * (app/icon.svg) keeps the rounded silhouette since it is rendered as-is.
  */
 import sharp from 'sharp'
 import { writeFileSync } from 'fs'
@@ -47,11 +48,29 @@ function gradients() {
     </linearGradient>`
 }
 
-function createIconSvg(size) {
+// Browser favicon (app/icon.svg) — keeps the rounded silhouette.
+function createFaviconSvg(size) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
   <defs>${gradients()}
   </defs>
   <rect width="512" height="512" rx="108" ry="108" fill="url(#bg)"/>
+  <g transform="translate(218, 244) scale(12.5) translate(-12, -12) rotate(-15, 12, 12)" opacity="0.7">
+    <path d="${HEART}" fill="url(#h1)"/>
+  </g>
+  <g transform="translate(294, 244) scale(12.5) translate(-12, -12) rotate(15, 12, 12)">
+    <path d="${HEART}" fill="url(#h2)"/>
+  </g>
+</svg>`
+}
+
+// Full-bleed PWA / apple icon — solid background, no rounded corners.
+// Android launchers and iOS apply their own masks; an already-rounded source
+// produces double-masking and visible black/transparent corners.
+function createIconSvg(size) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">
+  <defs>${gradients()}
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
   <g transform="translate(218, 244) scale(12.5) translate(-12, -12) rotate(-15, 12, 12)" opacity="0.7">
     <path d="${HEART}" fill="url(#h1)"/>
   </g>
@@ -113,42 +132,39 @@ function createOgSvg() {
 
 async function main() {
   const iconSvg     = Buffer.from(createIconSvg(512))
+  const faviconSvg  = Buffer.from(createFaviconSvg(512))
   const maskableSvg = Buffer.from(createMaskableSvg(512))
   const ogSvg       = Buffer.from(createOgSvg())
 
-  const sizes = [32, 180, 192, 512]
-  for (const size of sizes) {
+  // 32×32 favicon — keep rounded silhouette to match browser tab.
+  const faviconBuf = await sharp(faviconSvg).resize(32, 32).png().toBuffer()
+  writeFileSync(join(ROOT, 'app', 'favicon.ico'), faviconBuf)
+  console.log('✓ app/favicon.ico (32×32)')
+
+  // Apple icon — Next.js auto-detects app/apple-icon.png.
+  const appleBuf = await sharp(iconSvg).resize(180, 180).png().toBuffer()
+  writeFileSync(join(ROOT, 'app', 'apple-icon.png'), appleBuf)
+  console.log('✓ app/apple-icon.png (180×180, full-bleed)')
+
+  // PWA icons — full-bleed, served from public/icons/.
+  for (const size of [192, 512]) {
     const buf = await sharp(iconSvg).resize(size, size).png().toBuffer()
-    if (size === 32) {
-      writeFileSync(join(ROOT, 'app', 'favicon.ico'), buf)
-      console.log(`✓ app/favicon.ico (${size}×${size})`)
-    }
-    if (size === 180) {
-      writeFileSync(join(ROOT, 'public', 'icons', 'apple-touch-icon.png'), buf)
-      console.log(`✓ public/icons/apple-touch-icon.png (${size}×${size})`)
-    }
-    if (size === 192) {
-      writeFileSync(join(ROOT, 'public', 'icons', 'icon-192.png'), buf)
-      console.log(`✓ public/icons/icon-192.png (${size}×${size})`)
-    }
-    if (size === 512) {
-      writeFileSync(join(ROOT, 'public', 'icons', 'icon-512.png'), buf)
-      console.log(`✓ public/icons/icon-512.png (${size}×${size})`)
-    }
+    writeFileSync(join(ROOT, 'public', 'icons', `icon-${size}.png`), buf)
+    console.log(`✓ public/icons/icon-${size}.png (${size}×${size}, full-bleed)`)
   }
 
   const maskBuf = await sharp(maskableSvg).resize(512, 512).png().toBuffer()
-  writeFileSync(join(ROOT, 'public', 'icons', 'maskable-512.png'), maskBuf)
-  console.log('✓ public/icons/maskable-512.png (512×512, maskable)')
+  writeFileSync(join(ROOT, 'public', 'icons', 'icon-maskable-512.png'), maskBuf)
+  console.log('✓ public/icons/icon-maskable-512.png (512×512, maskable)')
 
   const ogBuf = await sharp(ogSvg).resize(1200, 630).png().toBuffer()
   writeFileSync(join(ROOT, 'public', 'og-image.png'), ogBuf)
   console.log('✓ public/og-image.png (1200×630, social share)')
 
-  writeFileSync(join(ROOT, 'app', 'icon.svg'), createIconSvg(512))
+  writeFileSync(join(ROOT, 'app', 'icon.svg'), createFaviconSvg(512))
   console.log('✓ app/icon.svg')
 
-  console.log('\nDone! All icons regenerated with the new palette.')
+  console.log('\nDone! All icons regenerated.')
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
