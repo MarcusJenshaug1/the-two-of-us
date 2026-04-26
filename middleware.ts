@@ -12,10 +12,12 @@ export async function middleware(request: NextRequest) {
     if (!request.cookies.get('locale')) {
         const host = request.headers.get('host') || ''
         const locale = host.endsWith('.no') ? 'no' : 'en'
+        const isSecure = request.nextUrl.protocol === 'https:'
         response.cookies.set('locale', locale, {
             path: '/',
             maxAge: 365 * 24 * 60 * 60,
             sameSite: 'lax',
+            secure: isSecure,
         })
     }
 
@@ -71,15 +73,15 @@ export async function middleware(request: NextRequest) {
     const isAppRoute = pathname.startsWith('/app')
     const isOnboardingRoute = pathname.startsWith('/onboarding')
     const isSignIn = pathname === '/sign-in'
-    const isInviteRoute = pathname.startsWith('/invite')
+    const isRoot = pathname === '/'
 
     // 1. Not logged in -> can only access /sign-in and /invite (invite handles its own redirect)
     if (!user && (isAppRoute || isOnboardingRoute)) {
         return NextResponse.redirect(new URL('/sign-in', request.url))
     }
 
-    // 2. Logged in -> check room membership for /app routes and /sign-in redirect
-    if (user && (isAppRoute || isSignIn)) {
+    // 2. Logged in -> check room membership for /app routes, /sign-in, and / redirect
+    if (user && (isAppRoute || isSignIn || isRoot)) {
         const { data: membership } = await supabase
             .from('room_members')
             .select('room_id')
@@ -91,8 +93,8 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/onboarding/room', request.url))
         }
 
-        // Signed in on /sign-in page -> send to correct place
-        if (isSignIn) {
+        // Signed in on /sign-in or / -> send to correct place (PWA start_url is /)
+        if (isSignIn || isRoot) {
             if (!membership) {
                 return NextResponse.redirect(new URL('/onboarding/profile', request.url))
             }

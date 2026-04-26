@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
@@ -134,7 +135,7 @@ export default function PlannerPage() {
     const [events, setEvents] = useState<SharedEvent[]>([])
     const [tasks, setTasks] = useState<SharedTask[]>([])
     const [roomId, setRoomId] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
 
     // Event form
     const [showEventForm, setShowEventForm] = useState(false)
@@ -181,6 +182,7 @@ export default function PlannerPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const { toast } = useToast()
     const t = useTranslations('planner')
     const { locale } = useLocale()
@@ -188,7 +190,10 @@ export default function PlannerPage() {
 
     // ─── Load Data ───
     const loadData = useCallback(async () => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
         try {
             setIsLoading(true)
             const { data: member } = await supabase
@@ -649,7 +654,7 @@ export default function PlannerPage() {
     }
 
     // ─── Render ───
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
@@ -36,7 +37,7 @@ export default function ProgressPage() {
     const [answeredDates, setAnsweredDates] = useState<Record<string, string>>({})
     const [calMonth, setCalMonth] = useState(new Date())
     const [selectedSpecial, setSelectedSpecial] = useState<{ emoji: string; label: string } | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [myMood, setMyMood] = useState<string | null>(null)
     const [partnerMood, setPartnerMood] = useState<string | null>(null)
     const [isSavingMood, setIsSavingMood] = useState(false)
@@ -65,6 +66,7 @@ export default function ProgressPage() {
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const router = useRouter()
     const { toast } = useToast()
     const t = useTranslations('progress')
@@ -79,8 +81,12 @@ export default function ProgressPage() {
     })()
 
     useEffect(() => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
         let mounted = true
+        setIsLoading(true)
 
         const loadProgress = async () => {
             try {
@@ -265,7 +271,7 @@ export default function ProgressPage() {
         return map
     }, [calMonth, room?.anniversary_date])
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import Link from 'next/link'
 import {
     ArrowLeft, Heart, MessageSquare, Smile, Star,
@@ -42,14 +43,18 @@ export default function MonthRecapPage() {
     const [datesPlanned, setDatesPlanned] = useState(0)
     const [datesDone, setDatesDone] = useState(0)
     const [topDateCategories, setTopDateCategories] = useState<{ category: string; count: number }[]>([])
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const t = useTranslations('recap')
 
     const loadRecap = useCallback(async () => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
         try {
             setIsLoading(true)
             const { data: member } = await supabase
@@ -176,7 +181,7 @@ export default function MonthRecapPage() {
 
     useEffect(() => { loadRecap() }, [loadRecap])
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

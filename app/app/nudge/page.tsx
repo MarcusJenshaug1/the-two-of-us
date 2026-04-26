@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { Sparkles, Camera, X, Send, User, ImagePlus, Pencil, Check } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
@@ -72,17 +73,22 @@ export default function LovePage() {
     const [partnerProfile, setPartnerProfile] = useState<any>(null)
     const [myProfile, setMyProfile] = useState<any>(null)
     const [roomId, setRoomId] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
 
     const imageInputRef = useRef<HTMLInputElement>(null)
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const { toast } = useToast()
     const t = useTranslations('nudge')
     const dateKey = getDateKey()
 
     const loadData = useCallback(async () => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
+        setIsLoading(true)
         try {
             const { data: member } = await supabase
                 .from('room_members')
@@ -298,7 +304,7 @@ export default function LovePage() {
     const partnerName = partnerProfile?.name || t('partner')
     const canAddLog = myLogs.length < 4
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

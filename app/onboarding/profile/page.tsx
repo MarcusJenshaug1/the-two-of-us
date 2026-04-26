@@ -95,6 +95,8 @@ export default function ProfilePage() {
 
             if (updateError) throw updateError
 
+            // Profile changed server-side — invalidate RSC cache before navigating
+            router.refresh()
             // If there's a pending invite code, go directly to that invite page
             const pendingCode = sessionStorage.getItem('inviteCode')
             if (pendingCode) {

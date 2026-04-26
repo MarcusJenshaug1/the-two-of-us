@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { useTranslations, useLocale } from '@/lib/i18n'
 import { getDateLocale } from '@/lib/i18n/date-locale'
@@ -41,7 +42,7 @@ export default function InboxDetailPage() {
     const [partnerAnswer, setPartnerAnswer] = useState<any>(null)
     const [myProfile, setMyProfile] = useState<Profile | null>(null)
     const [partnerProfile, setPartnerProfile] = useState<Profile | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [activeReaction, setActiveReaction] = useState<string | null>(null)
     const [isSubmittingReaction, setIsSubmittingReaction] = useState(false)
@@ -79,6 +80,7 @@ export default function InboxDetailPage() {
     const router = useRouter()
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const { toast } = useToast()
     const t = useTranslations('inbox')
     const { locale } = useLocale()
@@ -86,7 +88,10 @@ export default function InboxDetailPage() {
     const dateKey = params.dateKey as string
 
     const loadDetail = async () => {
-        if (!user) return
+        if (!user) {
+            setIsLoading(false)
+            return
+        }
 
         try {
             setIsLoading(true)
@@ -433,7 +438,7 @@ export default function InboxDetailPage() {
         return format(d, 'EEEE, MMMM d', { locale: dateLoc })
     }
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />

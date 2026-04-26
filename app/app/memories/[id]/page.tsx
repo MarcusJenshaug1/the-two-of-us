@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/supabase/auth-provider'
+import { usePageLoading } from '@/hooks/use-page-loading'
 import { useToast } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,18 +36,22 @@ export default function MemoryDetailPage() {
     const [memory, setMemory] = useState<Memory | null>(null)
     const [isFav, setIsFav] = useState(false)
     const [roomId, setRoomId] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [isLoading, setIsLoading] = useState(false)
     const [viewerIndex, setViewerIndex] = useState<number | null>(null)
 
     const supabase = createClient()
     const { user } = useAuth()
+    const showSpinner = usePageLoading(isLoading)
     const { toast } = useToast()
     const t = useTranslations('memories')
     const { locale } = useLocale()
     const dateLoc = getDateLocale(locale)
 
     const loadData = useCallback(async () => {
-        if (!user || !id) return
+        if (!user || !id) {
+            setIsLoading(false)
+            return
+        }
         try {
             setIsLoading(true)
             const { data: member } = await supabase
@@ -105,7 +110,7 @@ export default function MemoryDetailPage() {
         router.push('/app/memories')
     }
 
-    if (isLoading) {
+    if (showSpinner) {
         return (
             <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
                 <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-800" />
