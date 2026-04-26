@@ -23,7 +23,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
     title: "The Two of Us",
     description: "A private space for couples to connect, share, and grow together.",
-    manifest: "/manifest.webmanifest",
     metadataBase: new URL(
         process.env.NEXT_PUBLIC_SITE_URL || "https://two-of-us-iota.vercel.app"
     ),
@@ -53,15 +52,6 @@ export const metadata: Metadata = {
         capable: true,
         statusBarStyle: "default",
         title: "Two of Us",
-    },
-    icons: {
-        icon: [
-            { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-            { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-        ],
-        apple: [
-            { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-        ],
     },
 };
 
